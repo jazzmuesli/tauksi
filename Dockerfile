@@ -8,7 +8,7 @@ RUN \
   apt-get install -y build-essential && \
   apt-get install default-jre maven -y && \
   apt-get install -y software-properties-common && \
-  apt-get install -y byobu curl git htop man unzip vim wget && \
+  apt-get install -y byobu curl git htop man unzip vim wget zip && \
   apt-get install python3.6 python3-pip -y && \
   rm -rf /var/lib/apt/lists/*
 

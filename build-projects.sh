@@ -18,4 +18,4 @@ do
 done
 python3 combine-jacoco.py
 java -classpath ~/tauksi/target/tauksi-1.0-SNAPSHOT-jar-with-dependencies.jar org.pavelreich.saaremaa.ClassMetricsGatherer
-
+zip metrics.zip *.csv
