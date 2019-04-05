@@ -1,3 +1,12 @@
+# install tools
+for project in `echo ckjm ck tauksi`;
+do
+	git clone https://github.com/jazzmuesli/${project}.git
+	cd ~/$project
+	mvn install
+done
+
+# build and analyse project
 for project in `cat projects.txt`;
 do
 	cd
