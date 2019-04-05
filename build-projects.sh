@@ -5,5 +5,6 @@ do
 	cd $(basename $project)
 	mvn -fn -DtestFailureIgnore=true org.jacoco:jacoco-maven-plugin:LATEST:prepare-agent test 
 	mvn org.jacoco:jacoco-maven-plugin:LATEST:report
-	python3 ~/combine-jacoco.py
 done
+python3 combine-jacoco.py
+
