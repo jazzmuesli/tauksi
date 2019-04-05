@@ -105,7 +105,7 @@
 					<configuration>
 						<archive>
 							<manifest>
-								<mainClass>org.pavelreich.saaremaa.AnalyseDependencies</mainClass>
+								<mainClass>org.pavelreich.saaremaa.ClassMetricsGatherer</mainClass>
 							</manifest>
 						</archive>
 						<descriptorRefs>
