@@ -16,8 +16,8 @@ do
 	cd
 	git clone "https://github.com/${project}.git"
 	cd $(basename $project)
-	mvn -fn -DtestFailureIgnore=true org.jacoco:jacoco-maven-plugin:LATEST:prepare-agent test 
-	mvn org.jacoco:jacoco-maven-plugin:LATEST:report
+	mvn -fn -DtestFailureIgnore=true org.jacoco:jacoco-maven-plugin:LATEST:prepare-agent test | tee build1.log 
+	mvn org.jacoco:jacoco-maven-plugin:LATEST:report | tee build2.log
 done
 cd
 python3 combine-jacoco.py
