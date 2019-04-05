@@ -13,9 +13,10 @@ RUN \
   rm -rf /var/lib/apt/lists/*
 
 # Add files.
-#ADD root/.bashrc /root/.bashrc
-#ADD root/.gitconfig /root/.gitconfig
-#ADD root/.scripts /root/.scripts
+
+ADD projects.txt /root/projects.txt
+ADD build-projects.sh /root/build-projects.sh
+ADD combine-jacoco.py /root/combine-jacoco.py
 
 # Set environment variables.
 ENV HOME /root
