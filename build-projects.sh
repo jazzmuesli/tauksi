@@ -7,6 +7,8 @@ do
 	mvn assembly:single
 done
 
+cd
+
 # build and analyse project
 for project in `cat projects.txt`;
 do
