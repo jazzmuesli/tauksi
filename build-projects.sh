@@ -16,9 +16,10 @@ do
 	cd
 	git clone "https://github.com/${project}.git"
 	cd $(basename $project)
-	mvn -fn compile test-compile | tee build0.log
-	mvn -fn -DtestFailureIgnore=true org.jacoco:jacoco-maven-plugin:LATEST:prepare-agent test | tee build1.log 
-	mvn org.jacoco:jacoco-maven-plugin:LATEST:report | tee build2.log
+	timeout 1800s mvn -fn compile test-compile | tee build0.log
+	timeout 1800s mvn -fn -DtestFailureIgnore=true org.jacoco:jacoco-maven-plugin:LATEST:prepare-agent test | tee build1.log 
+	timeout 1800s mvn org.jacoco:jacoco-maven-plugin:LATEST:report | tee build2.log
+	timeout 1800s mvn -DwithHistory -DtimeoutConstant=30  -DoutputFormats=CSV,XML,HTML  org.pitest:pitest-maven:mutationCoverage | tee build3.log
 done
 cd
 python3 combine-jacoco.py

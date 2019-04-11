@@ -1,3 +1,4 @@
+jfree/jfreechart
 google/error-prone
 square/javapoet
 timmolter/XChange
