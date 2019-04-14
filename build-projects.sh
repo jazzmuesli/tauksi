@@ -1,5 +1,5 @@
 # install tools
-for project in `echo ckjm ck tauksi`;
+for project in `echo ckjm ck tauksi javadepextractor`;
 do
 	cd
 	git clone https://github.com/jazzmuesli/${project}.git
@@ -17,9 +17,10 @@ do
 	git clone "https://github.com/${project}.git"
 	cd $(basename $project)
 	timeout 1800s mvn -fn compile test-compile | tee build0.log
+	timeout 1800s java -jar ~/javadepextractor/target/javadepextractor-1.0-SNAPSHOT-jar-with-dependencies.jar . | tee build0a.log
 	timeout 1800s mvn -fn -DtestFailureIgnore=true org.jacoco:jacoco-maven-plugin:LATEST:prepare-agent test | tee build1.log 
 	timeout 1800s mvn org.jacoco:jacoco-maven-plugin:LATEST:report | tee build2.log
-	timeout 1800s mvn -DwithHistory -DtimeoutConstant=30  -DoutputFormats=CSV,XML,HTML  org.pitest:pitest-maven:mutationCoverage | tee build3.log
+	timeout 1800s mvn -DwithHistory -DtimeoutConstant=230  -DoutputFormats=CSV,XML,HTML  org.pitest:pitest-maven:mutationCoverage | tee build3.log
 done
 cd
 python3 combine-jacoco.py
