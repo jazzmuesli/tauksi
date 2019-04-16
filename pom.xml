@@ -38,11 +38,18 @@
 
 
 	<dependencies>
-            <dependency>
-                        <groupId>gr.spinellis</groupId>
-                        <artifactId>ckjm</artifactId>
-                        <version>1.9</version>
-                </dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-math3 -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-math3</artifactId>
+			<version>3.6.1</version>
+		</dependency>
+
+		<dependency>
+			<groupId>gr.spinellis</groupId>
+			<artifactId>ckjm</artifactId>
+			<version>1.9</version>
+		</dependency>
 		<dependency>
 			<groupId>com.github.mauricioaniche</groupId>
 			<artifactId>ck</artifactId>
@@ -53,16 +60,16 @@
 			<artifactId>maven-invoker</artifactId>
 			<version>LATEST</version>
 		</dependency>
-               <dependency>
-                        <groupId>net.sourceforge.pmd</groupId>
-                        <artifactId>pmd-java</artifactId>
-                        <version>6.8.0</version>
+		<dependency>
+			<groupId>net.sourceforge.pmd</groupId>
+			<artifactId>pmd-java</artifactId>
+			<version>6.8.0</version>
 		</dependency>
-               <dependency>
-                        <groupId>org.eclipse.jgit</groupId>
-                        <artifactId>org.eclipse.jgit</artifactId>
-                        <version>5.2.1.201812262042-r</version>
-                </dependency>		
+		<dependency>
+			<groupId>org.eclipse.jgit</groupId>
+			<artifactId>org.eclipse.jgit</artifactId>
+			<version>5.2.1.201812262042-r</version>
+		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-csv</artifactId>
@@ -95,11 +102,18 @@
 			<artifactId>groum</artifactId>
 			<version>1.0</version>
 		</dependency>
-<!-- https://mvnrepository.com/artifact/commons-lang/commons-lang -->
+		<!-- https://mvnrepository.com/artifact/commons-lang/commons-lang -->
+		<dependency>
+			<groupId>commons-lang</groupId>
+			<artifactId>commons-lang</artifactId>
+			<version>2.6</version>
+		</dependency>
+		
+<!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
 <dependency>
-    <groupId>commons-lang</groupId>
-    <artifactId>commons-lang</artifactId>
-    <version>2.6</version>
+    <groupId>org.slf4j</groupId>
+    <artifactId>slf4j-api</artifactId>
+    <version>1.7.26</version>
 </dependency>
 
 

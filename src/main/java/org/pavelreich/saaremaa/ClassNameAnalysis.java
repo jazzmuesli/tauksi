@@ -110,9 +110,16 @@ public class ClassNameAnalysis {
 		return ret;
 	}
 
-	private static void run(String dir) throws IOException {
-		// Set<ClassName> classNames = readClassMetrics(dir);
-		Set<ClassName> classNames = readClassNames(dir);
+	private static void run(String file) throws IOException {
+		Set<ClassName> classNames;
+		if (file.contains("class-metrics.csv")) {
+			classNames = readClassMetrics(file);			
+		} else if (file.contains("classnames.txt")) {
+			classNames = readClassNames(file);
+		} else {
+			throw new IllegalArgumentException("Can't understand " + file);
+		}
+		
 
 		LOG.info("Loaded " + classNames.size() + " classNames");
 		Map<String, Long> projectCountByClassName = classNames.stream().map(x -> x.className)
@@ -122,6 +129,8 @@ public class ClassNameAnalysis {
 				.map(className -> ClassNameAnalysis.createNGramParts(className.className,
 						projectCountByClassName.get(className.className)))
 				.flatMap(List::stream).collect(Collectors.toList());
+		calculatePartFreqTable(classNameParts);
+		
 		CSVReporter csvReporterParts = new CSVReporter("class-name-parts.csv", "classNamePart", "start", "end", "size",
 				"plainClassName", "className", "projects");
 		classNameParts.forEach(x -> csvReporterParts.write(x.toCSV()));
@@ -141,8 +150,27 @@ public class ClassNameAnalysis {
 		LOG.info("Generated " + projectCountByNGram.size() + " ngrams");
 	}
 
-	private static Set<ClassName> readClassNames(String dir) throws IOException {
-		CSVParser parser = CSVParser.parse(new File(dir + "classnames.txt"), Charset.defaultCharset(),
+	private static void calculatePartFreqTable(List<ClassNamePart> classNameParts) throws IOException {
+		double[] projectsDistribution = classNameParts.stream().mapToDouble(x -> Double.valueOf(x.projects)).toArray();
+		// interested in parts that are more common than 90%
+		double projCountAbovePercentile = new org.apache.commons.math3.stat.descriptive.rank.Percentile(90).evaluate(projectsDistribution);
+		Map<String, Long> cnPartFreqTable = classNameParts
+				.stream()
+				.filter(p -> p.projects >= projCountAbovePercentile)
+				.map(x -> x.ngram.part)
+				.collect(calculateFrequencyTable());
+		LOG.info("Extracted " + cnPartFreqTable.size() + " parts from " + classNameParts.size() + " classes");
+		CSVReporter xcsvReporterParts = new CSVReporter("class-name-part-freq.csv", "classNamePart", "frequency");
+		cnPartFreqTable.entrySet()
+			.stream()
+			.sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+			.forEach(x -> xcsvReporterParts.write(x.getKey(), x.getValue()));
+		
+		xcsvReporterParts.close();
+	}
+
+	private static Set<ClassName> readClassNames(String file) throws IOException {
+		CSVParser parser = CSVParser.parse(new File(file), Charset.defaultCharset(),
 				CSVFormat.DEFAULT.withDelimiter(','));
 		Set<ClassName> classNames = new HashSet();
 		for (CSVRecord x : parser.getRecords()) {
@@ -153,8 +181,8 @@ public class ClassNameAnalysis {
 		return classNames;
 	}
 
-	private static Set<ClassName> readClassMetrics(String dir) throws IOException {
-		CSVParser parser = CSVParser.parse(new File(dir + "class-metrics.csv"), Charset.defaultCharset(),
+	private static Set<ClassName> readClassMetrics(String file) throws IOException {
+		CSVParser parser = CSVParser.parse(new File(file), Charset.defaultCharset(),
 				CSVFormat.DEFAULT.withFirstRecordAsHeader().withDelimiter(';'));
 		Set<ClassName> classNames = new HashSet();
 		parser.forEach(x -> classNames.add(ClassName.createFromClassNameAndFile(x.get("class"), x.get("file"))));
