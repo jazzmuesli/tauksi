@@ -16,7 +16,7 @@ RUN \
 
 ADD projects.txt /root/projects.txt
 ADD build-projects.sh /root/build-projects.sh
-ADD combine-jacoco.py /root/combine-jacoco.py
+ADD combine-files.py /root/combine-files.py
 
 # Set environment variables.
 ENV HOME /root
