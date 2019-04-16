@@ -1,4 +1,12 @@
 jfree/jfreechart
+apache/commons-math
+apache/commons-io
+JodaOrg/joda-time
+apache/log4j
+apache/ant
+apache/ant-ivy
+apache/poi
+apache/lucene-solr
 google/error-prone
 square/javapoet
 timmolter/XChange
