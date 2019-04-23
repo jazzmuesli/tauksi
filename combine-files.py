@@ -26,3 +26,4 @@ def combine_files(mask, field_name, out_fname):
 combine_files('jacoco.csv', 'jacoco_filename', 'combined-jacoco.csv')
 combine_files('dependencies.txt', 'dep_filename', 'deps.csv')
 combine_files('mutations.csv', 'mut_filename', 'pitest.csv')
+combine_files('git-history.csv', 'gith_filename', 'ghistory.csv')
