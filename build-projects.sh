@@ -23,8 +23,8 @@ do
 	timeout 1800s mvn -DwithHistory -DtimeoutConstant=230  -DoutputFormats=CSV,XML,HTML  org.pitest:pitest-maven:mutationCoverage | tee build3.log
 done
 cd
-sh generate-git-history.sh
-sh analyse-test-deps.sh
+sh ~/tauksi/generate-git-history.sh
+sh ~/tauksi/analyse-test-deps.sh
 python3 combine-files.py
 java -classpath ~/tauksi/target/tauksi-1.0-SNAPSHOT-jar-with-dependencies.jar org.pavelreich.saaremaa.ClassMetricsGatherer
 zip metrics.zip *.csv
