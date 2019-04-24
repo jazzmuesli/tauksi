@@ -40,18 +40,18 @@ public class GitHistory {
 		Git git = Git.open(new File("."));
 		Iterator<RevCommit> it = git.log().call().iterator();
 		Repository repository = git.getRepository();
-		
+
 		DiffFormatter df = new DiffFormatter(DisabledOutputStream.INSTANCE);
 		df.setRepository(repository);
 		df.setDiffComparator(RawTextComparator.DEFAULT);
 		df.setDetectRenames(true);
 
-		
 		CSVReporter csvReporter = new CSVReporter("git-history.csv", new String[] { "commit", "author", "timestamp",
-				"changeType", "oldFilename", "oldSize", "newFilename", "newSize"});
-		CSVReporter fullCsvReporter = new CSVReporter("git-fullm-history.csv", new String[] { "commit", "author", "timestamp",
-				"changeType", "oldFilename", "oldSize", "newFilename", "newSize", "message" });
+				"changeType", "oldFilename", "oldSize", "newFilename", "newSize" });
+		CSVReporter fullCsvReporter = new CSVReporter("git-fullm-history.csv", new String[] { "commit", "author",
+				"timestamp", "changeType", "oldFilename", "oldSize", "newFilename", "newSize", "message" });
 		RevWalk rw = new RevWalk(repository);
+		int i = 0;
 		while (it.hasNext()) {
 			RevCommit commit = it.next();
 			RevTree parentTree = getParentTree(rw, commit);
@@ -68,8 +68,10 @@ public class GitHistory {
 						newSize, fullMessage);
 
 			}
-			csvReporter.flush();
-			fullCsvReporter.flush();
+			if (i++ % 10 == 0) { // don't flush too often
+				csvReporter.flush();
+				fullCsvReporter.flush();
+			}
 		}
 		df.close();
 		rw.close();
@@ -79,6 +81,7 @@ public class GitHistory {
 
 	/**
 	 * get parent tree, potentially a null.
+	 * 
 	 * @param rw
 	 * @param commit
 	 */
@@ -95,7 +98,7 @@ public class GitHistory {
 			LOG.error("Can't get parent tree for " + commit + " on rw " + rw + " due to " + e.getMessage(), e);
 			return null;
 		}
-		
+
 	}
 
 	private static long getSize(Repository repository, DiffEntry diff, DiffEntry.Side side) {
