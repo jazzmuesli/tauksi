@@ -24,7 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Generate git-history.csv:
+ * Generate git-full-history.csv and git-history.csv without message
  * commit;author;timestamp;changeType;oldFilename;oldSize;newFilename;newSize;message
  * 33ddcb68e17dd1234c4bd0a987bcdaf803761f4a;preich@192.168.1.101;1555541213;MODIFY;build-projects.sh;1062;build-projects.sh;1061;collect
  * pitest
@@ -48,6 +48,8 @@ public class GitHistory {
 
 		
 		CSVReporter csvReporter = new CSVReporter("git-history.csv", new String[] { "commit", "author", "timestamp",
+				"changeType", "oldFilename", "oldSize", "newFilename", "newSize"});
+		CSVReporter fullCsvReporter = new CSVReporter("git-fullm-history.csv", new String[] { "commit", "author", "timestamp",
 				"changeType", "oldFilename", "oldSize", "newFilename", "newSize", "message" });
 		RevWalk rw = new RevWalk(repository);
 		while (it.hasNext()) {
@@ -57,16 +59,22 @@ public class GitHistory {
 			for (DiffEntry diff : diffs) {
 				long oldSize = getSize(repository, diff, Side.OLD);
 				long newSize = getSize(repository, diff, Side.NEW);
+				String fullMessage = commit.getFullMessage().trim().replaceAll("\n", "<CR>");
 				csvReporter.write(commit.getId().name(), commit.getAuthorIdent().getEmailAddress(),
 						commit.getCommitTime(), diff.getChangeType(), diff.getOldPath(), oldSize, diff.getNewPath(),
-						newSize, commit.getFullMessage().trim().replaceAll("\n", "<CR>"));
+						newSize);
+				fullCsvReporter.write(commit.getId().name(), commit.getAuthorIdent().getEmailAddress(),
+						commit.getCommitTime(), diff.getChangeType(), diff.getOldPath(), oldSize, diff.getNewPath(),
+						newSize, fullMessage);
 
 			}
 			csvReporter.flush();
+			fullCsvReporter.flush();
 		}
 		df.close();
 		rw.close();
 		csvReporter.close();
+		fullCsvReporter.close();
 	}
 
 	/**

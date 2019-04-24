@@ -42,6 +42,9 @@ class MockProcessor extends AbstractProcessor<CtInvocation> {
             try {
             	CtMethod method = element.getParent(CtMethod.class);
             	CtClass klasse = element.getParent(CtClass.class);
+            	if (klasse == null) {
+            		return;
+            	}
                 String simpleName = getSimpleName(element);
                 
                 CtExpression type = ((CtFieldRead) element.getArguments().get(0)).getTarget();
