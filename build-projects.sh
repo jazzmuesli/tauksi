@@ -24,6 +24,7 @@ do
 done
 cd
 sh generate-git-history.sh
+sh analyse-test-deps.sh
 python3 combine-files.py
 java -classpath ~/tauksi/target/tauksi-1.0-SNAPSHOT-jar-with-dependencies.jar org.pavelreich.saaremaa.ClassMetricsGatherer
 zip metrics.zip *.csv
