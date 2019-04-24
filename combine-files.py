@@ -10,20 +10,20 @@ def get_files(directory, mask):
         ret.append(fname)
   return ret
 
-def combine_files(mask, field_name, out_fname):
+def combine_files(mask, field_name, out_fname,h=None,sep=','):
     files =  get_files('.', mask)
     df=pd.DataFrame()
 
     for f in files:
         print(f)
-        x = pd.read_csv(f, header=None, error_bad_lines=False)
+        x = pd.read_csv(f, header=h, error_bad_lines=False,sep=sep)
         x[field_name] = f
         df = df.append(x)
 
-    df.to_csv(out_fname, index=False)
+    df.to_csv(out_fname, index=False,sep=';')
 
 
-combine_files('jacoco.csv', 'jacoco_filename', 'combined-jacoco.csv')
+combine_files('jacoco.csv', 'jacoco_filename', 'combined-jacoco.csv',0,',')
 combine_files('dependencies.txt', 'dep_filename', 'deps.csv')
 combine_files('mutations.csv', 'mut_filename', 'pitest.csv')
-combine_files('git-history.csv', 'gith_filename', 'ghistory.csv')
+combine_files('git-history.csv', 'gith_filename', 'ghistory.csv',0,';')
