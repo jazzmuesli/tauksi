@@ -1,3 +1,5 @@
+quickfix-j/quickfixj
+apache/flink
 jazzmuesli/dbunit
 jfree/jfreechart
 apache/commons-math
