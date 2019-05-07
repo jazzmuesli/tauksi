@@ -1,9 +1,10 @@
 import pandas as pd
 deps=pd.read_csv('deps.csv',sep=";")
 deps['project']=deps.apply(lambda row:row['dep_filename'].replace('./','').replace('/dependencies.txt',''), axis=1)
+# create a dictionary from from_class, to_class, project to ID
+u=deps['0'].append(deps['2']).append(deps['project']).unique()
+d=dict(zip(u, range(1,len(u)+1)))
 def attach_id(field,fid):
-    u=deps[field].unique()
-    d=dict(zip(u, range(1,len(u)+1)))
     deps[fid]=deps.apply(lambda row: d[row[field]], axis=1).astype('int')
 attach_id('0','from_id')
 attach_id('2','to_id')
