@@ -1,9 +1,15 @@
 import pandas as pd
 deps=pd.read_csv('deps.csv',sep=";")
 deps['project']=deps.apply(lambda row:row['dep_filename'].replace('./','').replace('/dependencies.txt',''), axis=1)
+# strip to one project
+# deps=deps[deps['project']=='commons-math']
+
 # create a dictionary from from_class, to_class, project to ID
 u=deps['0'].append(deps['2']).append(deps['project']).unique()
 d=dict(zip(u, range(1,len(u)+1)))
+df=pd.DataFrame({"id": list(d.values()), "value":list(d.keys())})
+df.to_csv('tauksi.dict',header=False,index=False,sep="\t")
+
 def attach_id(field,fid):
     deps[fid]=deps.apply(lambda row: d[row[field]], axis=1).astype('int')
 attach_id('0','from_id')
