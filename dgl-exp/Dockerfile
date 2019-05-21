@@ -25,7 +25,11 @@ ENV HOME /root
 # Define working directory.
 WORKDIR /root
 
-RUN pip3 install torch dgl networkx pandas matplotlib 
+RUN pip3 install networkx pandas matplotlib 
+
+RUN pip3 install -v --log /tmp/pip.log torch
+
+RUN pip3 install dgl
 
 # Define default command.
 CMD ["bash"]
