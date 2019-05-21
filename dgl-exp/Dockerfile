@@ -17,6 +17,7 @@ RUN \
 # Add files.
 
 ADD 1_first.py /root/1_first.py
+ADD run_1.sh /root/run_1.sh
 
 # Set environment variables.
 ENV HOME /root
