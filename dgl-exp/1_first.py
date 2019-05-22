@@ -221,7 +221,7 @@ labels = torch.tensor([0, 1])  # their labels are different
 
 optimizer = torch.optim.Adam(net.parameters(), lr=0.01)
 all_logits = []
-t = tqdm(range(3000))
+t = tqdm(range(300))
 for epoch in t:
     logits = net(G, inputs)
     # we save the logits for visualization later
@@ -265,7 +265,8 @@ def draw(i):
 fig = plt.figure(dpi=150)
 fig.clf()
 ax = fig.subplots()
-draw(0)  # draw the prediction of the first epoch
+draw(len(all_logits)-1)  # draw the prediction of the first epoch
+plt.savefig('result.png')
 plt.close()
 
 ###############################################################################
