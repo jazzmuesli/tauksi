@@ -45,6 +45,7 @@ At the end of this tutorial, we hope you get a brief feeling of how DGL works.
 # -------------------------------
 # Creating the graph for Zachary's karate club goes as follows:
 
+from tqdm import tqdm
 import dgl
 
 def build_karate_club_graph():
@@ -220,7 +221,8 @@ labels = torch.tensor([0, 1])  # their labels are different
 
 optimizer = torch.optim.Adam(net.parameters(), lr=0.01)
 all_logits = []
-for epoch in range(30):
+t = tqdm(range(3000))
+for epoch in t:
     logits = net(G, inputs)
     # we save the logits for visualization later
     all_logits.append(logits.detach())
@@ -231,8 +233,8 @@ for epoch in range(30):
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
-
-    print('Epoch %d | Loss: %.4f' % (epoch, loss.item()))
+    t.set_description(("ML Loss: %.6f" % (loss.item())))
+#    print('Epoch %d | Loss: %.4f' % (epoch, loss.item()))
 
 ###############################################################################
 # This is a rather toy example, so it does not even have a validation or test
