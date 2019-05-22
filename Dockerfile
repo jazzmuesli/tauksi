@@ -28,6 +28,7 @@ RUN pip3 install tqdm
 ADD projects.txt /root/projects.txt
 ADD build-projects.sh /root/build-projects.sh
 ADD combine-files.py /root/combine-files.py
+ADD 1000Github_urls.txt /root/1000Github_urls.txt
 
 # Define default command.
 CMD ["bash"]
