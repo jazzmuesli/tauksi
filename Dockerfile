@@ -12,12 +12,6 @@ RUN \
   apt-get install python3.6 python3-pip -y && \
   rm -rf /var/lib/apt/lists/*
 
-# Add files.
-
-ADD projects.txt /root/projects.txt
-ADD build-projects.sh /root/build-projects.sh
-ADD combine-files.py /root/combine-files.py
-
 # Set environment variables.
 ENV HOME /root
 
@@ -27,6 +21,13 @@ WORKDIR /root
 RUN pip3 install pandas
 
 RUN pip3 install tqdm 
+
+
+# Add files.
+
+ADD projects.txt /root/projects.txt
+ADD build-projects.sh /root/build-projects.sh
+ADD combine-files.py /root/combine-files.py
 
 # Define default command.
 CMD ["bash"]
