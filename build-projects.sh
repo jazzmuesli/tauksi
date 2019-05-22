@@ -12,7 +12,10 @@ done
 cd
 
 # build and analyse project
-for project in `cat projects.txt`;
+proj_fname=projects.txt
+proj_fname=1000Github_urls.txt
+proj_count=$(cat $proj_fname | wc -l)
+for project in `cat $proj_fname`;
 do
 	cd
 	dir=$(basename $project)
@@ -33,7 +36,8 @@ do
 		timeout 1800s mvn org.jacoco:jacoco-maven-plugin:LATEST:report | tee build2.log
 		timeout 1800s mvn -DwithHistory -DtimeoutConstant=230  -DoutputFormats=CSV,XML,HTML  org.pitest:pitest-maven:mutationCoverage | tee build3.log
 	fi
-done
+done | tqdm --total $proj_count
+
 cd
 sh ~/tauksi/generate-git-history.sh
 sh ~/tauksi/analyse-test-deps.sh

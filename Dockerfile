@@ -24,7 +24,9 @@ ENV HOME /root
 # Define working directory.
 WORKDIR /root
 
-RUN pip3 install pandas 
+RUN pip3 install pandas
+
+RUN pip3 install tqdm 
 
 # Define default command.
 CMD ["bash"]
