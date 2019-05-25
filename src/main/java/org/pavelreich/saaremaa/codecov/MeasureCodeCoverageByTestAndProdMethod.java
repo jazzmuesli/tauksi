@@ -7,10 +7,15 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.jacoco.core.analysis.Analyzer;
 import org.jacoco.core.analysis.CoverageBuilder;
 import org.jacoco.core.analysis.IClassCoverage;
@@ -24,6 +29,8 @@ import org.junit.Test;
 import org.junit.runner.JUnitCore;
 import org.junit.runner.Request;
 import org.junit.runner.Result;
+import org.pavelreich.saaremaa.BuildProjects;
+import org.pavelreich.saaremaa.CSVReporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.jacoco.core.runtime.RuntimeData;
@@ -36,7 +43,7 @@ import org.jacoco.core.data.SessionInfoStore;
  * @author preich
  *
  */
-public class CoreTutorialTest {
+public class MeasureCodeCoverageByTestAndProdMethod {
 	/**
 	 * A class loader that loads classes from in-memory data.
 	 */
@@ -90,7 +97,7 @@ public class CoreTutorialTest {
 		return "";
 	}
 
-	static final Logger LOG = LoggerFactory.getLogger(CoreTutorialTest.class);
+	static final Logger LOG = LoggerFactory.getLogger(MeasureCodeCoverageByTestAndProdMethod.class);
 
 	private List<TestCoverage> runTutorial() throws Exception {
 		Class<CalculadoraTest> clazz = CalculadoraTest.class;
@@ -140,44 +147,36 @@ public class CoreTutorialTest {
 				junitClass = memoryClassLoader.findClass(junitName);
 			}
 
-			
 			Map<String, IClassCoverage> coverageByClass = runTest(loadedClasses, runtime, data, junitClass, methodName);
 			List<ProdClassCoverage> xs = new ArrayList();
 			for (Entry<String, IClassCoverage> entry : coverageByClass.entrySet()) {
 				IClassCoverage coverage = entry.getValue();
-				ProdClassCoverage cc = new ProdClassCoverage(coverage.getName().replaceAll("/", "."), 
-						coverage.getMethods()
-						.stream()
-						.collect(Collectors.toMap(m -> m.getName(), m -> m.getLineCounter())));
+				ProdClassCoverage cc = new ProdClassCoverage(coverage.getName().replaceAll("/", "."), coverage
+						.getMethods().stream().collect(Collectors.
+								toMap(m -> getMethodName(m), 
+										m -> m.getLineCounter(),
+										(a,b) -> {
+											return a;
+										})));
 				xs.add(cc);
 			}
-			TestCoverage testCoverage = new TestCoverage(junitName,methodName, xs);
+			TestCoverage testCoverage = new TestCoverage(junitName, methodName, xs);
 			ret.add(testCoverage);
 		}
 		return ret;
 	}
 
+	private String getMethodName(IMethodCoverage m) {
+		return m.getName() + m.getDesc();
+	}
+
 	private Map<String, IClassCoverage> runTest(final Collection<Class> loadedClasses, final IRuntime runtime,
 			final RuntimeData data, Class<?> junitClass, String methodName) {
 		JUnitCore junit = new JUnitCore();
-		Request request;
-		if (false) {
-			List<Method> declaredMethods = Arrays.asList(junitClass.getDeclaredMethods());
-			List<String> methodNames = declaredMethods.stream()
-					.filter(m -> Arrays.asList(m.getAnnotations()).stream()
-							.filter(p -> p.getClass().getName().contains("Test")).findFirst().isPresent())
-					.map(x -> x.getName()).collect(Collectors.toList());
-			LOG.info("methodNames: " + declaredMethods + ", junit: " + junitClass);
-			request = Request.method(junitClass, methodNames.get(0));
-		} else {
-			//request = Request.classes(junitClass);
-			request = Request.method(junitClass, methodName);
-		}
+		Request request = Request.method(junitClass, methodName);
 		Result result = junit.run(request);
-		// Result result = junit.run(junitClass);
 
 		LOG.info("Failures: " + result.getFailures());
-		System.out.println("Failure count: " + result.getFailureCount());
 
 		// At the end of test execution we collect execution data and shutdown the
 		// runtime:
@@ -211,7 +210,7 @@ public class CoreTutorialTest {
 			printCounter("complexity", cc.getComplexityCounter());
 			for (IMethodCoverage x : cc.getMethods()) {
 				// System.out.println("x:"+x.getName()+"," + x.getLineCounter());
-				printCounter(x.getName(), x.getLineCounter());
+				printCounter(getMethodName(x), x.getLineCounter());
 			}
 			for (int i = cc.getFirstLine(); i <= cc.getLastLine(); i++) {
 				// System.out.printf("Line %s: %s%n", Integer.valueOf(i),
@@ -242,7 +241,7 @@ public class CoreTutorialTest {
 			throw new IllegalArgumentException(e);
 		}
 		JUnitCore junit = new JUnitCore();
-		//Request request = Request.classes(junitClass);
+		// Request request = Request.classes(junitClass);
 		Result result = junit.runClasses(junitClass);
 		LOG.info("result: " + result.getFailures());
 		return loadedClasses;
@@ -255,24 +254,23 @@ public class CoreTutorialTest {
 		assertFalse(requests.isEmpty());
 		assertTrue("methods: " + requests, requests.contains("testAdd"));
 	}
+
 	private List<String> getTestMethods(Class clazz) {
-		List<String> ret = Arrays.asList(clazz.getMethods())
-		.stream()
-		.filter(p->p.getAnnotation(Test.class) != null)
-		.map(m->m.getName()).collect(Collectors.toList());
+		List<String> ret = Arrays.asList(clazz.getMethods()).stream().filter(p -> p.getAnnotation(Test.class) != null)
+				.map(m -> m.getName()).collect(Collectors.toList());
 		return ret;
 	}
 
 	@Test
 	public void testDependenciesFound() {
-		Collection<String> depClasses = getDependentClasses(CalculadoraTest.class.getName())
-				.stream().map(x->x.getName())
-				.collect(Collectors.toList());
+		Collection<String> depClasses = getDependentClasses(CalculadoraTest.class.getName()).stream()
+				.map(x -> x.getName()).collect(Collectors.toList());
 		assertTrue("depClasses:" + depClasses, depClasses.contains(Calculadora.class.getName()));
 		assertTrue("depClasses:" + depClasses, depClasses.contains(CalculadoraTest.class.getName()));
 		assertTrue("depClasses:" + depClasses, depClasses.contains(CalculationResult.class.getName()));
+		assertTrue("depClasses:" + depClasses, depClasses.contains(BuildProjects.class.getName()));
 	}
-	
+
 	class ProdClassCoverage {
 		private String className;
 		private Map<String, ICounter> lineCoverageByMethod;
@@ -281,20 +279,21 @@ public class CoreTutorialTest {
 			this.className = name;
 			this.lineCoverageByMethod = lineCoverageByMethod;
 		}
-		
-		public String asCSV() {
-			return lineCoverageByMethod.entrySet()
-			.stream()
-			.map(x->className+";" + x.getKey() + ";" + x.getValue().getMissedCount()+";"+x.getValue().getCoveredCount())
-			.collect(Collectors.joining("\n"));
+
+		public List<String> asCSV() {
+			return lineCoverageByMethod.entrySet().stream().map(x -> className + DELIM + x.getKey() + DELIM
+					+ x.getValue().getMissedCount() + DELIM + x.getValue().getCoveredCount())
+					.collect(Collectors.toList());
+					
 		}
 
 		@Override
 		public String toString() {
-			return asCSV();
+			return asCSV().stream().collect(Collectors.joining("\n"));
 		}
 	}
-	
+	private static final String DELIM = "|";
+
 	class TestCoverage {
 		private String testClassName;
 		private String testMethod;
@@ -303,39 +302,54 @@ public class CoreTutorialTest {
 		TestCoverage(String testClassName, String testMethod, Collection<ProdClassCoverage> prodClassCoverage) {
 			this.testClassName = testClassName;
 			this.testMethod = testMethod;
-			this.prodClassCoverage = prodClassCoverage
-					.stream()
-					.collect(Collectors.toMap(e->e.className, e->e));
+			this.prodClassCoverage = prodClassCoverage.stream().collect(Collectors.toMap(e -> e.className, e -> e));
+		}
+		
+		public List<String> asCSV() {
+			List<String> ret = new ArrayList();
+			for (ProdClassCoverage pcc : prodClassCoverage.values()) {
+				List<String> x = pcc.asCSV().stream().map(s -> testClassName+DELIM+testMethod+DELIM + s).collect(Collectors.toList());
+				ret.addAll(x);
+			}
+			return ret;
 		}
 	}
+
 	@Test
 	public void testAllMethodsCovered() throws Exception {
-		Map<String,TestCoverage> coverateByMethod = new CoreTutorialTest()
-				.runTutorial()
-				.stream()
-				.collect(Collectors.toMap(e -> e.testMethod, e->e));
+		Map<String, TestCoverage> coverateByMethod = new MeasureCodeCoverageByTestAndProdMethod().runTutorial().stream()
+				.collect(Collectors.toMap(e -> e.testMethod, e -> e));
+		String fname = "coverateByMethod.csv";
+		List<String> fields = Arrays.asList("testClassName","testMethod","prodClassName","prodMethod","missedLines","coveredLines");
+		CSVPrinter printer = new CSVPrinter(Files.newBufferedWriter(Paths.get(fname)),
+				CSVFormat.DEFAULT.withHeader(fields.toArray(new String[0])).withDelimiter('|'));
+		CSVReporter reporter = new CSVReporter(printer);
+		for (TestCoverage testCov : coverateByMethod.values()) {
+			testCov.asCSV().stream().forEach(x -> reporter.write(x.split("\\" + DELIM)));
+		}
+		reporter.close();
 		assertEquals(3, coverateByMethod.size());
 		TestCoverage testAddCoverage = coverateByMethod.get("testAdd");
 		ProdClassCoverage calculadoraProdCoverage = testAddCoverage.prodClassCoverage.get(Calculadora.class.getName());
-		ICounter addMethodCoverage = calculadoraProdCoverage.lineCoverageByMethod.get("add");
+		ICounter addMethodCoverage = calculadoraProdCoverage.lineCoverageByMethod.get("add(II)I");
 		LOG.info("add: " + addMethodCoverage);
-		assertEquals(1,addMethodCoverage.getCoveredCount());
-		assertEquals(0,addMethodCoverage.getMissedCount());
-		ICounter minusMethodCoverage = calculadoraProdCoverage.lineCoverageByMethod.get("minus");
+		assertEquals(1, addMethodCoverage.getCoveredCount());
+		assertEquals(0, addMethodCoverage.getMissedCount());
+		ICounter minusMethodCoverage = calculadoraProdCoverage.lineCoverageByMethod.get("minus(II)Ljava/lang/Number;");
 		LOG.info("minusMethodCoverage: " + minusMethodCoverage);
-		assertEquals(0,minusMethodCoverage.getCoveredCount());
-		assertEquals(5,minusMethodCoverage.getMissedCount());
-		
+		assertEquals(0, minusMethodCoverage.getCoveredCount());
+		assertEquals(5, minusMethodCoverage.getMissedCount());
+
 		TestCoverage testMinusCoverage = coverateByMethod.get("testSubtract");
 		calculadoraProdCoverage = testMinusCoverage.prodClassCoverage.get(Calculadora.class.getName());
-		addMethodCoverage = calculadoraProdCoverage.lineCoverageByMethod.get("add");
+		addMethodCoverage = calculadoraProdCoverage.lineCoverageByMethod.get("add(II)I");
 		LOG.info("add: " + addMethodCoverage);
-		assertEquals(0,addMethodCoverage.getCoveredCount());
-		assertEquals(1,addMethodCoverage.getMissedCount());
-		minusMethodCoverage = calculadoraProdCoverage.lineCoverageByMethod.get("minus");
+		assertEquals(0, addMethodCoverage.getCoveredCount());
+		assertEquals(1, addMethodCoverage.getMissedCount());
+		minusMethodCoverage = calculadoraProdCoverage.lineCoverageByMethod.get("minus(II)Ljava/lang/Number;");
 		LOG.info("minusMethodCoverage: " + minusMethodCoverage);
-		assertEquals(2,minusMethodCoverage.getCoveredCount());
-		assertEquals(3,minusMethodCoverage.getMissedCount());
+		assertEquals(2, minusMethodCoverage.getCoveredCount());
+		assertEquals(3, minusMethodCoverage.getMissedCount());
 	}
 
 	public static void main(final String[] args) throws Exception {

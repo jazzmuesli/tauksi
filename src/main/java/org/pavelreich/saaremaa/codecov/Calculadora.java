@@ -3,6 +3,9 @@ package org.pavelreich.saaremaa.codecov;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.pavelreich.saaremaa.BuildProjects;
+
 public class Calculadora {
 	public Calculadora() {
 	}
@@ -24,6 +27,11 @@ public class Calculadora {
 	
 	public List<Number> asList(int x) {
 		return Arrays.asList(x);
+	}
+	
+	@Override
+	public String toString() {
+		return ToStringBuilder.reflectionToString("This is class " + BuildProjects.class.getName());
 	}
 
 }

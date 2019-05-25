@@ -13,6 +13,7 @@ public class CalculadoraTest {
 	@Before
 	public void setUp() {
 		c1 = new Calculadora();
+		System.out.println(c1.toString());
 	}
 
 	@After
