@@ -205,19 +205,19 @@ public class MeasureCodeCoverageByTestAndProdMethod {
 		for (final IClassCoverage cc : coverageBuilder.getClasses()) {
 			String className = cc.getName().replaceAll("/", ".");
 			System.out.printf("Coverage of class %s%n", className);
-			printCounter("instructions", cc.getInstructionCounter());
-			printCounter("branches", cc.getBranchCounter());
+//			printCounter("instructions", cc.getInstructionCounter());
+//			printCounter("branches", cc.getBranchCounter());
 			printCounter("lines", cc.getLineCounter());
-			printCounter("methods", cc.getMethodCounter());
-			printCounter("complexity", cc.getComplexityCounter());
-			for (IMethodCoverage x : cc.getMethods()) {
-				// System.out.println("x:"+x.getName()+"," + x.getLineCounter());
-				printCounter(getMethodName(x), x.getLineCounter());
-			}
-			for (int i = cc.getFirstLine(); i <= cc.getLastLine(); i++) {
-				// System.out.printf("Line %s: %s%n", Integer.valueOf(i),
-				// getColor(cc.getLine(i).getStatus()));
-			}
+//			printCounter("methods", cc.getMethodCounter());
+//			printCounter("complexity", cc.getComplexityCounter());
+//			for (IMethodCoverage x : cc.getMethods()) {
+//				// System.out.println("x:"+x.getName()+"," + x.getLineCounter());
+//				printCounter(getMethodName(x), x.getLineCounter());
+//			}
+//			for (int i = cc.getFirstLine(); i <= cc.getLastLine(); i++) {
+//				// System.out.printf("Line %s: %s%n", Integer.valueOf(i),
+//				// getColor(cc.getLine(i).getStatus()));
+//			}
 			map.put(className, cc);
 		}
 		return map;
