@@ -121,7 +121,7 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 		}
 	}
 
-	class MyClass {
+	public class MyClass {
 
 		private final CtClass ctClass;
 		private Map<String, MyMethod> methods = new HashMap<>();
@@ -129,6 +129,9 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 		private List<MyField> fields = new ArrayList<>();
 		private Map<String, Object> annotationsMap;
 
+		public String getClassName() {
+			return ctClass.getQualifiedName();
+		}
 		public MyClass(CtClass ctClass) {
 			this.ctClass = ctClass;
 			try {

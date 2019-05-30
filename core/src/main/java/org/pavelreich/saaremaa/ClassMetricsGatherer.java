@@ -47,10 +47,8 @@ public class ClassMetricsGatherer {
 	interface MetricExtractor {
 		Number extract(ClassMetrics cm);
 	}
-	static Number calculateWMC(ClassMetrics x) {
-		return x.getWmc();
-	}
-	static class WMCMetricExtrator implements MetricExtractor {
+
+	static class WMCExtrator implements MetricExtractor {
 		@Override
 		public Number extract(ClassMetrics cm) {
 			return cm.getWmc();
@@ -103,7 +101,7 @@ public class ClassMetricsGatherer {
 		ATFD(JavaClassMetricKey.ATFD), NCSS(JavaClassMetricKey.NCSS), LOC(JavaClassMetricKey.LOC),
 		NOPA(JavaClassMetricKey.NOPA), NOAM(JavaClassMetricKey.NOAM), WOC(JavaClassMetricKey.WOC),
 		TCC(JavaClassMetricKey.TCC),
-		WMC(JavaClassMetricKey.WMC, new WMCMetricExtrator()),
+		WMC(JavaClassMetricKey.WMC, new WMCExtrator()),
 		LCOM(new LComExtractor()),
 		CA(new CAExtractor()), 
 		CBO(new CBOExtractor()), 

@@ -6,25 +6,30 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
-import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.jacoco.core.analysis.Analyzer;
 import org.jacoco.core.analysis.CoverageBuilder;
 import org.jacoco.core.analysis.IClassCoverage;
 import org.jacoco.core.analysis.ICounter;
 import org.jacoco.core.analysis.IMethodCoverage;
 import org.jacoco.core.data.ExecutionDataStore;
+import org.jacoco.core.data.SessionInfoStore;
 import org.jacoco.core.instr.Instrumenter;
 import org.jacoco.core.runtime.IRuntime;
 import org.jacoco.core.runtime.LoggerRuntime;
+import org.jacoco.core.runtime.RuntimeData;
 import org.junit.Test;
 import org.junit.runner.JUnitCore;
 import org.junit.runner.Request;
@@ -33,8 +38,6 @@ import org.pavelreich.saaremaa.BuildProjects;
 import org.pavelreich.saaremaa.CSVReporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.jacoco.core.runtime.RuntimeData;
-import org.jacoco.core.data.SessionInfoStore;
 
 /**
  * from
@@ -315,16 +318,24 @@ public class MeasureCodeCoverageByTestAndProdMethod {
 	}
 
 	public static void writeCSV(Collection<TestCoverage> testCoverages) throws IOException {
-		String fname = "coverateByMethod.csv";
+		CSVReporter reporter = createReporter();
+		reportCoverages(testCoverages, reporter);
+		reporter.close();
+	}
+
+	private static CSVReporter createReporter() throws IOException {
+		String fname = "coverageByMethod.csv";
 		List<String> fields = Arrays.asList("testClassName","testMethod","prodClassName","prodMethod","missedLines","coveredLines");
 		CSVPrinter printer = new CSVPrinter(Files.newBufferedWriter(Paths.get(fname)),
 				CSVFormat.DEFAULT.withHeader(fields.toArray(new String[0])).withDelimiter('|'));
 		CSVReporter reporter = new CSVReporter(printer);
+		return reporter;
+	}
+
+	private static void reportCoverages(Collection<TestCoverage> testCoverages, CSVReporter reporter) {
 		for (TestCoverage testCov : testCoverages) {
 			testCov.asCSV().stream().forEach(x -> reporter.write(x.split("\\" + DELIM)));
 		}
-		reporter.close();
-
 	}
 	@Test
 	public void testAllMethodsCovered() throws Exception {
@@ -357,7 +368,13 @@ public class MeasureCodeCoverageByTestAndProdMethod {
 	}
 
 	public static void main(final String[] args) throws Exception {
-		List<TestCoverage> result = new MeasureCodeCoverageByTestAndProdMethod().measureTestCoverage(Class.forName(args[0]));
-		writeCSV(result);
+		LOG.info("classpath: " + System.getProperty("java.class.path"));
+		CSVReporter reporter = createReporter();
+		for (String junitClassName : args) {
+			List<TestCoverage> result = new MeasureCodeCoverageByTestAndProdMethod().measureTestCoverage(Class.forName(junitClassName));
+			reportCoverages(result, reporter);
+			reporter.flush();
+		}
+		reporter.close();
 	}
 }
