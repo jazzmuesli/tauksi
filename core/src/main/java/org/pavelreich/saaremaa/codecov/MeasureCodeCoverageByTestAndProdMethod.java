@@ -99,8 +99,7 @@ public class MeasureCodeCoverageByTestAndProdMethod {
 
 	static final Logger LOG = LoggerFactory.getLogger(MeasureCodeCoverageByTestAndProdMethod.class);
 
-	private List<TestCoverage> runTutorial() throws Exception {
-		Class<CalculadoraTest> clazz = CalculadoraTest.class;
+	private List<TestCoverage> measureTestCoverage(Class clazz) throws Exception {
 		String junitName = clazz.getName();
 		Collection<Class> loadedClasses = getDependentClasses(junitName);
 		List<String> methodNames = getTestMethods(clazz);
@@ -315,19 +314,24 @@ public class MeasureCodeCoverageByTestAndProdMethod {
 		}
 	}
 
-	@Test
-	public void testAllMethodsCovered() throws Exception {
-		Map<String, TestCoverage> coverateByMethod = new MeasureCodeCoverageByTestAndProdMethod().runTutorial().stream()
-				.collect(Collectors.toMap(e -> e.testMethod, e -> e));
+	public static void writeCSV(Collection<TestCoverage> testCoverages) throws IOException {
 		String fname = "coverateByMethod.csv";
 		List<String> fields = Arrays.asList("testClassName","testMethod","prodClassName","prodMethod","missedLines","coveredLines");
 		CSVPrinter printer = new CSVPrinter(Files.newBufferedWriter(Paths.get(fname)),
 				CSVFormat.DEFAULT.withHeader(fields.toArray(new String[0])).withDelimiter('|'));
 		CSVReporter reporter = new CSVReporter(printer);
-		for (TestCoverage testCov : coverateByMethod.values()) {
+		for (TestCoverage testCov : testCoverages) {
 			testCov.asCSV().stream().forEach(x -> reporter.write(x.split("\\" + DELIM)));
 		}
 		reporter.close();
+
+	}
+	@Test
+	public void testAllMethodsCovered() throws Exception {
+		List<TestCoverage> result = new MeasureCodeCoverageByTestAndProdMethod().measureTestCoverage(CalculadoraTest.class);
+		writeCSV(result);
+		Map<String, TestCoverage> coverateByMethod = result.stream()
+				.collect(Collectors.toMap(e -> e.testMethod, e -> e));
 		assertEquals(3, coverateByMethod.size());
 		TestCoverage testAddCoverage = coverateByMethod.get("testAdd");
 		ProdClassCoverage calculadoraProdCoverage = testAddCoverage.prodClassCoverage.get(Calculadora.class.getName());
@@ -353,6 +357,7 @@ public class MeasureCodeCoverageByTestAndProdMethod {
 	}
 
 	public static void main(final String[] args) throws Exception {
-
+		List<TestCoverage> result = new MeasureCodeCoverageByTestAndProdMethod().measureTestCoverage(Class.forName(args[0]));
+		writeCSV(result);
 	}
 }

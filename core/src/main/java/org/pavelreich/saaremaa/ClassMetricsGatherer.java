@@ -38,19 +38,83 @@ import net.sourceforge.pmd.lang.java.metrics.JavaMetrics;
 import net.sourceforge.pmd.lang.java.metrics.api.JavaClassMetricKey;
 
 public class ClassMetricsGatherer {
-
 	private static final Logger LOG = LoggerFactory.getLogger(ClassMetricsGatherer.class);
 
-	static enum MetricKey {
+	/**
+	 * TODO: I had to use this interface because maven-plugin:helpmojo doesn't like an enum with java8 function.
+	 * @author preich
+	 */
+	interface MetricExtractor {
+		Number extract(ClassMetrics cm);
+	}
+	static Number calculateWMC(ClassMetrics x) {
+		return x.getWmc();
+	}
+	static class WMCMetricExtrator implements MetricExtractor {
+		@Override
+		public Number extract(ClassMetrics cm) {
+			return cm.getWmc();
+		}
+	}
+	static class LComExtractor implements MetricExtractor {
+		@Override
+		public Number extract(ClassMetrics cm) {
+			return cm.getLcom();
+		}
+	}
+	static class CAExtractor implements MetricExtractor {
+		@Override
+		public Number extract(ClassMetrics cm) {
+			return cm.getCa();
+		}
+	}
+	static class CBOExtractor implements MetricExtractor {
+		@Override
+		public Number extract(ClassMetrics cm) {
+			return cm.getCbo();
+		}
+	}
+
+	static class DITExtractor implements MetricExtractor {
+		@Override
+		public Number extract(ClassMetrics cm) {
+			return cm.getDit();
+		}
+	}
+	static class NOCExtractor implements MetricExtractor {
+		@Override
+		public Number extract(ClassMetrics cm) {
+			return cm.getNoc();
+		}
+	}
+	static class NPMExtractor implements MetricExtractor {
+		@Override
+		public Number extract(ClassMetrics cm) {
+			return cm.getNpm();
+		}
+	}
+	static class RFCExtractor implements MetricExtractor {
+		@Override
+		public Number extract(ClassMetrics cm) {
+			return cm.getRfc();
+		}
+	}
+	enum MetricKey {
 		ATFD(JavaClassMetricKey.ATFD), NCSS(JavaClassMetricKey.NCSS), LOC(JavaClassMetricKey.LOC),
 		NOPA(JavaClassMetricKey.NOPA), NOAM(JavaClassMetricKey.NOAM), WOC(JavaClassMetricKey.WOC),
-		TCC(JavaClassMetricKey.TCC), WMC(JavaClassMetricKey.WMC, x -> x.getWmc()), LCOM(x -> x.getLcom()),
-		CA(x -> x.getCa()), CBO(x -> x.getCbo()), DIT(x -> x.getDit()), NOC(x -> x.getNoc()), NPM(x -> x.getNpm()),
-		RFC(x -> x.getRfc());// Not present in PMD, but present in CKJM
+		TCC(JavaClassMetricKey.TCC),
+		WMC(JavaClassMetricKey.WMC, new WMCMetricExtrator()),
+		LCOM(new LComExtractor()),
+		CA(new CAExtractor()), 
+		CBO(new CBOExtractor()), 
+		DIT(new DITExtractor()), 
+		NOC(new NOCExtractor()), 
+		NPM(new NPMExtractor()),
+		RFC(new RFCExtractor());/** Not present in PMD, but present in CKJM. */
 		private JavaClassMetricKey jcmKey;
-		private Function<ClassMetrics, Number> ckjmExtractor;
+		private MetricExtractor ckjmExtractor;
 
-		MetricKey(Function<ClassMetrics, Number> ckjmExtractor) {
+		MetricKey(MetricExtractor ckjmExtractor) {
 			this(null, ckjmExtractor);
 		}
 
@@ -58,7 +122,7 @@ public class ClassMetricsGatherer {
 			this(jcmKey, null);
 		}
 
-		MetricKey(JavaClassMetricKey jcmKey, Function<ClassMetrics, Number> ckjmExtractor) {
+		MetricKey(JavaClassMetricKey jcmKey, MetricExtractor ckjmExtractor) {
 			this.jcmKey = jcmKey;
 			this.ckjmExtractor = ckjmExtractor;
 		}
@@ -67,32 +131,27 @@ public class ClassMetricsGatherer {
 	static final List<MetricKey> metrics = Arrays.asList(MetricKey.values());
 
 	static class MetricsCSVReporter extends CSVReporter {
-
 		public MetricsCSVReporter() throws IOException {
 			super(new CSVPrinter(Files.newBufferedWriter(Paths.get("class-metrics.csv")),
 					CSVFormat.DEFAULT.withHeader(getHeaders()).withDelimiter(';')));
 		}
-
 	}
 
 	static class CKMetricsCSVReporter extends CSVReporter {
-
 		public CKMetricsCSVReporter() throws IOException {
 			super(new CSVPrinter(Files.newBufferedWriter(Paths.get("class-metrics.csv")),
 					CSVFormat.DEFAULT.withHeader("file,class,type,cbo,wmc,dit,noc,rfc,lcom,nom,nopm,nosm,nof,nopf,nosf,nosi,loc".split(",")).withDelimiter(';')));
 		}
-
 	}
 
 	static String[] getHeaders() {
 		List<String> headers = new ArrayList(Arrays.asList("fileName", "className", "simpleClassName", "gatherer"));
-		headers.addAll(metrics.stream().map(x -> x.name()).collect(Collectors.toList()));
+		headers.addAll(metrics.stream().map(Enum::name).collect(Collectors.toList()));
 		return headers.toArray(new String[0]);
 	}
 
 	public static void main(String[] args) throws IOException {
-
-		List<String> srcDirs = java.nio.file.Files.walk(java.nio.file.Paths.get(".")).filter(p->p.toFile().getAbsolutePath().endsWith("src")).map(x->x.getParent().toFile().getAbsolutePath()).collect(Collectors.toList());
+		List<String> srcDirs = Files.walk(java.nio.file.Paths.get(".")).filter(p->p.toFile().getAbsolutePath().endsWith("src")).map(x->x.getParent().toFile().getAbsolutePath()).collect(Collectors.toList());
 		CSVReporter reporter = new CKMetricsCSVReporter();
 		srcDirs.parallelStream().forEach(dirName -> {
 			try {
@@ -123,13 +182,11 @@ public class ClassMetricsGatherer {
 		});
 //		runCKJM(reporter);
 
-		
-		reporter.close();
-
+				reporter.close();
 	}
 
 	private static void runCKJM(CSVReporter reporter) throws IOException {
-		List<Path> files = java.nio.file.Files.walk(java.nio.file.Paths.get("."))
+		List<Path> files = Files.walk(Paths.get("."))
 				.filter(p -> p.toFile().getName().endsWith(".java") || p.toFile().getName().endsWith(".class"))
 				.collect(Collectors.toList());
 		files.parallelStream().forEach(f -> reportMetrics(f.toFile().getAbsolutePath(), reporter));
@@ -145,17 +202,15 @@ public class ClassMetricsGatherer {
 			configuration.setDefaultLanguageVersion(version);
 			File sourceCodeFile = new File(fileName);
 			String filename = sourceCodeFile.getAbsolutePath();
-			try (InputStream sourceCode = new FileInputStream(sourceCodeFile)) {
-				try (BufferedReader reader = new BufferedReader(new InputStreamReader(sourceCode))) {
-					Parser parser = PMD.parserFor(version, configuration);
-					ASTCompilationUnit compilationUnit = (ASTCompilationUnit) parser.parse(filename, reader);
+			try (InputStream sourceCode = new FileInputStream(sourceCodeFile);
+					BufferedReader reader = new BufferedReader(new InputStreamReader(sourceCode))) {
+				Parser parser = PMD.parserFor(version, configuration);
+				ASTCompilationUnit compilationUnit = (ASTCompilationUnit) parser.parse(filename, reader);
 
-					List<ASTAnyTypeDeclaration> astClassOrInterfaceDeclarations = compilationUnit
-							.findDescendantsOfType(ASTAnyTypeDeclaration.class);
-					astClassOrInterfaceDeclarations
-							.forEach(declaration -> reportJavaMetrics(fileName, reporter, declaration));
-
-				}
+				List<ASTAnyTypeDeclaration> astClassOrInterfaceDeclarations = compilationUnit
+						.findDescendantsOfType(ASTAnyTypeDeclaration.class);
+				astClassOrInterfaceDeclarations
+						.forEach(declaration -> reportJavaMetrics(fileName, reporter, declaration));
 			} catch (Exception e) {
 				LOG.error("Can't report metrics for " + fileName + " due to " + e.getMessage(), e);
 			}
@@ -194,7 +249,7 @@ public class ClassMetricsGatherer {
 				values.add(getSimpleClassName(name));
 				values.add("CKJM");
 				metrics.stream()
-						.map(x -> x.ckjmExtractor != null ? String.valueOf(x.ckjmExtractor.apply(c)) : NA_SYMBOL)
+						.map(x -> x.ckjmExtractor != null ? String.valueOf(x.ckjmExtractor.extract(c)) : NA_SYMBOL)
 						.forEach(s -> values.add(s));
 				reporter.write(values.toArray(new String[0]));
 			}
@@ -206,11 +261,9 @@ public class ClassMetricsGatherer {
 		}
 		
 		reporter.flush();
-
 	}
 
 	protected static String getSimpleClassName(String name) {
 		return name.replaceAll("^.*?\\.([^.]+)$", "$1");
 	}
-
 }
