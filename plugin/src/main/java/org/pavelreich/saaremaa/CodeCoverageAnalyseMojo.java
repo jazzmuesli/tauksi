@@ -36,7 +36,7 @@ import org.pavelreich.saaremaa.testdepan.TestFileProcessor.MyClass;
  * Goal which touches a timestamp file.
  */
 @Mojo( name = "analyse", defaultPhase = LifecyclePhase.PROCESS_SOURCES, requiresDependencyResolution = ResolutionScope.TEST)
-public class MyMojo
+public class CodeCoverageAnalyseMojo
     extends AbstractMojo
 {
     /**

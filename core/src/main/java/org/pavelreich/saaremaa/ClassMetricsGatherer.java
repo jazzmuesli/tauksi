@@ -137,7 +137,10 @@ public class ClassMetricsGatherer {
 
 	static class CKMetricsCSVReporter extends CSVReporter {
 		public CKMetricsCSVReporter() throws IOException {
-			super(new CSVPrinter(Files.newBufferedWriter(Paths.get("class-metrics.csv")),
+			this("class-metrics.csv");
+		}
+		public CKMetricsCSVReporter(String fname) throws IOException {
+			super(new CSVPrinter(Files.newBufferedWriter(Paths.get(fname)),
 					CSVFormat.DEFAULT.withHeader("file,class,type,cbo,wmc,dit,noc,rfc,lcom,nom,nopm,nosm,nof,nopf,nosf,nosi,loc".split(",")).withDelimiter(';')));
 		}
 	}
@@ -151,36 +154,29 @@ public class ClassMetricsGatherer {
 	public static void main(String[] args) throws IOException {
 		List<String> srcDirs = Files.walk(java.nio.file.Paths.get(".")).filter(p->p.toFile().getAbsolutePath().endsWith("src")).map(x->x.getParent().toFile().getAbsolutePath()).collect(Collectors.toList());
 		CSVReporter reporter = new CKMetricsCSVReporter();
-		srcDirs.parallelStream().forEach(dirName -> {
-			try {
-				CKReport report = new CK().calculate(dirName);
-				report.all().forEach(result -> 
-				reporter.write(result.getFile(),
-					result.getClassName(),
-					result.getType(),
-					result.getCbo(),
-					result.getWmc(),
-					result.getDit(),
-					result.getNoc(),
-					result.getRfc(),
-					result.getLcom(),
-					result.getNom(),
-					result.getNopm(), 
-					result.getNosm(),
-					result.getNof(),
-					result.getNopf(), 
-					result.getNosf(),
-					result.getNosi(),
-					result.getLoc()));
-				LOG.info("report: " + report);
-				reporter.flush();
-			} catch (Exception e) {
-				LOG.error("Can't handle " + dirName + " due to " + e.getMessage(), e);
-			}
-		});
+		srcDirs.parallelStream().forEach(dirName -> processDir(reporter, dirName));
 //		runCKJM(reporter);
 
-				reporter.close();
+		reporter.close();
+	}
+
+	public static void processDir(CSVReporter reporter, String dirName) {
+		try {
+			CKReport report = new CK().calculate(dirName);
+			report.all()
+					.forEach(result -> reporter.write(result.getFile(), result.getClassName(), result.getType(),
+							result.getCbo(), result.getWmc(), result.getDit(), result.getNoc(), result.getRfc(),
+							result.getLcom(), result.getNom(), result.getNopm(), result.getNosm(), result.getNof(),
+							result.getNopf(), result.getNosf(), result.getNosi(), result.getLoc()));
+			LOG.info("report: " + report);
+			reporter.flush();
+		} catch (Exception e) {
+			LOG.error("Can't handle " + dirName + " due to " + e.getMessage(), e);
+		}
+	}
+
+	public static CKMetricsCSVReporter createReporter(Path path) throws IOException {
+		return new CKMetricsCSVReporter(path.toString());
 	}
 
 	private static void runCKJM(CSVReporter reporter) throws IOException {
