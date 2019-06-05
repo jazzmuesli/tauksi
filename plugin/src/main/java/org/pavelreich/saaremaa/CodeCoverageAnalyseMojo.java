@@ -84,12 +84,13 @@ public class CodeCoverageAnalyseMojo
         		}
 			} catch (Exception e) {
 				getLog().error(e.getMessage(), e);
+			} finally {
+				createShellScript(dirName, classpath, junitClassNames);
 			}
     	}
 		getLog().info("junitClassNames: " + junitClassNames);
 
 		// generate a shell script that we can execute separately
-		createShellScript(classpath, junitClassNames);
         touchFile();
     }
 
@@ -129,12 +130,12 @@ public class CodeCoverageAnalyseMojo
         }
 	}
 
-	private void createShellScript(LinkedHashSet<String> classpath, List<String> junitClassNames) {
+	private void createShellScript(String dir, LinkedHashSet<String> classpath, List<String> junitClassNames) {
 		String cmd = "java -classpath " + classpath.stream().collect(Collectors.joining(File.pathSeparator)) 
 				+ " " + MeasureCodeCoverageByTestAndProdMethod.class.getCanonicalName() + " " + junitClassNames.stream().collect(Collectors.joining(" "));
 		getLog().info("cmd: "+ cmd);
 		try {
-			FileWriter fw = new FileWriter("measure.sh");
+			FileWriter fw = new FileWriter(dir+File.separator+"measure.sh");
 			fw.write(cmd);
 			fw.close();
 		} catch (IOException e1) {
