@@ -3,10 +3,10 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-     <parent>
-                <groupId>org.pavelreich.saaremaa</groupId>
-                <artifactId>tauksi</artifactId>
-                <version>1.0-SNAPSHOT</version>
+	<parent>
+		<groupId>org.pavelreich.saaremaa</groupId>
+		<artifactId>tauksi</artifactId>
+		<version>1.0-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>core</artifactId>
@@ -28,18 +28,18 @@
 		</repository> </repositories> -->
 
 	<dependencies>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.12</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.maven.plugin-testing</groupId>
-      <artifactId>maven-plugin-testing-harness</artifactId>
-      <version>3.3.0</version>
-      <scope>test</scope>
-    </dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.12</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.maven.plugin-testing</groupId>
+			<artifactId>maven-plugin-testing-harness</artifactId>
+			<version>3.3.0</version>
+			<scope>test</scope>
+		</dependency>
 
 
 
@@ -63,7 +63,7 @@
 		<dependency>
 			<groupId>com.github.mauricioaniche</groupId>
 			<artifactId>ck</artifactId>
-			<version>0.2.2-SNAPSHOT</version>
+			<version>0.3.2-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.maven.shared</groupId>
@@ -211,44 +211,44 @@
 				</plugin>
 
 
-<!--  for plugin -->
-        <plugin>
-          <artifactId>maven-clean-plugin</artifactId>
-          <version>3.1.0</version>
-        </plugin>
-        <!-- see http://maven.apache.org/ref/current/maven-core/default-bindings.html#Plugin_bindings_for_maven-plugin_packaging -->
-        <plugin>
-          <artifactId>maven-resources-plugin</artifactId>
-          <version>3.0.2</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.8.0</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-plugin-plugin</artifactId>
-          <version>3.6.0</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.22.1</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-jar-plugin</artifactId>
-          <version>3.0.2</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-install-plugin</artifactId>
-          <version>2.5.2</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-deploy-plugin</artifactId>
-          <version>2.8.2</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-invoker-plugin</artifactId>
-          <version>3.1.0</version>
-        </plugin>
+				<!-- for plugin -->
+				<plugin>
+					<artifactId>maven-clean-plugin</artifactId>
+					<version>3.1.0</version>
+				</plugin>
+				<!-- see http://maven.apache.org/ref/current/maven-core/default-bindings.html#Plugin_bindings_for_maven-plugin_packaging -->
+				<plugin>
+					<artifactId>maven-resources-plugin</artifactId>
+					<version>3.0.2</version>
+				</plugin>
+				<plugin>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<version>3.8.0</version>
+				</plugin>
+				<plugin>
+					<artifactId>maven-plugin-plugin</artifactId>
+					<version>3.6.0</version>
+				</plugin>
+				<plugin>
+					<artifactId>maven-surefire-plugin</artifactId>
+					<version>2.22.1</version>
+				</plugin>
+				<plugin>
+					<artifactId>maven-jar-plugin</artifactId>
+					<version>3.0.2</version>
+				</plugin>
+				<plugin>
+					<artifactId>maven-install-plugin</artifactId>
+					<version>2.5.2</version>
+				</plugin>
+				<plugin>
+					<artifactId>maven-deploy-plugin</artifactId>
+					<version>2.8.2</version>
+				</plugin>
+				<plugin>
+					<artifactId>maven-invoker-plugin</artifactId>
+					<version>3.1.0</version>
+				</plugin>
 
 			</plugins>
 		</pluginManagement>

@@ -12,17 +12,12 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.github.mauricioaniche.ck.CK;
-import com.github.mauricioaniche.ck.CKNumber;
-import com.github.mauricioaniche.ck.CKReport;
 
 import gr.spinellis.ckjm.CkjmOutputHandler;
 import gr.spinellis.ckjm.ClassMetrics;
@@ -162,14 +157,14 @@ public class ClassMetricsGatherer {
 
 	public static void processDir(CSVReporter reporter, String dirName) {
 		try {
-			CKReport report = new CK().calculate(dirName);
-			report.all()
-					.forEach(result -> reporter.write(result.getFile(), result.getClassName(), result.getType(),
-							result.getCbo(), result.getWmc(), result.getDit(), result.getNoc(), result.getRfc(),
-							result.getLcom(), result.getNom(), result.getNopm(), result.getNosm(), result.getNof(),
-							result.getNopf(), result.getNosf(), result.getNosi(), result.getLoc()));
-			LOG.info("report: " + report);
-			reporter.flush();
+//			CKReport report = new CK().calculate(dirName);
+//			report.all()
+//					.forEach(result -> reporter.write(result.getFile(), result.getClassName(), result.getType(),
+//							result.getCbo(), result.getWmc(), result.getDit(), result.getNoc(), result.getRfc(),
+//							result.getLcom(), result.getNom(), result.getNopm(), result.getNosm(), result.getNof(),
+//							result.getNopf(), result.getNosf(), result.getNosi(), result.getLoc()));
+//			LOG.info("report: " + report);
+//			reporter.flush();
 		} catch (Exception e) {
 			LOG.error("Can't handle " + dirName + " due to " + e.getMessage(), e);
 		}
