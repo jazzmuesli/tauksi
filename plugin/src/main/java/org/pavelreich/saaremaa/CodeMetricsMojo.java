@@ -28,20 +28,20 @@ public class CodeMetricsMojo
     public void execute()
         throws MojoExecutionException
     {
-    	
+    	String currentDir = project.getBasedir().getAbsolutePath();
     	List<String> dirs = new ArrayList<String>();
     	dirs.addAll(project.getTestCompileSourceRoots());
     	dirs.addAll(project.getCompileSourceRoots());
     	getLog().info("dirs: " + dirs);
-    	dirs.parallelStream().forEach(dirName -> {
+    	dirs.stream().forEach(dirName -> {
         	try {
         		getLog().info("Processing "  + dirName);
         		if (new File(dirName).exists()) {
         			CSVExporter.processDirectory(dirName, ";",
-        	    			resolveFileName(CSVExporter.classFileName), 
-        	    			resolveFileName(CSVExporter.methodFileName),
-        	    			resolveFileName(CSVExporter.variableFileName),
-        	    			resolveFileName(CSVExporter.fieldFileName));
+        	    			resolveFileName(dirName, CSVExporter.classFileName), 
+        	    			resolveFileName(dirName, CSVExporter.methodFileName),
+        	    			resolveFileName(dirName, CSVExporter.variableFileName),
+        	    			resolveFileName(dirName, CSVExporter.fieldFileName));
         			
         		}
 			} catch (Exception e) {
@@ -51,7 +51,7 @@ public class CodeMetricsMojo
     }
 
 
-	private String resolveFileName(String fname) {
-		return Paths.get(project.getBasedir().getAbsolutePath(), fname).toString();
+	private String resolveFileName(String dirName, String fname) {
+		return Paths.get(dirName, fname).toString();
 	}
 }
