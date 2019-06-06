@@ -39,6 +39,8 @@ import org.pavelreich.saaremaa.CSVReporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import me.tongfei.progressbar.ProgressBar;
+
 /**
  * from
  * https://stackoverflow.com/questions/40797698/record-test-coverage-per-test-case-using-eclemma-tool?rq=1
@@ -178,7 +180,7 @@ public class MeasureCodeCoverageByTestAndProdMethod {
 		Request request = Request.method(junitClass, methodName);
 		Result result = junit.run(request);
 
-		LOG.info("Failures: " + result.getFailures());
+		LOG.info("Failures for " + junitClass + " : " + result.getFailures());
 
 		// At the end of test execution we collect execution data and shutdown the
 		// runtime:
@@ -204,10 +206,10 @@ public class MeasureCodeCoverageByTestAndProdMethod {
 		Map<String, IClassCoverage> map = new HashMap();
 		for (final IClassCoverage cc : coverageBuilder.getClasses()) {
 			String className = cc.getName().replaceAll("/", ".");
-			System.out.printf("Coverage of class %s%n", className);
+//			System.out.printf("Coverage of class %s%n", className);
 //			printCounter("instructions", cc.getInstructionCounter());
 //			printCounter("branches", cc.getBranchCounter());
-			printCounter("lines", cc.getLineCounter());
+//			printCounter("lines", cc.getLineCounter());
 //			printCounter("methods", cc.getMethodCounter());
 //			printCounter("complexity", cc.getComplexityCounter());
 //			for (IMethodCoverage x : cc.getMethods()) {
@@ -229,7 +231,7 @@ public class MeasureCodeCoverageByTestAndProdMethod {
 
 			@Override
 			public void classLoaded(Class<?> c) {
-				LOG.info("loaded:" + c);
+//				LOG.info("loaded:" + c);
 				if (!c.getName().contains("junit")) {
 					loadedClasses.add(c);
 				}
@@ -245,7 +247,7 @@ public class MeasureCodeCoverageByTestAndProdMethod {
 		JUnitCore junit = new JUnitCore();
 		// Request request = Request.classes(junitClass);
 		Result result = junit.runClasses(junitClass);
-		LOG.info("result: " + result.getFailures());
+//		LOG.info("result: " + result.getFailures());
 		return loadedClasses;
 
 	}
@@ -370,7 +372,7 @@ public class MeasureCodeCoverageByTestAndProdMethod {
 	public static void main(final String[] args) throws Exception {
 		LOG.info("classpath: " + System.getProperty("java.class.path"));
 		CSVReporter reporter = createReporter();
-		for (String junitClassName : args) {
+		for (String junitClassName : ProgressBar.wrap(Arrays.asList(args),"tests")) {
 			List<TestCoverage> result = new MeasureCodeCoverageByTestAndProdMethod().measureTestCoverage(Class.forName(junitClassName));
 			reportCoverages(result, reporter);
 			reporter.flush();
