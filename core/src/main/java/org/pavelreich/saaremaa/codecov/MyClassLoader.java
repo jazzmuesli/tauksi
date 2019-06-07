@@ -27,7 +27,7 @@ public class MyClassLoader
   protected Class<?> loadClass(String name, boolean resolve)
     throws ClassNotFoundException {
     // respect the java.* packages.
-	  LOG.info("loadClass: " + name);
+	  //LOG.info("loadClass: " + name);
     if( name.startsWith("java.") || name.startsWith("org.junit")) {
       return super.loadClass(name, resolve);
     }

@@ -372,6 +372,7 @@ public class MeasureCodeCoverageByTestAndProdMethod {
 	public static void main(final String[] args) throws Exception {
 		LOG.info("classpath: " + System.getProperty("java.class.path"));
 		CSVReporter reporter = createReporter();
+		// from https://github.com/ctongfei/progressbar
 		for (String junitClassName : ProgressBar.wrap(Arrays.asList(args),"tests")) {
 			List<TestCoverage> result = new MeasureCodeCoverageByTestAndProdMethod().measureTestCoverage(Class.forName(junitClassName));
 			reportCoverages(result, reporter);
