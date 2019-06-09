@@ -151,9 +151,10 @@ public class MeasureCodeCoverageByTestAndProdMethod {
 				junitClass = memoryClassLoader.findClass(junitName);
 			}
 
-			Map<String, IClassCoverage> coverageByClass = runTest(loadedClasses, runtime, data, junitClass, methodName);
+			//Map<String, IClassCoverage> coverageByClass = 
+			TestExecutionResults testExecutionResults = runTest(loadedClasses, runtime, data, junitClass, methodName);
 			List<ProdClassCoverage> xs = new ArrayList();
-			for (Entry<String, IClassCoverage> entry : coverageByClass.entrySet()) {
+			for (Entry<String, IClassCoverage> entry : testExecutionResults.coverageByProdClass.entrySet()) {
 				IClassCoverage coverage = entry.getValue();
 				ProdClassCoverage cc = new ProdClassCoverage(coverage.getName().replaceAll("/", "."), coverage
 						.getMethods().stream().collect(Collectors.
@@ -164,7 +165,7 @@ public class MeasureCodeCoverageByTestAndProdMethod {
 										})));
 				xs.add(cc);
 			}
-			TestCoverage testCoverage = new TestCoverage(junitName, methodName, xs);
+			TestCoverage testCoverage = new TestCoverage(junitName, methodName, xs, testExecutionResults.result);
 			ret.add(testCoverage);
 		}
 		return ret;
@@ -174,13 +175,24 @@ public class MeasureCodeCoverageByTestAndProdMethod {
 		return m.getName() + m.getDesc();
 	}
 
-	private Map<String, IClassCoverage> runTest(final Collection<Class> loadedClasses, final IRuntime runtime,
+	static class TestExecutionResults {
+		Map<String, IClassCoverage> coverageByProdClass;
+		Result result;
+		public TestExecutionResults(Map<String, IClassCoverage> map, Result result) {
+			this.coverageByProdClass = map;
+			this.result = result;
+		}
+		
+	}
+	private TestExecutionResults runTest(final Collection<Class> loadedClasses, final IRuntime runtime,
 			final RuntimeData data, Class<?> junitClass, String methodName) {
 		JUnitCore junit = new JUnitCore();
 		Request request = Request.method(junitClass, methodName);
 		Result result = junit.run(request);
 
-		LOG.info("Failures for " + junitClass + " : " + result.getFailures());
+		if (result.getFailureCount() > 0) {
+			LOG.warn("Failures for " + junitClass + " : " + result.getFailures());
+		}
 
 		// At the end of test execution we collect execution data and shutdown the
 		// runtime:
@@ -198,8 +210,7 @@ public class MeasureCodeCoverageByTestAndProdMethod {
 
 			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOG.error(e.getMessage(), e);
 		}
 		// Let's dump some metrics and line coverage information:
 
@@ -222,7 +233,7 @@ public class MeasureCodeCoverageByTestAndProdMethod {
 //			}
 			map.put(className, cc);
 		}
-		return map;
+		return new TestExecutionResults(map, result);
 	}
 
 	public Collection<Class> getDependentClasses(String junitClassName) {
@@ -302,17 +313,23 @@ public class MeasureCodeCoverageByTestAndProdMethod {
 		private String testClassName;
 		private String testMethod;
 		private Map<String, ProdClassCoverage> prodClassCoverage;
+		private Result result;
 
-		TestCoverage(String testClassName, String testMethod, Collection<ProdClassCoverage> prodClassCoverage) {
+		TestCoverage(String testClassName, String testMethod, Collection<ProdClassCoverage> prodClassCoverage, Result result) {
 			this.testClassName = testClassName;
 			this.testMethod = testMethod;
 			this.prodClassCoverage = prodClassCoverage.stream().collect(Collectors.toMap(e -> e.className, e -> e));
+			this.result = result;
 		}
 		
 		public List<String> asCSV() {
 			List<String> ret = new ArrayList();
 			for (ProdClassCoverage pcc : prodClassCoverage.values()) {
-				List<String> x = pcc.asCSV().stream().map(s -> testClassName+DELIM+testMethod+DELIM + s).collect(Collectors.toList());
+				List<String> x = pcc.asCSV().stream().map(s -> 
+				testClassName+DELIM+testMethod+
+				DELIM+ result.getFailureCount() + DELIM + result.getIgnoreCount() + DELIM + result.getRunCount() + DELIM + result.getRunTime() + 
+				DELIM + s 
+				).collect(Collectors.toList());
 				ret.addAll(x);
 			}
 			return ret;
@@ -327,7 +344,9 @@ public class MeasureCodeCoverageByTestAndProdMethod {
 
 	private static CSVReporter createReporter() throws IOException {
 		String fname = "coverageByMethod.csv";
-		List<String> fields = Arrays.asList("testClassName","testMethod","prodClassName","prodMethod","missedLines","coveredLines");
+		List<String> fields = Arrays.asList(
+				"testClassName","testMethod","testsFailed","testsIgnored","testsCount","testRunTime","prodClassName","prodMethod","missedLines","coveredLines"
+				);
 		CSVPrinter printer = new CSVPrinter(Files.newBufferedWriter(Paths.get(fname)),
 				CSVFormat.DEFAULT.withHeader(fields.toArray(new String[0])).withDelimiter('|'));
 		CSVReporter reporter = new CSVReporter(printer);
