@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -101,6 +102,13 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 		processWithModel(model, new ObjectInstantiationProcessor(objectsCreated));
 		// order matters and it's bad :(
 		processWithModel(model, processor);
+		if (resultFileName != null) {
+			writeResults(resultFileName, processor);
+		}
+		return processor;
+	}
+
+	private static void writeResults(String resultFileName, TestFileProcessor processor) {
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		String json = gson.toJson(processor.getElements().stream().map(x -> x.toJSON()).collect(Collectors.toList()));
 		try {
@@ -110,7 +118,6 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 		} catch (IOException e) {
 			LOG.error(e.getMessage(), e);
 		}
-		return processor;
 	}
 
 	private static void processWithModel(CtModel model, Processor processor) {
@@ -249,9 +256,33 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 		}
 	}
 
+	class MyAssert {
+		final String className;
+		final String methodName;
+		final List<String> argTypes;
+		final int line;
+
+		public MyAssert(String className, String methodName, List<String> args, int linePos) {
+			this.className = className;
+			this.methodName = methodName;
+			this.argTypes = args;
+			this.line = linePos;
+		}
+
+
+		public HashMap toJSON() {
+			HashMap map = new HashMap();
+			map.put("className", className);
+			map.put("methodName", methodName);
+			map.put("argTypes", argTypes);
+			map.put("line", line);
+			return map;
+		}
+	}
 	class MyMethod {
 
 		final Set<String> annotations;
+		final List<MyAssert> assertions;
 		final String simpleName;
 		final CtMethod method;
 		private MyClass myClass;
@@ -260,13 +291,33 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 			this.myClass = myClass;
 			this.simpleName = e.getSimpleName();
 			this.annotations = getAnnotations(e);
+			this.assertions = getAssertions(e);
 			this.method = e;
+		}
+
+		private List<MyAssert> getAssertions(CtMethod method) {
+			List<CtStatement> statements = method.getBody().getStatements();
+			List<CtInvocation> invocations = statements.stream().filter(p->p instanceof CtInvocation).map(x->(CtInvocation)x).collect(Collectors.toList());
+			List<MyAssert> asserts = invocations.stream().
+			filter(p-> p.getExecutable().getActualMethod().getName().toLowerCase().contains("assert")).
+			map(x -> new MyAssert(x.getExecutable().getDeclaringType().getQualifiedName(), 
+					x.getExecutable().getActualMethod().getName(), 
+					getArgTypes(x),
+					x.getPosition().getLine())).collect(Collectors.toList());
+			return asserts;
+		}
+
+		private List<String> getArgTypes(CtInvocation x) {
+			List<CtExpression> arguments = x.getArguments();
+			Stream<String> map = arguments.stream().map(a -> a.getType().getQualifiedName());
+			return map.collect(Collectors.toList());
 		}
 
 		public HashMap toJSON() {
 			HashMap map = new HashMap();
 			map.put("simpleName", simpleName);
 			map.put("annotations", annotations);
+			map.put("assertions", assertions);
 			map.put("LOC", lineCount());
 			map.put("statementCount", statementCount());
 			ObjectCreator key = new ObjectCreator(this.method.getParent(CtClass.class), this.method);

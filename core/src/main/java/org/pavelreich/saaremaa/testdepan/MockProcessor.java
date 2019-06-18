@@ -10,6 +10,7 @@ import spoon.reflect.code.CtAssignment;
 import spoon.reflect.code.CtExpression;
 import spoon.reflect.code.CtFieldRead;
 import spoon.reflect.code.CtInvocation;
+import spoon.reflect.code.CtVariableRead;
 import spoon.reflect.declaration.CtClass;
 import spoon.reflect.declaration.CtElement;
 import spoon.reflect.declaration.CtMethod;
@@ -47,9 +48,16 @@ class MockProcessor extends AbstractProcessor<CtInvocation> {
             	}
                 String simpleName = getSimpleName(element);
                 
-                CtExpression type = ((CtFieldRead) element.getArguments().get(0)).getTarget();
-                Set<CtTypeReference<?>> x = type.getReferencedTypes();
-                CtTypeReference<?> mock = x.iterator().next();
+                Object firstArg = element.getArguments().get(0);
+                CtTypeReference mock;
+                if (firstArg instanceof CtVariableRead) {
+                	mock = ((CtVariableRead) firstArg).getType();
+                } else {
+                	CtExpression type = ((CtFieldRead) firstArg).getTarget();
+                    Set<CtTypeReference<?>> x = type.getReferencedTypes();
+                    mock = x.iterator().next();
+                }
+				
                 ObjectCreator objectCreator = new ObjectCreator(klasse, method);
 				ObjectCreationOccurence objectCreationOccurence = new ObjectCreationOccurence(mock, element, mockType);
 				objectsCreated.put(objectCreator, objectCreationOccurence);
