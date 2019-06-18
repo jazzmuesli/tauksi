@@ -1,5 +1,5 @@
 package org.pavelreich.saaremaa.testdepan;
 
-interface ITestField extends IJSONable {
+public interface ITestField extends IJSONable {
 
 }
