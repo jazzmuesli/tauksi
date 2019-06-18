@@ -42,6 +42,8 @@ import spoon.reflect.declaration.CtElement;
 import spoon.reflect.declaration.CtField;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.reference.CtExecutableReference;
+import spoon.reflect.reference.CtTypeReference;
+import spoon.reflect.visitor.Filter;
 
 /**
  * Analyse test classes, extract methods with annotations extract fields with
@@ -56,7 +58,7 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 
 	private static final Logger LOG = LoggerFactory.getLogger(TestFileProcessor.class);
 
-	private List<MyClass> elements = new CopyOnWriteArrayList<>();
+	private List<ITestClass> elements = new CopyOnWriteArrayList<>();
 
 	private ObjectCreationContainer objectsCreated;
 
@@ -64,7 +66,7 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 		this.objectsCreated = objectsCreated;
 	}
 
-	public List<MyClass> getElements() {
+	public List<ITestClass> getElements() {
 		return elements;
 	}
 
@@ -128,10 +130,12 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 		}
 	}
 
-	public class MyClass {
+	
+
+	public class MyClass implements ITestClass {
 
 		private final CtClass ctClass;
-		private Map<String, MyMethod> methods = new HashMap<>();
+		private Map<String, ITestMethod> methods = new HashMap<>();
 		private Set<String> annotations = new HashSet<>();
 		private List<MyField> fields = new ArrayList<>();
 		private Map<String, Object> annotationsMap;
@@ -142,7 +146,7 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 		public MyClass(CtClass ctClass) {
 			this.ctClass = ctClass;
 			try {
-				this.annotations = getAnnotations(ctClass);
+				this.annotations = createAnnotations(ctClass);
 				this.annotationsMap = ctClass.getAnnotations().stream().filter(p -> p.getValues().containsKey("value"))
 						.collect(Collectors.toMap(e -> e.getAnnotationType().getQualifiedName(),
 								e -> e.getValues().get("value").toString()));
@@ -164,7 +168,7 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 			}
 		}
 
-		Map<String, Object> toJSON() {
+		public Map<String, Object> toJSON() {
 			Map<String, Object> map = new HashMap<String, Object>();
 			map.put("simpleName", ctClass.getQualifiedName());
 			map.put("annotations", annotations);
@@ -181,30 +185,32 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 			return this.methods.values().stream().anyMatch(p -> p.isTest());
 		}
 
-		List<MyMethod> getTestMethods() {
+		public List<ITestMethod> getTestMethods() {
 			return this.methods.values().stream().filter(p -> p.isTest()).collect(Collectors.toList());
 		}
 
-		List<MyMethod> getSetupMethods() {
+		List<ITestMethod> getSetupMethods() {
 			return this.methods.values().stream().filter(p -> p.isSetup()).collect(Collectors.toList());
 		}
 
 		@Deprecated
-		List<MyField> getMockFields() {
+		public
+		List<ITestField> getMockFields() {
 			return this.fields.stream().filter(p -> !p.getMockType().isEmpty()).collect(Collectors.toList());
 		}
 
 		@Override
 		public String toString() {
-			List<MyMethod> testMethods = getTestMethods();
-			List<MyField> mockFields = getMockFields();
+			List<ITestMethod> testMethods = getTestMethods();
+			List<ITestField> mockFields = getMockFields();
 			return "ctClass=" + ctClass.getQualifiedName() + ", annotations.size=" + annotations.size() + ":"
 					+ annotations + ", methods.size=" + testMethods.size() + ":" + testMethods + ", fields.size="
 					+ mockFields.size() + ":" + mockFields;
 		}
 	}
 
-	class MyField {
+
+	class MyField implements ITestField {
 
 		private final CtField ctField;
 		private final Set<String> annotations;
@@ -217,7 +223,7 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 			this.myClass = myClass;
 			this.ctField = ctField;
 			this.simpleName = ctField.getSimpleName();
-			this.annotations = getAnnotations(ctField);
+			this.annotations = createAnnotations(ctField);
 			this.typeName = ctField.getType().getQualifiedName();
 			this.defaultExpression = ctField.getDefaultExpression();
 		}
@@ -256,7 +262,7 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 		}
 	}
 
-	class MyAssert {
+	class MyAssert implements ITestAssert {
 		final String className;
 		final String methodName;
 		final List<String> argTypes;
@@ -278,39 +284,103 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 			map.put("line", line);
 			return map;
 		}
+
+
+		public String getClassName() {
+			return className;
+		}
+
+
+		public String getMethodName() {
+			return methodName;
+		}
+
+
+		public List<String> getArgTypes() {
+			return argTypes;
+		}
+
+
+		public int getLine() {
+			return line;
+		}
+		
 	}
-	class MyMethod {
+	class MyMethod implements ITestMethod {
 
 		final Set<String> annotations;
-		final List<MyAssert> assertions;
+		final List<ITestAssert> assertions;
 		final String simpleName;
 		final CtMethod method;
 		private MyClass myClass;
+		private int startLine;
 
 		public MyMethod(MyClass myClass, CtMethod e) {
 			this.myClass = myClass;
 			this.simpleName = e.getSimpleName();
-			this.annotations = getAnnotations(e);
+			this.annotations = createAnnotations(e);
 			this.assertions = getAssertions(e);
+			this.startLine = e.getPosition().isValidPosition() ? e.getPosition().getLine() : -1;
 			this.method = e;
 		}
+		
+		@Override
+		public Set<String> getAnnotations() {
+			return annotations;
+		}
 
-		private List<MyAssert> getAssertions(CtMethod method) {
-			List<CtStatement> statements = method.getBody().getStatements();
-			List<CtInvocation> invocations = statements.stream().filter(p->p instanceof CtInvocation).map(x->(CtInvocation)x).collect(Collectors.toList());
-			List<MyAssert> asserts = invocations.stream().
-			filter(p-> p.getExecutable().getActualMethod().getName().toLowerCase().contains("assert")).
-			map(x -> new MyAssert(x.getExecutable().getDeclaringType().getQualifiedName(), 
-					x.getExecutable().getActualMethod().getName(), 
+		@Override
+		public List<ITestAssert> getAssertions() {
+			return assertions;
+		}
+		private List<ITestAssert> getAssertions(CtMethod method) {
+			List<CtInvocation> invocations =new CopyOnWriteArrayList<>();
+			invocations = method.getElements(new Filter() {
+
+				@Override
+				public boolean matches(CtElement element) {
+					return element instanceof CtInvocation && isAssertMethod((CtInvocation) element);
+				}
+				
+			});
+			List<ITestAssert> asserts = invocations.stream().
+			map(x -> new MyAssert(getClassName(x), 
+					x.getExecutable().getSimpleName(), 
 					getArgTypes(x),
 					x.getPosition().getLine())).collect(Collectors.toList());
 			return asserts;
 		}
 
+		private String getClassName(CtInvocation x) {
+			String className = String.valueOf(x.getTarget());
+			try {
+				CtExecutableReference executable = x.getExecutable();
+				CtTypeReference declaringType = executable.getDeclaringType();
+				return declaringType.getQualifiedName();
+			} catch (Exception e) {
+				return className;
+			}
+		}
+
+		private boolean isAssertMethod(CtInvocation p) {
+			CtExecutableReference executable = p.getExecutable();
+			return executable.getSimpleName().toLowerCase().contains("assert");
+//			Method actualMethod = executable.getActualMethod();
+//			return actualMethod.getName().toLowerCase().contains("assert");
+		}
+
 		private List<String> getArgTypes(CtInvocation x) {
 			List<CtExpression> arguments = x.getArguments();
-			Stream<String> map = arguments.stream().map(a -> a.getType().getQualifiedName());
+			Stream<String> map = arguments.stream().map(a -> getArgType(a));
 			return map.collect(Collectors.toList());
+		}
+
+		private String getArgType(CtExpression a) {
+			CtTypeReference type = a.getType();
+			if (type == null) {
+				return "unknown";
+			}
+			return type.getQualifiedName();
 		}
 
 		public HashMap toJSON() {
@@ -319,13 +389,20 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 			map.put("annotations", annotations);
 			map.put("assertions", assertions);
 			map.put("LOC", lineCount());
+			map.put("startLine", startLine);
 			map.put("statementCount", statementCount());
-			ObjectCreator key = new ObjectCreator(this.method.getParent(CtClass.class), this.method);
-			Collection<ObjectCreationOccurence> creations = objectsCreated.get(key);
-			List mocks = creations.stream().map(x -> x.toJSON()).collect(Collectors.toList());
+			List mocks = getMocks();
 			map.put("mocks", mocks);
 
 			return map;
+		}
+
+		@Override
+		public List<Object> getMocks() {
+			ObjectCreator key = new ObjectCreator(this.method.getParent(CtClass.class), this.method);
+			Collection<ObjectCreationOccurence> creations = objectsCreated.get(key);
+			List mocks = creations.stream().map(x -> x.toJSON()).collect(Collectors.toList());
+			return mocks;
 		}
 
 		private boolean isPublicVoidMethod() {
@@ -333,11 +410,11 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 			return p.getParameters().isEmpty() && p.isPublic() && isVoid(p);
 		}
 
-		boolean isTest() {
+		public boolean isTest() {
 			return annotations.contains("Test");
 		}
 
-		boolean isSetup() {
+		public boolean isSetup() {
 			return !annotations.isEmpty() && SETUP_CLASSES.containsAll(annotations);
 		}
 
@@ -364,7 +441,7 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 		}
 	}
 
-	private static Set<String> getAnnotations(CtElement element) {
+	private static Set<String> createAnnotations(CtElement element) {
 		return element.getAnnotations().stream().map(a -> a.getAnnotationType().getSimpleName())
 				.collect(Collectors.toSet());
 	}

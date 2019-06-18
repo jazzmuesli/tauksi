@@ -30,7 +30,7 @@ import org.codehaus.plexus.classworlds.ClassWorld;
 import org.codehaus.plexus.classworlds.realm.ClassRealm;
 import org.pavelreich.saaremaa.codecov.MeasureCodeCoverageByTestAndProdMethod;
 import org.pavelreich.saaremaa.testdepan.TestFileProcessor;
-import org.pavelreich.saaremaa.testdepan.TestFileProcessor.MyClass;
+import org.pavelreich.saaremaa.testdepan.TestFileProcessor.ITestClass;
 
 /**
  * Goal which touches a timestamp file.
@@ -77,8 +77,8 @@ public class CodeCoverageAnalyseMojo
         		if (new File(dirName).exists()) {
     				TestFileProcessor processor = TestFileProcessor.run(dirName, dirName+File.separator+"result.json");
     				// extract junit class names
-    				List<MyClass> elements = processor.getElements();
-    				for (MyClass element : elements) {
+    				List<ITestClass> elements = processor.getElements();
+    				for (ITestClass element : elements) {
     					junitClassNames.add(element.getClassName());
     				}
         		}
