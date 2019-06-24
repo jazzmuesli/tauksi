@@ -77,9 +77,9 @@ public class TestFileProcessorTest {
 	
 	@Test
 	public void testIdentifyMocksInUnresolvedCode() throws FileNotFoundException {
-		TestFileProcessor processor = TestFileProcessor.run("/Users/preich/Documents/github/storm/storm-webapp/src/test", null);
+		TestFileProcessor processor = TestFileProcessor.run("code-examples", null);
 		List<ITestClass> classes = processor.getElements();
-		assertEquals(10, classes.size());
+		assertEquals(1, classes.size());
 		Map<String, ITestClass> classesMap = classes.stream().collect(Collectors.toMap(x->x.getClassName(), x->x));
 		ITestClass myClass = classesMap.get("org.apache.storm.daemon.logviewer.utils.WorkerLogsTest");
 		List<ITestMethod> methods = myClass.getTestMethods();
