@@ -82,15 +82,13 @@ public class CodeCoverageAnalyseMojo
 					TestFileProcessor processor = TestFileProcessor.run(dirName, resultFileName);
     				// extract junit class names
 					processor.writeCSVResults(assertsFileName);
-    				
-    				
-    				
-    				
         		}
 			} catch (Exception e) {
 				getLog().error(e.getMessage(), e);
 			} finally {
-				createShellScript(dirName, classpath, junitClassNames);
+        		if (new File(dirName).exists()) {
+        			createShellScript(dirName, classpath, junitClassNames);
+        		}
 			}
     	}
 		getLog().info("junitClassNames: " + junitClassNames);
