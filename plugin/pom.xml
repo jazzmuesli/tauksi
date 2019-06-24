@@ -81,6 +81,11 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+  <groupId>org.evosuite</groupId>
+  <artifactId>evosuite-standalone-runtime</artifactId>
+  <version>LATEST</version>
+</dependency>
+    <dependency>
       <groupId>org.apache.maven.plugin-testing</groupId>
       <artifactId>maven-plugin-testing-harness</artifactId>
       <version>3.3.0</version>

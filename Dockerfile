@@ -10,6 +10,7 @@ RUN \
   apt-get install -y software-properties-common && \
   apt-get install -y byobu curl git htop man unzip vim wget zip && \
   apt-get install python3.6 python3-pip -y && \
+  apt-get install python2.7 python-pip -y && \
   rm -rf /var/lib/apt/lists/*
 
 # Set environment variables.
