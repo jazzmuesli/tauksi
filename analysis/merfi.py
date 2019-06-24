@@ -21,8 +21,8 @@ x=am.select_dtypes(include=numerics)
 x_cols=list(x.columns.values)
 x_cols=list(set(x_cols)-set(['missedLines','coveredLines','covratio','line','startLine']))
 
-train=am
-mrf = MERF(n_estimators=100, max_iterations=20)
+train=am[:10000]
+mrf = MERF(n_estimators=10, max_iterations=5)
 X_train =  train[x_cols]
 Z_train = np.ones((len(X_train), 1))
 print(Z_train.shape)
