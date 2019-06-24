@@ -1,13 +1,15 @@
 package org.pavelreich.saaremaa;
 
 
+
 import org.apache.maven.plugin.testing.MojoRule;
 import org.apache.maven.plugin.testing.WithoutMojo;
-import org.junit.Ignore;
 import org.junit.Rule;
 import static org.junit.Assert.*;
 import org.junit.Test;
 import java.io.File;
+
+import static org.mockito.Mockito.mock; 
 
 public class MyMojoTest
 {
@@ -29,15 +31,14 @@ public class MyMojoTest
      * @throws Exception if any
      */
     @Test
-    @Ignore
     public void testSomething()
             throws Exception
     {
-        File pom = new File( "target/test-classes/project-to-test/" );
+        File pom = new File( "./" );
         assertNotNull( pom );
         assertTrue( pom.exists() );
 
-        CodeCoverageAnalyseMojo myMojo = ( CodeCoverageAnalyseMojo ) rule.lookupConfiguredMojo( pom, "analyse" );
+        AnalyseMojo myMojo = ( AnalyseMojo ) rule.lookupConfiguredMojo( pom, "testan" );
         assertNotNull( myMojo );
         myMojo.execute();
 
@@ -45,7 +46,7 @@ public class MyMojoTest
         assertNotNull( outputDirectory );
         assertTrue( outputDirectory.exists() );
 
-        File touch = new File( outputDirectory, "touch.txt" );
+        File touch = new File("src/test/java/asserts.csv");
         assertTrue( touch.exists() );
 
     }
@@ -55,6 +56,7 @@ public class MyMojoTest
     @Test
     public void testSomethingWhichDoesNotNeedTheMojoAndProbablyShouldBeExtractedIntoANewClassOfItsOwn()
     {
+    	File f = mock(File.class);
         assertTrue( true );
     }
 

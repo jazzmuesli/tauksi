@@ -81,7 +81,7 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 	public void process(CtClass ctClass) {
 		MyClass myClass = new MyClass(ctClass);
 		if (myClass.hasTests()) {
-			LOG.info("myClass:" + myClass);
+//			LOG.info("myClass:" + myClass);
 			this.elements.add(myClass);
 		}
 
@@ -299,6 +299,9 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 		}
 
 
+		public String toString() {
+			return "[className=" + className + ", methodName=" +methodName + "]";
+		}
 		public String getClassName() {
 			return className;
 		}

@@ -32,12 +32,11 @@ import org.pavelreich.saaremaa.codecov.MeasureCodeCoverageByTestAndProdMethod;
 import org.pavelreich.saaremaa.testdepan.ITestClass;
 import org.pavelreich.saaremaa.testdepan.TestFileProcessor;
 
-import com.github.mauricioaniche.ck.CSVExporter;
 
 /**
  * Goal which touches a timestamp file.
  */
-@Mojo( name = "analyse", defaultPhase = LifecyclePhase.PROCESS_SOURCES, requiresDependencyResolution = ResolutionScope.TEST)
+@Mojo( name = "coverage", defaultPhase = LifecyclePhase.PROCESS_SOURCES, requiresDependencyResolution = ResolutionScope.TEST)
 public class CodeCoverageAnalyseMojo
     extends AbstractMojo
 {
@@ -77,11 +76,12 @@ public class CodeCoverageAnalyseMojo
         		// process test directory
         		getLog().info("Processing "  + dirName);
         		if (new File(dirName).exists()) {
-    				String resultFileName = dirName+File.separator+"result.json";
-    				String assertsFileName = dirName+File.separator+"asserts.csv";
-					TestFileProcessor processor = TestFileProcessor.run(dirName, resultFileName);
+					TestFileProcessor processor = TestFileProcessor.run(dirName, null);
     				// extract junit class names
-					processor.writeCSVResults(assertsFileName);
+					List<ITestClass> elements = processor.getElements();
+    				for (ITestClass element : elements) {
+    					junitClassNames.add(element.getClassName());
+    				}
         		}
 			} catch (Exception e) {
 				getLog().error(e.getMessage(), e);
@@ -134,6 +134,10 @@ public class CodeCoverageAnalyseMojo
 	}
 
 	private void createShellScript(String dir, LinkedHashSet<String> classpath, List<String> junitClassNames) {
+		if (junitClassNames.isEmpty()) {
+			getLog().info("No junits in " + dir);
+			return;
+		}
 		String cmd = "java -classpath " + classpath.stream().collect(Collectors.joining(File.pathSeparator)) 
 				+ " " + MeasureCodeCoverageByTestAndProdMethod.class.getCanonicalName() + " " + junitClassNames.stream().collect(Collectors.joining(" "));
 		getLog().info("cmd: "+ cmd);

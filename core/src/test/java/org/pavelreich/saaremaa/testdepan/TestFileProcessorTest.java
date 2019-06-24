@@ -3,7 +3,11 @@ package org.pavelreich.saaremaa.testdepan;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.net.Socket;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +20,8 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.mockito.Mockito.mock; 
+
 public class TestFileProcessorTest {
 
 	private static final Logger LOG = LoggerFactory.getLogger(TestFileProcessorTest.class);
@@ -26,9 +32,13 @@ public class TestFileProcessorTest {
 
 	@Test
 	public void testAssertions2() throws Exception {
-		File f = Mockito.mock(File.class);
-		File f1 = Mockito.mock(File.class);
-		File f2 = Mockito.mock(File.class);
+		try(FileOutputStream file= new FileOutputStream("/tmp/1.txt")) {
+			File f = mock(File.class);
+			File f1 = Mockito.mock(File.class);
+			File f2 = Mockito.mock(File.class);
+		} finally {
+			
+		}
 	}
 	
 	@Test
@@ -39,27 +49,49 @@ public class TestFileProcessorTest {
 		assertEquals(1, classes.size());
 		Map map = new HashMap();
 		ITestClass myClass = classes.get(0);
-//		LOG.info("line: " + myClass.toCSV());
 		File f = Mockito.mock(File.class);
 		assertEquals(getClass().getName(), myClass.getClassName());
 		List<ITestMethod> methods = myClass.getTestMethods();
 		assertEquals(2, myClass.getMockFields().size());
-		assertEquals(2, methods.size());
-		for (ITestMethod myMethod : methods.stream().filter(p->p.getName().equals("testAssertions")).collect(Collectors.toList())) {
+		assertEquals(3, methods.size());
+		Map<String, ITestMethod> methodsMap = methods.stream().collect(Collectors.toMap(x -> x.getName(), x->x));
+		List<ObjectCreationOccurence> testAssertions2Mocks = methodsMap.get("testAssertions2").getMocks();
+		assertEquals(3, testAssertions2Mocks.size());
+		for (ITestMethod myMethod : Arrays.asList(methodsMap.get("testAssertions"))) {
 			assertEquals(Sets.newHashSet("Test"),myMethod.getAnnotations());
 			assertEquals(1, myMethod.getMocks().size());
 			List<ObjectCreationOccurence> mocksInMethod = myMethod.getMocks();
 			ObjectCreationOccurence mockInMethod = mocksInMethod.iterator().next();
 			assertEquals("f",mockInMethod.getName());
-			assertEquals(43, mockInMethod.getLine());
+			assertEquals(52, mockInMethod.getLine());
 			assertEquals("java.io.File", mockInMethod.getClassName());
 			assertEquals(InstanceType.MOCKITO, mockInMethod.getInstanceType());
 			assertEquals(2, myMethod.getAssertions().get(0).getArgTypes().size());
 			assertEquals("org.junit.Assert", myMethod.getAssertions().get(0).getClassName());
 			assertEquals("int", myMethod.getAssertions().get(0).getArgTypes().get(0));
-			assertEquals(18, myMethod.getAssertions().size());
+			assertEquals(19, myMethod.getAssertions().size());
 		}
 		processor.writeResults("results.json", processor);
 		processor.writeCSVResults("asserts.csv");
+	}
+	
+	@Test
+	public void testIdentifyMocksInUnresolvedCode() throws FileNotFoundException {
+		TestFileProcessor processor = TestFileProcessor.run("/Users/preich/Documents/github/storm/storm-webapp/src/test", null);
+		List<ITestClass> classes = processor.getElements();
+		assertEquals(10, classes.size());
+		Map<String, ITestClass> classesMap = classes.stream().collect(Collectors.toMap(x->x.getClassName(), x->x));
+		ITestClass myClass = classesMap.get("org.apache.storm.daemon.logviewer.utils.WorkerLogsTest");
+		List<ITestMethod> methods = myClass.getTestMethods();
+		Map<String, ITestMethod> methodsMap = methods.stream().collect(Collectors.toMap(x -> x.getName(), x->x));
+		LOG.info("methodsMap: " + methodsMap);
+		ITestMethod method = methodsMap.get("testIdentifyWorkerLogDirs");
+		LOG.info("json: " + method.toJSON());
+		List<ObjectCreationOccurence> mocks = method.getMocks();
+		assertEquals(1, mocks.size());
+		LOG.info("mock: " + mocks.get(0).toJSON());
+		LOG.info("assertions: " + method.getAssertions().get(0).toJSON());
+		LOG.info("lines: " + myClass.toCSV());
+		
 	}
 }
