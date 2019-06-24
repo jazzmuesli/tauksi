@@ -29,8 +29,10 @@ import org.apache.maven.repository.RepositorySystem;
 import org.codehaus.plexus.classworlds.ClassWorld;
 import org.codehaus.plexus.classworlds.realm.ClassRealm;
 import org.pavelreich.saaremaa.codecov.MeasureCodeCoverageByTestAndProdMethod;
+import org.pavelreich.saaremaa.testdepan.ITestClass;
 import org.pavelreich.saaremaa.testdepan.TestFileProcessor;
-import org.pavelreich.saaremaa.testdepan.TestFileProcessor.ITestClass;
+
+import com.github.mauricioaniche.ck.CSVExporter;
 
 /**
  * Goal which touches a timestamp file.
@@ -75,12 +77,15 @@ public class CodeCoverageAnalyseMojo
         		// process test directory
         		getLog().info("Processing "  + dirName);
         		if (new File(dirName).exists()) {
-    				TestFileProcessor processor = TestFileProcessor.run(dirName, dirName+File.separator+"result.json");
+    				String resultFileName = dirName+File.separator+"result.json";
+    				String assertsFileName = dirName+File.separator+"asserts.csv";
+					TestFileProcessor processor = TestFileProcessor.run(dirName, resultFileName);
     				// extract junit class names
-    				List<ITestClass> elements = processor.getElements();
-    				for (ITestClass element : elements) {
-    					junitClassNames.add(element.getClassName());
-    				}
+					processor.writeCSVResults(assertsFileName);
+    				
+    				
+    				
+    				
         		}
 			} catch (Exception e) {
 				getLog().error(e.getMessage(), e);

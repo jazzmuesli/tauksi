@@ -3,6 +3,10 @@ package org.pavelreich.saaremaa;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
@@ -28,7 +32,8 @@ public class CSVReporter {
 
 	public synchronized void write(Object... values) {
 		try {
-			csvPrinter.printRecord(values);
+			List<String> recs = Arrays.asList(values).stream().map(x->String.valueOf(x).trim().replaceAll("\"", "")).collect(Collectors.toList());
+			csvPrinter.printRecord(recs.toArray(new String[0]));
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}

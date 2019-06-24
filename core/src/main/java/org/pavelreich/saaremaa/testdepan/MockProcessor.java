@@ -50,7 +50,11 @@ class MockProcessor extends AbstractProcessor<CtInvocation> {
                 
                 Object firstArg = element.getArguments().get(0);
                 CtTypeReference mock;
-                if (firstArg instanceof CtVariableRead) {
+                if (firstArg instanceof CtFieldRead) {
+                	CtExpression type = ((CtFieldRead) firstArg).getTarget();
+                    Set<CtTypeReference<?>> x = type.getReferencedTypes();
+                    mock = x.iterator().next();
+                } else if (firstArg instanceof CtVariableRead) {
                 	mock = ((CtVariableRead) firstArg).getType();
                 } else {
                 	CtExpression type = ((CtFieldRead) firstArg).getTarget();

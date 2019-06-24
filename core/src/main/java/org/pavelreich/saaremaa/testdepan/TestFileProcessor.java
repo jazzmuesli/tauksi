@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -17,10 +19,14 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.csv.QuoteMode;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.pavelreich.saaremaa.CSVReporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,6 +61,7 @@ import spoon.reflect.visitor.Filter;
 public class TestFileProcessor extends AbstractProcessor<CtClass> {
 	static final Set<String> SETUP_CLASSES = new HashSet<String>(Arrays.asList(BeforeClass.class.getSimpleName(),
 			Before.class.getSimpleName(), After.class.getSimpleName(), AfterClass.class.getSimpleName()));
+	public static final String DELIM = ";";
 
 	private static final Logger LOG = LoggerFactory.getLogger(TestFileProcessor.class);
 
@@ -110,7 +117,7 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 		return processor;
 	}
 
-	private static void writeResults(String resultFileName, TestFileProcessor processor) {
+	static void writeResults(String resultFileName, TestFileProcessor processor) {
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		String json = gson.toJson(processor.getElements().stream().map(x -> x.toJSON()).collect(Collectors.toList()));
 		try {
@@ -207,6 +214,11 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 					+ annotations + ", methods.size=" + testMethods.size() + ":" + testMethods + ", fields.size="
 					+ mockFields.size() + ":" + mockFields;
 		}
+		@Override
+		public List<String> toCSV() {
+			List<String> ret = getTestMethods().stream().map(x->getClassName()+DELIM+x.toCSV()).collect(Collectors.toList());
+			return ret;
+		}
 	}
 
 
@@ -237,6 +249,7 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 			return map;
 		}
 
+		@Override
 		public String getMockType() {
 			if (defaultExpression instanceof CtInvocation) {
 				CtExecutableReference exec = ((CtInvocation) defaultExpression).getExecutable();
@@ -350,7 +363,6 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 					x.getPosition().getLine())).collect(Collectors.toList());
 			return asserts;
 		}
-
 		private String getClassName(CtInvocation x) {
 			String className = String.valueOf(x.getTarget());
 			try {
@@ -391,18 +403,17 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 			map.put("LOC", lineCount());
 			map.put("startLine", startLine);
 			map.put("statementCount", statementCount());
-			List mocks = getMocks();
+			List mocks = getMocks().stream().map(x->x.toJSON()).collect(Collectors.toList());
 			map.put("mocks", mocks);
 
 			return map;
 		}
 
 		@Override
-		public List<Object> getMocks() {
+		public List<ObjectCreationOccurence> getMocks() {
 			ObjectCreator key = new ObjectCreator(this.method.getParent(CtClass.class), this.method);
 			Collection<ObjectCreationOccurence> creations = objectsCreated.get(key);
-			List mocks = creations.stream().map(x -> x.toJSON()).collect(Collectors.toList());
-			return mocks;
+			return creations.stream().filter(p->p.getInstanceType() != InstanceType.REAL).collect(Collectors.toList());
 		}
 
 		private boolean isPublicVoidMethod() {
@@ -424,14 +435,22 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 		}
 
 		int lineCount() {
+			try {
 			CtBlock body = this.method.getBody();
 			int loc = body.toString().split("\n").length;
 			return loc;
+			} catch (Exception e) {
+				return 0;
+			}
 		}
 
 		int statementCount() {
+			try {
 			List<CtStatement> statements = method.getBody().getStatements();
 			return statements.size();
+			} catch (Exception e) {
+				return 0;
+			}
 		}
 
 		@Override
@@ -439,11 +458,62 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 			return "MyMethod[simpleName=" + simpleName + ", annotations=" + annotations + ", LOC=" + lineCount()
 					+ ", statementCount=" + statementCount() + "]";
 		}
+
+		@Override
+		public String getName() {
+			return simpleName;
+		}
+
+		@Override
+		public String toCSV() {
+			Optional<ITestAssert> assertsStartAtLine = getAssertions().stream().min((a,b) -> Long.compare(a.getLine(), b.getLine()));
+			Optional<ObjectCreationOccurence> mocksStartAtLine = getMocks().stream().min((a,b) -> Long.compare(a.getLine(), b.getLine()));
+			String line = Arrays.asList(
+					getName(), 
+					getAssertions().size(), 
+					getMocks().size(),
+					this.myClass.getMockFields().size(),
+					startLine,
+					assertsStartAtLine.isPresent() ? assertsStartAtLine.get().getLine() : -1,
+					mocksStartAtLine.isPresent() ? mocksStartAtLine.get().getLine() : -1,
+					lineCount()
+					).stream().map(x->String.valueOf(x)).
+					collect(Collectors.joining(DELIM));
+			return line;
+		}
 	}
 
 	private static Set<String> createAnnotations(CtElement element) {
 		return element.getAnnotations().stream().map(a -> a.getAnnotationType().getSimpleName())
 				.collect(Collectors.toSet());
+	}
+
+	public void writeCSVResults(String assertsFileName) {
+		List<ITestClass> elements = getElements();
+		String[] fields = ITestClass.getFields().split(TestFileProcessor.DELIM);
+		try {
+			CSVFormat format = CSVFormat.DEFAULT.
+			withHeader(fields).
+			withDelimiter(';').
+			withQuoteMode(QuoteMode.MINIMAL).
+			withSystemRecordSeparator();
+
+			CSVPrinter printer = new CSVPrinter(Files.newBufferedWriter(Paths.get(assertsFileName)),
+					format
+					);
+			CSVReporter assertsReporter = new CSVReporter(printer);
+			for (ITestClass element : elements) {
+				List<String> lines = element.toCSV();
+				for (String line : lines) {
+					String[] vals = line.split(DELIM);
+					assertsReporter.write(vals);
+				}
+				assertsReporter.flush();
+			}
+		} catch (IOException e) {
+			throw new IllegalArgumentException(e.getMessage(), e);
+		}
+		
 	}
 
 }

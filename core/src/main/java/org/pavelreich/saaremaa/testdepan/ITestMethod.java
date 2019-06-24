@@ -11,8 +11,12 @@ public interface ITestMethod extends IJSONable {
 
 	Set<String> getAnnotations();
 
-	List<Object> getMocks();
+	List<ObjectCreationOccurence> getMocks();
 
 	List<ITestAssert> getAssertions();
+
+	String getName();
+	
+	String toCSV();
 
 }

@@ -21,25 +21,31 @@ import spoon.reflect.reference.CtTypeReference;
 /**
  * Created by preich on 19/02/19.
  */
-class ObjectCreationOccurence {
+public class ObjectCreationOccurence {
     private static final Logger LOG = LoggerFactory.getLogger(ObjectCreationOccurence.class);
 
     private CtElement element;
     private CtTypeReference typeRef;
     private InstanceType instanceType;
 
+	private Integer line;
+
     public ObjectCreationOccurence(CtTypeReference mock, CtElement element, InstanceType instanceType) {
         this.typeRef = mock;
         this.element = element;
         this.instanceType = instanceType;
+        this.line = element.getPosition() instanceof NoSourcePosition ? -1 : element.getPosition().getLine();
     }
 
+    public int getLine() {
+		return line;
+	}
+    
     public String toCSV() {
         Integer line = null;
         String absolutePath = null;
         try {
             absolutePath = getAbsolutePath();
-            line = typeRef.getPosition() instanceof NoSourcePosition ? null : typeRef.getPosition().getLine();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
         }
@@ -91,5 +97,13 @@ class ObjectCreationOccurence {
 			return typeRef.getQualifiedName();
 		}
 		return "unknown";
+	}
+
+	public InstanceType getInstanceType() {
+		return instanceType;
+	}
+	
+	public String getClassName() {
+		return getType();
 	}
 }

@@ -1,15 +1,17 @@
 package org.pavelreich.saaremaa.testdepan.jdt;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.pavelreich.saaremaa.testdepan.ITestClass;
 import org.pavelreich.saaremaa.testdepan.*;
 
 public class TestClass implements ITestClass {
 
 	private String className;
 	private String packageName;
+	List<ITestField> mockFields = new ArrayList();
+	List<ITestMethod> testMethods = new ArrayList();
 
 	@Override
 	public Map<String, Object> toJSON() {
@@ -24,14 +26,12 @@ public class TestClass implements ITestClass {
 
 	@Override
 	public List<ITestMethod> getTestMethods() {
-		// TODO Auto-generated method stub
-		return null;
+		return testMethods;
 	}
 
 	@Override
 	public List<ITestField> getMockFields() {
-		// TODO Auto-generated method stub
-		return null;
+		return mockFields;
 	}
 
 	public void setClassName(String className) {
@@ -40,6 +40,12 @@ public class TestClass implements ITestClass {
 
 	public void setPackageName(String fullyQualifiedName) {
 		this.packageName = fullyQualifiedName;
+	}
+
+	@Override
+	public List<String> toCSV() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
