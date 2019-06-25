@@ -23,7 +23,7 @@ public class CSVReporter {
 
 	public CSVReporter(String fname, String... fields) throws IOException {
 		this(new CSVPrinter(Files.newBufferedWriter(Paths.get(fname)),
-				CSVFormat.DEFAULT.withHeader(fields).withDelimiter(';')));
+				CSVFormat.DEFAULT.withHeader(fields).withSystemRecordSeparator().withDelimiter(';')));
 	}
 
 	public CSVReporter(CSVPrinter csvPrinter) {

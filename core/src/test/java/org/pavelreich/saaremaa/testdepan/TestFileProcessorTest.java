@@ -3,7 +3,6 @@ package org.pavelreich.saaremaa.testdepan;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.net.Socket;
@@ -52,10 +51,12 @@ public class TestFileProcessorTest {
 		File f = Mockito.mock(File.class);
 		assertEquals(getClass().getName(), myClass.getClassName());
 		List<ITestMethod> methods = myClass.getTestMethods();
-		assertEquals(2, myClass.getMockFields().size());
+		List<ITestField> mockFields = myClass.getMockFields();
+		assertEquals(2, mockFields.size());
 		assertEquals(3, methods.size());
 		Map<String, ITestMethod> methodsMap = methods.stream().collect(Collectors.toMap(x -> x.getName(), x->x));
-		List<ObjectCreationOccurence> testAssertions2Mocks = methodsMap.get("testAssertions2").getMocks();
+		ITestMethod methodTestAssertions2 = methodsMap.get("testAssertions2");
+		List<ObjectCreationOccurence> testAssertions2Mocks = methodTestAssertions2.getMocks();
 		assertEquals(3, testAssertions2Mocks.size());
 		for (ITestMethod myMethod : Arrays.asList(methodsMap.get("testAssertions"))) {
 			assertEquals(Sets.newHashSet("Test"),myMethod.getAnnotations());
@@ -63,16 +64,26 @@ public class TestFileProcessorTest {
 			List<ObjectCreationOccurence> mocksInMethod = myMethod.getMocks();
 			ObjectCreationOccurence mockInMethod = mocksInMethod.iterator().next();
 			assertEquals("f",mockInMethod.getName());
-			assertEquals(52, mockInMethod.getLine());
+			assertEquals(51, mockInMethod.getLine());
 			assertEquals("java.io.File", mockInMethod.getClassName());
 			assertEquals(InstanceType.MOCKITO, mockInMethod.getInstanceType());
 			assertEquals(2, myMethod.getAssertions().get(0).getArgTypes().size());
 			assertEquals("org.junit.Assert", myMethod.getAssertions().get(0).getClassName());
 			assertEquals("int", myMethod.getAssertions().get(0).getArgTypes().get(0));
-			assertEquals(19, myMethod.getAssertions().size());
+			//assertEquals(20, myMethod.getAssertions().size());
 		}
 		processor.writeResults("results.json", processor);
 		processor.writeCSVResults("asserts.csv");
+		assertEquals(2, mockFields.size());
+		ITestField mockField = mockFields.get(0);
+		assertEquals(28, mockField.getLine());
+		assertEquals("socket", mockField.getName());
+		assertEquals("java.net.Socket", mockField.getMockType());
+		ObjectCreationOccurence mock1 = methodTestAssertions2.getMocks().get(0);
+		assertEquals("java.io.File", mock1.getClassName());
+		assertEquals("f", mock1.getName());
+		assertEquals(35, mock1.getLine());
+		processor.writeMockito("mockito1.csv");
 	}
 	
 	@Test
@@ -92,6 +103,8 @@ public class TestFileProcessorTest {
 		LOG.info("mock: " + mocks.get(0).toJSON());
 		LOG.info("assertions: " + method.getAssertions().get(0).toJSON());
 		LOG.info("lines: " + myClass.toCSV());
+		assertEquals(0, myClass.getMockFields().size());
+		processor.writeMockito("mockito2.csv");
 		
 	}
 }

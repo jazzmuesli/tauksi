@@ -230,6 +230,7 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 		private final String typeName;
 		private final CtExpression defaultExpression;
 		private MyClass myClass;
+		private int startLine;
 
 		public MyField(MyClass myClass, CtField ctField) {
 			this.myClass = myClass;
@@ -238,6 +239,7 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 			this.annotations = createAnnotations(ctField);
 			this.typeName = ctField.getType().getQualifiedName();
 			this.defaultExpression = ctField.getDefaultExpression();
+			this.startLine = ctField.getPosition().isValidPosition() ? ctField.getPosition().getLine() : -1;
 		}
 
 		public HashMap toJSON() {
@@ -272,6 +274,16 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 		public String toString() {
 			return "MyField[simpleName=" + simpleName + ", typeName=" + typeName + ", annotations=" + annotations
 					+ ", mockType=" + getMockType() + "]";
+		}
+
+		@Override
+		public int getLine() {
+			return startLine;
+		}
+
+		@Override
+		public String getName() {
+			return simpleName;
 		}
 	}
 
@@ -491,6 +503,53 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 				.collect(Collectors.toSet());
 	}
 
+	enum MockType { VARIABLE, FIELD}
+	static class MockOccurence {
+
+		MockType mockType;
+		String className;
+		String mockClass;
+		int line;
+		String name;
+		public MockOccurence(MockType mockType, String className, String mockClass, int line, String name) {
+			super();
+			this.mockType = mockType;
+			this.className = className;
+			this.mockClass = mockClass;
+			this.line = line;
+			this.name = name;
+		}
+
+		
+	}
+	public void writeMockito(String fname) {
+		List<ITestClass> classes = getElements();
+		List<MockOccurence> mocks = new ArrayList();
+		for(ITestClass clazz : classes) {
+			for (ITestField mockField : clazz.getMockFields()) {
+				mocks.add(new MockOccurence(MockType.FIELD,clazz.getClassName(), mockField.getMockType(), mockField.getLine(), mockField.getName()));
+			}
+
+			for (ITestMethod testMethod : clazz.getTestMethods()) {
+				for (ObjectCreationOccurence x: testMethod.getMocks()) {
+					if (x.getInstanceType() != InstanceType.REAL) {
+						mocks.add(new MockOccurence(MockType.VARIABLE, clazz.getClassName(), x.getClassName(), x.getLine(), x.getName()));
+					}
+				}
+			}
+		}
+		try {
+			CSVReporter reporter = new CSVReporter(fname, "mockType","testClassName","mockClassName","mockOccurenceLine","mockName");
+			for (MockOccurence mock : mocks) {
+				reporter.write(mock.mockType.name(), mock.className, mock.mockClass, mock.line, mock.name);
+			}
+			reporter.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
 	public void writeCSVResults(String assertsFileName) {
 		List<ITestClass> elements = getElements();
 		String[] fields = ITestClass.getFields().split(TestFileProcessor.DELIM);

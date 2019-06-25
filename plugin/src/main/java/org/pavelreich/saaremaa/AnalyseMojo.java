@@ -33,8 +33,10 @@ public class AnalyseMojo extends AbstractMojo {
 				if (new File(dirName).exists()) {
 					String resultFileName = dirName + File.separator + "result.json";
 					String assertsFileName = dirName + File.separator + "asserts.csv";
+					String mockitoFileName = dirName + File.separator + "mockito.csv";
 					TestFileProcessor processor = TestFileProcessor.run(dirName, resultFileName);
 					processor.writeCSVResults(assertsFileName);
+					processor.writeMockito(mockitoFileName);
 				}
 			} catch (Exception e) {
 				getLog().error(e.getMessage(), e);

@@ -4,4 +4,8 @@ public interface ITestField extends IJSONable {
 
 	String getMockType();
 
+	int getLine();
+
+	String getName();
+
 }
