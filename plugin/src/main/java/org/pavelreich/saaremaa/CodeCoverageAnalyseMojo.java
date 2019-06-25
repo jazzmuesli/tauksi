@@ -31,6 +31,7 @@ import org.codehaus.plexus.classworlds.realm.ClassRealm;
 import org.pavelreich.saaremaa.codecov.MeasureCodeCoverageByTestAndProdMethod;
 import org.pavelreich.saaremaa.testdepan.ITestClass;
 import org.pavelreich.saaremaa.testdepan.TestFileProcessor;
+import org.slf4j.Logger;
 
 
 /**
@@ -70,13 +71,14 @@ public class CodeCoverageAnalyseMojo
     {
     	
 		LinkedHashSet<String> classpath = prepareClasspath();
+		Logger logger = new MavenLoggerAsSLF4jLoggerAdaptor(getLog());
     	List<String> junitClassNames = new ArrayList();
     	for(String dirName: project.getTestCompileSourceRoots()) {
         	try {
         		// process test directory
         		getLog().info("Processing "  + dirName);
         		if (new File(dirName).exists()) {
-					TestFileProcessor processor = TestFileProcessor.run(dirName, null);
+					TestFileProcessor processor = TestFileProcessor.run(logger, dirName, null);
     				// extract junit class names
 					List<ITestClass> elements = processor.getElements();
     				for (ITestClass element : elements) {
