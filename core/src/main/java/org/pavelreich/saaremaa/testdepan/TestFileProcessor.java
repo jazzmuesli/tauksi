@@ -63,13 +63,14 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 			Before.class.getSimpleName(), After.class.getSimpleName(), AfterClass.class.getSimpleName()));
 	public static final String DELIM = ";";
 
-	private static final Logger LOG = LoggerFactory.getLogger(TestFileProcessor.class);
+	private final Logger LOG;
 
 	private List<ITestClass> elements = new CopyOnWriteArrayList<>();
 
 	private ObjectCreationContainer objectsCreated;
 
-	public TestFileProcessor(ObjectCreationContainer objectsCreated) {
+	public TestFileProcessor(Logger log, ObjectCreationContainer objectsCreated) {
+		this.LOG = log;
 		this.objectsCreated = objectsCreated;
 	}
 
@@ -86,7 +87,7 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 		}
 
 	}
-
+/*
 	public static void main(String[] args) {
 		try {
 			String srcTestDir = args.length > 0 ? args[0] : ".";
@@ -95,8 +96,9 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 			LOG.error(e.getMessage(), e);
 		}
 	}
-
-	public static TestFileProcessor run(String pathname, String resultFileName) throws FileNotFoundException {
+*/
+	
+	public static TestFileProcessor run(Logger log, String pathname, String resultFileName) throws FileNotFoundException {
 		Launcher launcher = new Launcher();
 		SpoonResource resource = SpoonResourceHelper.createResource(new File(pathname));
 		launcher.addInputResource(resource);
@@ -105,21 +107,21 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 		CtModel model = launcher.getModel();
 
 		ObjectCreationContainer objectsCreated = new ObjectCreationContainer();
-		TestFileProcessor processor = new TestFileProcessor(objectsCreated);
-		processWithModel(model, new MockProcessor(objectsCreated));
-		processWithModel(model, new AnnotatedMockProcessor(objectsCreated));
-		processWithModel(model, new ObjectInstantiationProcessor(objectsCreated));
+		TestFileProcessor processor = new TestFileProcessor(log, objectsCreated);
+		processor.processWithModel(model, new MockProcessor(objectsCreated));
+		processor.processWithModel(model, new AnnotatedMockProcessor(objectsCreated));
+		processor.processWithModel(model, new ObjectInstantiationProcessor(objectsCreated));
 		// order matters and it's bad :(
-		processWithModel(model, processor);
+		processor.processWithModel(model, processor);
 		if (resultFileName != null) {
-			writeResults(resultFileName, processor);
+			processor.writeResults(resultFileName);
 		}
 		return processor;
 	}
 
-	static void writeResults(String resultFileName, TestFileProcessor processor) {
+	void writeResults(String resultFileName) {
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		String json = gson.toJson(processor.getElements().stream().map(x -> x.toJSON()).collect(Collectors.toList()));
+		String json = gson.toJson(getElements().stream().map(x -> x.toJSON()).collect(Collectors.toList()));
 		try {
 			FileWriter fw = new FileWriter(resultFileName);
 			fw.write(json);
@@ -129,7 +131,7 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 		}
 	}
 
-	private static void processWithModel(CtModel model, Processor processor) {
+	private void processWithModel(CtModel model, Processor processor) {
 		try {
 			model.processWith(processor);
 		} catch (Exception e) {

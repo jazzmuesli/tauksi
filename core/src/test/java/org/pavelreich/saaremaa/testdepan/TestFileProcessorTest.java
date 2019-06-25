@@ -42,7 +42,7 @@ public class TestFileProcessorTest {
 	
 	@Test
 	public void testAssertions() throws Exception {
-		TestFileProcessor processor = TestFileProcessor.run("./src/test/java/org/pavelreich/saaremaa/testdepan/TestFileProcessorTest.java", null);
+		TestFileProcessor processor = TestFileProcessor.run(LOG,"./src/test/java/org/pavelreich/saaremaa/testdepan/TestFileProcessorTest.java", null);
 		LOG.info("processor: " + processor);
 		List<ITestClass> classes = processor.getElements();
 		assertEquals(1, classes.size());
@@ -72,7 +72,7 @@ public class TestFileProcessorTest {
 			assertEquals("int", myMethod.getAssertions().get(0).getArgTypes().get(0));
 			//assertEquals(20, myMethod.getAssertions().size());
 		}
-		processor.writeResults("results.json", processor);
+		processor.writeResults("results.json");
 		processor.writeCSVResults("asserts.csv");
 		assertEquals(2, mockFields.size());
 		ITestField mockField = mockFields.get(0);
@@ -88,7 +88,7 @@ public class TestFileProcessorTest {
 	
 	@Test
 	public void testIdentifyMocksInUnresolvedCode() throws FileNotFoundException {
-		TestFileProcessor processor = TestFileProcessor.run("code-examples", null);
+		TestFileProcessor processor = TestFileProcessor.run(LOG,"code-examples", null);
 		List<ITestClass> classes = processor.getElements();
 		assertEquals(1, classes.size());
 		Map<String, ITestClass> classesMap = classes.stream().collect(Collectors.toMap(x->x.getClassName(), x->x));
