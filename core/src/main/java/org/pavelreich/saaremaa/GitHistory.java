@@ -34,10 +34,19 @@ import org.slf4j.LoggerFactory;
  */
 public class GitHistory {
 
-	private static final Logger LOG = LoggerFactory.getLogger(GitHistory.class);
+	private final Logger LOG;
+
+	public GitHistory(Logger logger) {
+		this.LOG = logger;
+	}
 
 	public static void main(String[] args) throws IOException, NoHeadException, GitAPIException {
-		Git git = Git.open(new File("."));
+		File dir = new File(".");
+		new GitHistory(LoggerFactory.getLogger(GitHistory.class)).run(dir);
+	}
+
+	public void run(File dir) throws IOException, GitAPIException, NoHeadException {
+		Git git = Git.open(dir);
 		Iterator<RevCommit> it = git.log().call().iterator();
 		Repository repository = git.getRepository();
 
@@ -85,7 +94,7 @@ public class GitHistory {
 	 * @param rw
 	 * @param commit
 	 */
-	private static RevTree getParentTree(RevWalk rw, RevCommit commit) {
+	private RevTree getParentTree(RevWalk rw, RevCommit commit) {
 		if (commit.getParentCount() == 0) {
 			return null;
 		}
@@ -101,7 +110,7 @@ public class GitHistory {
 
 	}
 
-	private static long getSize(Repository repository, DiffEntry diff, DiffEntry.Side side) {
+	private long getSize(Repository repository, DiffEntry diff, DiffEntry.Side side) {
 		AbbreviatedObjectId id = side == Side.OLD ? diff.getOldId() : diff.getNewId();
 		String path = side == Side.OLD ? diff.getOldPath() : diff.getNewPath();
 		if (path.equals("/dev/null")) {
