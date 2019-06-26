@@ -24,8 +24,10 @@ public class AnnotatedMockProcessor extends AbstractProcessor<CtField> {
 	public void process(CtField element) {
 		List<String> anns = element.getAnnotations().stream().map(p->p.getAnnotationType().getQualifiedName()).collect(Collectors.toList());
 		if (anns.contains("org.mockito.Mock") || element.getAnnotation(Mock.class) != null) {
-			objectsCreated.put(new ObjectCreator(element.getParent(CtClass.class)),
-					new ObjectCreationOccurence(element.getType(), element, InstanceType.MOCKITO));
+			ObjectCreator objectCreator = new ObjectCreator(element.getParent(CtClass.class));
+			ObjectCreationOccurence objectCreationOccurence = new ObjectCreationOccurence(element.getType(), element, InstanceType.MOCKITO);
+			objectsCreated.put(objectCreator,
+					objectCreationOccurence);
 			LOG.info("field [" + element.getClass() + "]=" + element + "  annotations=" + element.getAnnotation(Mock.class));
 		}
 
