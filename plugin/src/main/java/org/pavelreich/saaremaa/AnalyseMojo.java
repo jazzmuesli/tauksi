@@ -1,6 +1,7 @@
 package org.pavelreich.saaremaa;
 
 import java.io.File;
+import java.util.List;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -9,6 +10,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
+import org.pavelreich.saaremaa.testdepan.ITestClass;
 import org.pavelreich.saaremaa.testdepan.TestFileProcessor;
 import org.slf4j.Logger;
 import org.slf4j.Marker;
@@ -39,7 +41,8 @@ public class AnalyseMojo extends AbstractMojo {
 					String mockitoFileName = dirName + File.separator + "mockito.csv";
 					Logger logger = new MavenLoggerAsSLF4jLoggerAdaptor(getLog());
 					TestFileProcessor processor = TestFileProcessor.run(logger, dirName, resultFileName);
-					getLog().info("Creating files: " + assertsFileName + ", " + resultFileName + ", " + mockitoFileName);
+					List<ITestClass> classes = processor.getElements();
+					getLog().info("Analysed " + classes.size()+ " classes with " + processor.getMocks().size() + " mocks, creating files: " + assertsFileName + ", " + resultFileName + ", " + mockitoFileName);
 					processor.writeCSVResults(assertsFileName);
 					processor.writeMockito(mockitoFileName);
 				}

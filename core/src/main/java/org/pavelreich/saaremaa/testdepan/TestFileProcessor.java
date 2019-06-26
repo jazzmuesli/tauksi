@@ -81,11 +81,11 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 	@Override
 	public void process(CtClass ctClass) {
 		MyClass myClass = new MyClass(ctClass);
-		if (myClass.hasTests()) {
-//			LOG.info("myClass:" + myClass);
+		boolean h = myClass.hasTests();
+		if (h) {
 			this.elements.add(myClass);
 		}
-
+//		LOG.info("myClass.hasTests[" + h + ":" + myClass);
 	}
 /*
 	public static void main(String[] args) {
@@ -99,24 +99,29 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 */
 	
 	public static TestFileProcessor run(Logger log, String pathname, String resultFileName) throws FileNotFoundException {
-		Launcher launcher = new Launcher();
-		SpoonResource resource = SpoonResourceHelper.createResource(new File(pathname));
-		launcher.addInputResource(resource);
-		launcher.buildModel();
+		try {
+			Launcher launcher = new Launcher();
+			SpoonResource resource = SpoonResourceHelper.createResource(new File(pathname));
+			launcher.addInputResource(resource);
+			launcher.buildModel();
 
-		CtModel model = launcher.getModel();
+			CtModel model = launcher.getModel();
 
-		ObjectCreationContainer objectsCreated = new ObjectCreationContainer();
-		TestFileProcessor processor = new TestFileProcessor(log, objectsCreated);
-		processor.processWithModel(model, new MockProcessor(objectsCreated));
-		processor.processWithModel(model, new AnnotatedMockProcessor(objectsCreated));
-		processor.processWithModel(model, new ObjectInstantiationProcessor(objectsCreated));
-		// order matters and it's bad :(
-		processor.processWithModel(model, processor);
-		if (resultFileName != null) {
-			processor.writeResults(resultFileName);
+			ObjectCreationContainer objectsCreated = new ObjectCreationContainer();
+			TestFileProcessor processor = new TestFileProcessor(log, objectsCreated);
+			processor.processWithModel(model, new MockProcessor(log, objectsCreated));
+			processor.processWithModel(model, new AnnotatedMockProcessor(log, objectsCreated));
+			processor.processWithModel(model, new ObjectInstantiationProcessor(log, objectsCreated));
+			// order matters and it's bad :(
+			processor.processWithModel(model, processor);
+			if (resultFileName != null) {
+				processor.writeResults(resultFileName);
+			}
+			return processor;
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			throw new IllegalArgumentException(e.getMessage(), e);
 		}
-		return processor;
 	}
 
 	void writeResults(String resultFileName) {
@@ -210,11 +215,7 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 
 		@Override
 		public String toString() {
-			List<ITestMethod> testMethods = getTestMethods();
-			List<ITestField> mockFields = getMockFields();
-			return "ctClass=" + ctClass.getQualifiedName() + ", annotations.size=" + annotations.size() + ":"
-					+ annotations + ", methods.size=" + testMethods.size() + ":" + testMethods + ", fields.size="
-					+ mockFields.size() + ":" + mockFields;
+			return "ctClass=" + ctClass.getQualifiedName() + ", mocks=" + getMocks().size();
 		}
 		@Override
 		public List<String> toCSV() {
@@ -525,7 +526,23 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 		
 	}
 	public void writeMockito(String fname) {
+		List<MockOccurence> mocks = getMocks();
+		try {
+			CSVReporter reporter = new CSVReporter(fname, "mockType","testClassName","mockClassName","mockOccurenceLine","mockName");
+			for (MockOccurence mock : mocks) {
+				reporter.write(mock.mockType.name(), mock.className, mock.mockClass, mock.line, mock.name);
+			}
+			reporter.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+
+	public List<MockOccurence> getMocks() {
 		List<ITestClass> classes = getElements();
+
 		List<MockOccurence> mocks = new ArrayList();
 		for(ITestClass clazz : classes) {
 			for (ITestField mockField : clazz.getMockFields()) {
@@ -540,17 +557,7 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 				}
 			}
 		}
-		try {
-			CSVReporter reporter = new CSVReporter(fname, "mockType","testClassName","mockClassName","mockOccurenceLine","mockName");
-			for (MockOccurence mock : mocks) {
-				reporter.write(mock.mockType.name(), mock.className, mock.mockClass, mock.line, mock.name);
-			}
-			reporter.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
+		return mocks;
 	}
 	public void writeCSVResults(String assertsFileName) {
 		List<ITestClass> elements = getElements();

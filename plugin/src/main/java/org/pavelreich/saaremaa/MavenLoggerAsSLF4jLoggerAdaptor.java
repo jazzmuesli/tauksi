@@ -134,12 +134,11 @@ public final class MavenLoggerAsSLF4jLoggerAdaptor implements Logger {
 	@Override
 	public String getName() {
 		// TODO Auto-generated method stub
-		return null;
+		return getLog().getClass().getName();
 	}
 
 	@Override
 	public void info(String arg0) {
-		// TODO Auto-generated method stub
 		getLog().info(arg0);
 	}
 

@@ -1,7 +1,7 @@
 package org.pavelreich.saaremaa.testdepan;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 import spoon.processing.AbstractProcessor;
 import spoon.reflect.code.CtConstructorCall;
 import spoon.reflect.code.CtVariableRead;
@@ -11,17 +11,15 @@ import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.declaration.CtNamedElement;
 import spoon.reflect.path.CtPath;
 
-import java.util.Map;
-
 /**
  * Created by preich on 19/02/19.
  */
 class ObjectInstantiationProcessor extends AbstractProcessor<CtConstructorCall> {
-    private static final Logger LOG = LoggerFactory.getLogger(ObjectInstantiationProcessor.class);
-
+    private final Logger LOG;
     private final ObjectCreationContainer objectsCreated;
 
-    public ObjectInstantiationProcessor(ObjectCreationContainer objectsCreated) {
+    public ObjectInstantiationProcessor(Logger log, ObjectCreationContainer objectsCreated) {
+    	this.LOG = log;
         this.objectsCreated = objectsCreated;
     }
 

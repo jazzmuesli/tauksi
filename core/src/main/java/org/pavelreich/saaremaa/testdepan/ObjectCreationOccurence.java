@@ -51,6 +51,7 @@ public class ObjectCreationOccurence {
         }
         return instanceType + ";" + typeRef.toString() + ";" + absolutePath + ";" + line;
     }
+    
 
     String getAbsolutePath() {
         try {
@@ -78,7 +79,7 @@ public class ObjectCreationOccurence {
     }
     @Override
     public String toString() {
-        return "[name=" + getName()+ ", type=" + this.instanceType + ", class=" + getType() + ", element.position=" + element.getPosition() + "]";
+        return "[name=" + getName()+ ", " + toCSV() + "]";
     }
 
 	public Map<String,Object> toJSON() {
