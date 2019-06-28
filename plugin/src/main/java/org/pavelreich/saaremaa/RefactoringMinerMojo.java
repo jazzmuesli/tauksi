@@ -47,12 +47,12 @@ public class RefactoringMinerMojo extends AbstractMojo {
 
 			GitHistoryRefactoringMiner miner = new GitHistoryRefactoringMinerImpl();
 
-			CSVReporter reporter = new CSVReporter("refminer.csv", "commit", "refactoryingType","classesBefore","classesAfter","description");
+			CSVReporter reporter = new CSVReporter("refminer.csv", "commit", "refactoringType","refactoringName",
+					"classesBefore","classesAfter","description");
 			miner.detectAll(repository, "master", new RefactoringHandler() {
 				@Override
 				public void handle(RevCommit commitData, List<Refactoring> refactorings) {
 					for (Refactoring ref : refactorings) {
-						System.out.println(ref.toString());
 						reporter.write(commitData.getId().getName(), 
 								ref.getRefactoringType(), 
 								ref.getName(),
