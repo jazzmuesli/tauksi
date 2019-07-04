@@ -14,6 +14,8 @@
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<maven.version>3.3.9</maven.version>
 		<evosuiteVersion>1.0.6</evosuiteVersion>
+		<jdt.version>3.15.0</jdt.version>
+		<spoon.version>7.4.0</spoon.version>
 	</properties>
 	<!-- <repositories> <repository> <id>WSO2 Repository</id> <url>http://dist.wso2.org/maven2/</url> 
 		</repository> <repository> <id>Eclipse Releases Repository</id> <url>https://repo.eclipse.org/content/groups/releases/</url> 
@@ -134,7 +136,7 @@
 		<dependency>
 			<groupId>fr.inria.gforge.spoon</groupId>
 			<artifactId>spoon-core</artifactId>
-			<version>7.3.0</version>
+			<version>${spoon.version}</version>
 		</dependency>
 		<!-- available in one of the repos above, can't remember which one. <dependency> 
 			<groupId>GrouMiner</groupId> <artifactId>groum</artifactId> <version>1.0</version> 
@@ -149,7 +151,7 @@
 		<dependency>
 			<groupId>org.eclipse.jdt</groupId>
 			<artifactId>org.eclipse.jdt.core</artifactId>
-			<version>3.18.0</version>
+			<version>${jdt.version}</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->

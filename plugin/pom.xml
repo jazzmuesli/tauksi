@@ -31,7 +31,12 @@
   </properties>
 
   <dependencies>
-  
+
+	<dependency>
+		<groupId>com.github.rterrabh</groupId>
+		<artifactId>javadepextractor</artifactId>
+		<version>1.0-SNAPSHOT</version>
+	</dependency>
    <dependency>
       <groupId>org.refactoringminer</groupId>
       <artifactId>RefactoringMiner</artifactId>

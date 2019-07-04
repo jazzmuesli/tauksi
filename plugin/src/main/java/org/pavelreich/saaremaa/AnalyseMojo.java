@@ -13,7 +13,6 @@ import org.apache.maven.project.MavenProject;
 import org.pavelreich.saaremaa.testdepan.ITestClass;
 import org.pavelreich.saaremaa.testdepan.TestFileProcessor;
 import org.slf4j.Logger;
-import org.slf4j.Marker;
 
 /**
  * Goal which touches a timestamp file.

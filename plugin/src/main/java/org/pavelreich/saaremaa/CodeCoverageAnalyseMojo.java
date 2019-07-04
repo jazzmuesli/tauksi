@@ -57,20 +57,13 @@ public class CodeCoverageAnalyseMojo
     @Component
     private RepositorySystem repositorySystem;
     
-    private Set<Artifact> getDevArtifacts() {
-          ArtifactResolutionRequest request = new ArtifactResolutionRequest()
-              .setArtifact(pluginArtifactMap.get("org.pavelreich.saaremaa:plugin"))
-              .setResolveTransitively(true)
-              .setLocalRepository(localRepository);
-          ArtifactResolutionResult result = repositorySystem.resolve(request);
-          return result.getArtifacts();
-      }
+
 
     public void execute()
         throws MojoExecutionException
     {
     	
-		LinkedHashSet<String> classpath = prepareClasspath();
+		LinkedHashSet<String> classpath = DependencyHelper.prepareClasspath(project, localRepository, repositorySystem, pluginArtifactMap, getLog());
 		Logger logger = new MavenLoggerAsSLF4jLoggerAdaptor(getLog());
     	List<String> junitClassNames = new ArrayList();
     	for(String dirName: project.getTestCompileSourceRoots()) {
@@ -153,68 +146,4 @@ public class CodeCoverageAnalyseMojo
 		}
 	}
 
-	/**
-	 * TODO: make it less hacky.
-	 * 
-	 * Here we need classpath of the target project + target/test-clases, target/classes + 
-	 * dependencies of this plugin.
-	 * Note that this plugin won't be added to target project's pom.xml, but rather executed 
-	 * mvn org.pavelreich.saaremaa:plugin:analyse
-	 * @return
-	 * @throws MojoExecutionException
-	 */
-	private LinkedHashSet<String> prepareClasspath() throws MojoExecutionException {
-		LinkedHashSet<String> classpath = new LinkedHashSet();
-    	
-    	try {
-    		getLog().info("artifacts: " + project.getArtifacts());
-			classpath.addAll(project.getTestClasspathElements());
-			classpath.addAll(project.getCompileClasspathElements());
-			// copied from https://github.com/tbroyer/gwt-maven-plugin/blob/54fe4621d1ee5127b14030f6e1462de44bace901/src/main/java/net/ltgt/gwt/maven/CompileMojo.java#L295
-			ClassWorld world = new ClassWorld();
-		    ClassRealm realm;
-		    try {
-		      realm = world.newRealm("gwt", null);
-		      for (String elt : project.getCompileSourceRoots()) {
-		        URL url = new File(elt).toURI().toURL();
-		        realm.addURL(url);
-		        if (getLog().isDebugEnabled()) {
-		          getLog().debug("Source root: " + url);
-		        }
-		      }
-		      for (String elt : project.getCompileClasspathElements()) {
-		        URL url = new File(elt).toURI().toURL();
-		        realm.addURL(url);
-		        if (getLog().isDebugEnabled()) {
-		          getLog().debug("Compile classpath: " + url);
-		        }
-		      }
-		      // gwt-dev and its transitive dependencies
-		      for (Artifact elt : getDevArtifacts()) {
-		        URL url = elt.getFile().toURI().toURL();
-		        realm.addURL(url);
-		        if (getLog().isDebugEnabled()) {
-		          getLog().debug("Compile classpath: " + url);
-		        }
-		      }
-		      realm.addURL(pluginArtifactMap.get("org.pavelreich.saaremaa:plugin").getFile().toURI().toURL());
-		      List<String> urls = Arrays.asList(realm.getURLs()).stream().map(x->{
-				try {
-					return new File(x.toURI()).getAbsolutePath();
-				} catch (Exception e) {
-					throw new IllegalArgumentException(e.getMessage(), e);
-				}
-			}).collect(Collectors.toList());
-			getLog().info("realm: " + urls);
-			urls.stream().forEach(x->classpath.add(x));
-		    } catch (Exception e) {
-		      throw new MojoExecutionException(e.getMessage(), e);
-		    }
-
-		} catch (DependencyResolutionRequiredException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		return classpath;
-	}
 }
