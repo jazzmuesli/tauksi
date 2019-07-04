@@ -17,7 +17,7 @@ import org.apache.commons.csv.CSVPrinter;
  * @author preich
  *
  */
-public class CSVReporter {
+public class CSVReporter implements AutoCloseable {
 
 	private CSVPrinter csvPrinter;
 
@@ -32,8 +32,7 @@ public class CSVReporter {
 
 	public synchronized void write(Object... values) {
 		try {
-			List<String> recs = Arrays.asList(values).stream().map(x->String.valueOf(x).trim().replaceAll("\"", "")).collect(Collectors.toList());
-			csvPrinter.printRecord(recs.toArray(new String[0]));
+			csvPrinter.printRecord(values);
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}
@@ -47,6 +46,7 @@ public class CSVReporter {
 		}
 	}
 
+	@Override
 	public synchronized void close() {
 		try {
 			csvPrinter.close();

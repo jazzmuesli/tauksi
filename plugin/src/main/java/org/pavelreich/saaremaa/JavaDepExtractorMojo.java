@@ -1,9 +1,11 @@
 package org.pavelreich.saaremaa;
 
+import static org.pavelreich.saaremaa.Helper.convertListToString;
+
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -26,7 +28,6 @@ import org.apache.maven.repository.RepositorySystem;
 
 import core.Architecture;
 import dependencies.Dependency;
-import util.TxtFileWriter;
 
 /**
  * taken from https://github.com/tsantalis/RefactoringMiner
@@ -64,13 +65,16 @@ public class JavaDepExtractorMojo extends AbstractMojo {
 		try {
 			LinkedHashSet<String> classpath = DependencyHelper.prepareClasspath(project, localRepository,
 					repositorySystem, pluginArtifactMap, getLog());
-			getLog().info("classpath: " + classpath);
-			List<String> sourcepath = project.getCompileSourceRoots();
-			getLog().info("sourcepath: " + sourcepath);
-			List<String> sourceFiles = sourcepath.stream().map(srcDir -> getFiles(srcDir)).flatMap(List::stream)
+			getLog().info("classpath: " + convertListToString(new ArrayList(classpath)));
+			List<String> sourcepath = new ArrayList(project.getCompileSourceRoots());
+			getLog().info("compileSourceRoots: " + convertListToString(project.getCompileSourceRoots()));
+			getLog().info("testCompileSourceRoots: " + convertListToString(project.getTestCompileSourceRoots()));
+			sourcepath.addAll(project.getTestCompileSourceRoots());
+			getLog().info("sourcepath: " + convertListToString(sourcepath));
+			List<String> sourceFiles = sourcepath.stream().map(srcDir -> getSourceFiles(srcDir)).flatMap(List::stream)
 					.collect(Collectors.toList());
 
-			getLog().info("sourceFiles: " +  sourceFiles);
+			getLog().info("sourceFiles: " +  convertListToString(sourceFiles));
 			architecture = new Architecture(new MavenLoggerAsSLF4jLoggerAdaptor(getLog()));
 			architecture.extractDependencies(classpath.toArray(new String[0]), sourcepath.toArray(new String[0]),
 					sourceFiles);
@@ -78,24 +82,36 @@ public class JavaDepExtractorMojo extends AbstractMojo {
 			Comparator<Dependency> comp = Comparator.comparing(p -> p.getClassNameA());
 			comp = comp.thenComparing(Comparator.comparing(p -> p.getLineNumber()));
 			deps = deps.stream().sorted(comp).collect(Collectors.toList());
-			TxtFileWriter.writeTxtFile(deps.stream().map(Architecture::toCSV).collect(Collectors.toList()), projectPath);
+			String fname = projectPath+File.separator+"dependencies.csv";
+			if (!deps.isEmpty()) {
+				try (CSVReporter reporter = new CSVReporter(fname, "classA","dependencyType","classB","classAline")) {
+					for (Dependency dep : deps) {
+						reporter.write(Architecture.toCSV(dep).split(","));
+					}
+				} catch (Exception e) {
+					getLog().error(e.getMessage(), e);
+				}
+
+			}
+//			TxtFileWriter.writeTxtFile(deps.stream().map(Architecture::toCSV).collect(Collectors.toList()), projectPath);
 		} catch (Exception e) {
 			getLog().error(e.getMessage(), e);
 		}
 
 	}
 
-	private List<String> getFiles(String srcDir) {
+
+	private List<String> getSourceFiles(String srcDir) {
 		try {
 			Path path = java.nio.file.Paths.get(srcDir);
 			if (!path.toFile().exists()) {
 				getLog().info("Path " + srcDir + " doesn't exist");
 				return Collections.emptyList();
 			}
-			List<String> dirs = java.nio.file.Files.walk(path)
+			List<String> files = java.nio.file.Files.walk(path)
 					.filter(p -> p.toFile().getName().endsWith(".java"))
 					.map(f -> f.toFile().getAbsolutePath()).collect(Collectors.toList());
-			return dirs;
+			return files;
 		} catch (IOException e) {
 			getLog().error(e.getMessage(), e);
 			return Collections.emptyList();

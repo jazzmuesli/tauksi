@@ -1,7 +1,9 @@
 package org.pavelreich.saaremaa;
 
+import static org.pavelreich.saaremaa.Helper.*;
 import java.io.File;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -51,10 +53,12 @@ public class DependencyHelper {
 	public static LinkedHashSet<String> prepareClasspath(MavenProject project, ArtifactRepository localRepository,
 			RepositorySystem repositorySystem, Map<String, Artifact> pluginArtifactMap, Log log)
 			throws MojoExecutionException {
-		LinkedHashSet<String> classpath = new LinkedHashSet();
+		LinkedHashSet<String> classpath = new LinkedHashSet<String>();
 
 		try {
-			log.info("artifacts: " + project.getArtifacts());
+			log.info("artifacts: " + convertListToString(project.getArtifacts()
+					.stream().map(x->x.toString())
+					.collect(Collectors.toList())));
 			classpath.addAll(project.getTestClasspathElements());
 			classpath.addAll(project.getCompileClasspathElements());
 			// copied from
