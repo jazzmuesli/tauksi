@@ -2,7 +2,6 @@ package org.pavelreich.saaremaa;
 
 import java.io.File;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.maven.plugin.AbstractMojo;
@@ -16,7 +15,8 @@ import org.apache.maven.project.MavenProject;
 import com.github.mauricioaniche.ck.CSVExporter;
 
 
-@Mojo( name = "metrics", defaultPhase = LifecyclePhase.PROCESS_SOURCES, requiresDependencyResolution = ResolutionScope.TEST)
+@Mojo( name = "metrics", defaultPhase = LifecyclePhase.PROCESS_SOURCES, 
+requiresDependencyResolution = ResolutionScope.NONE)
 public class CodeMetricsMojo
     extends AbstractMojo
 {
@@ -28,10 +28,12 @@ public class CodeMetricsMojo
     public void execute()
         throws MojoExecutionException
     {
-    	String currentDir = project.getBasedir().getAbsolutePath();
-    	List<String> dirs = new ArrayList<String>();
-    	dirs.addAll(project.getTestCompileSourceRoots());
-    	dirs.addAll(project.getCompileSourceRoots());
+    	processDir(project.getCompileSourceRoots());
+    	processDir(project.getTestCompileSourceRoots());
+    }
+
+
+	private void processDir(List<String> dirs) {
     	getLog().info("dirs: " + dirs);
     	dirs.stream().forEach(dirName -> {
         	try {
@@ -48,7 +50,7 @@ public class CodeMetricsMojo
 				getLog().error(e.getMessage(), e);
 			}
     	});
-    }
+	}
 
 
 	private String resolveFileName(String dirName, String fname) {
