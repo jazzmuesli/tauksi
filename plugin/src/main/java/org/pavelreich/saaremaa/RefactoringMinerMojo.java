@@ -59,15 +59,7 @@ public class RefactoringMinerMojo extends AbstractMojo {
 				@Override
 				public void handle(RevCommit commitData, List<Refactoring> refactorings) {
 					for (Refactoring ref : refactorings) {
-						mainReporter.write(commitData.getId().getName(), 
-								ref.getRefactoringType(), 
-								ref.getName(),
-								ref.getInvolvedClassesBeforeRefactoring().stream().collect(Collectors.joining(",")),
-								ref.getInvolvedClassesAfterRefactoring().stream().collect(Collectors.joining(",")),
-								ref.toString().replaceAll(";", ",")
-						);
-						reportCodeRanges(codeRangeReporter, commitData, ref, "left", ref.leftSide());
-						reportCodeRanges(codeRangeReporter, commitData, ref, "right", ref.rightSide());
+						handleRefactoring(mainReporter, codeRangeReporter, commitData, ref);
 					}
 				}
 			});
@@ -93,5 +85,18 @@ public class RefactoringMinerMojo extends AbstractMojo {
 					range.getEndColumn(),
 					range.getDescription().replaceAll(";", ","));
 		}
+	}
+
+	private void handleRefactoring(CSVReporter mainReporter, CSVReporter codeRangeReporter, RevCommit commitData,
+			Refactoring ref) {
+		mainReporter.write(commitData.getId().getName(), 
+				ref.getRefactoringType(), 
+				ref.getName(),
+				ref.getInvolvedClassesBeforeRefactoring().stream().collect(Collectors.joining(",")),
+				ref.getInvolvedClassesAfterRefactoring().stream().collect(Collectors.joining(",")),
+				ref.toString().replaceAll(";", ",")
+		);
+		reportCodeRanges(codeRangeReporter, commitData, ref, "left", ref.leftSide());
+		reportCodeRanges(codeRangeReporter, commitData, ref, "right", ref.rightSide());
 	}
 }
