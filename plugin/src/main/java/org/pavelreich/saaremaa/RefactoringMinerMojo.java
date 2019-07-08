@@ -59,7 +59,7 @@ public class RefactoringMinerMojo extends AbstractMojo {
 				@Override
 				public void handle(RevCommit commitData, List<Refactoring> refactorings) {
 					for (Refactoring ref : refactorings) {
-						handleRefactoring(mainReporter, codeRangeReporter, commitData, ref);
+						processRefactoring(mainReporter, codeRangeReporter, commitData, ref);
 					}
 				}
 			});
@@ -87,7 +87,7 @@ public class RefactoringMinerMojo extends AbstractMojo {
 		}
 	}
 
-	private void handleRefactoring(CSVReporter mainReporter, CSVReporter codeRangeReporter, RevCommit commitData,
+	private void processRefactoring(CSVReporter mainReporter, CSVReporter codeRangeReporter, RevCommit commitData,
 			Refactoring ref) {
 		mainReporter.write(commitData.getId().getName(), 
 				ref.getRefactoringType(), 
