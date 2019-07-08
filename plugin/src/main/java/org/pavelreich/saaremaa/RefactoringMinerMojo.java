@@ -19,6 +19,8 @@ import org.refactoringminer.api.Refactoring;
 import org.refactoringminer.api.RefactoringHandler;
 import org.refactoringminer.rm1.GitHistoryRefactoringMinerImpl;
 
+import gr.uom.java.xmi.diff.CodeRange;
+
 /**
  * taken from https://github.com/tsantalis/RefactoringMiner
  * 
@@ -49,6 +51,10 @@ public class RefactoringMinerMojo extends AbstractMojo {
 
 			CSVReporter reporter = new CSVReporter("refminer.csv", "commit", "refactoringType","refactoringName",
 					"classesBefore","classesAfter","description");
+			CSVReporter codeRangeReporter = new CSVReporter("refminer-coderange.csv", 
+					"commit", "refactoringType","refactoringName","side",
+					"codeElement","codeElementType","filePath","startLine","endLine",
+					"startColumn","endColumn","description");
 			miner.detectAll(repository, "master", new RefactoringHandler() {
 				@Override
 				public void handle(RevCommit commitData, List<Refactoring> refactorings) {
@@ -60,12 +66,32 @@ public class RefactoringMinerMojo extends AbstractMojo {
 								ref.getInvolvedClassesAfterRefactoring().stream().collect(Collectors.joining(",")),
 								ref.toString().replaceAll(";", ",")
 						);
+						reportCodeRanges(codeRangeReporter, commitData, ref, "left", ref.leftSide());
+						reportCodeRanges(codeRangeReporter, commitData, ref, "right", ref.rightSide());
 					}
 				}
 			});
 			reporter.close();
+			codeRangeReporter.close();
 		} catch (Exception e) {
 			getLog().error(e.getMessage(), e);
+		}
+	}
+
+	private void reportCodeRanges(CSVReporter reporter1, RevCommit commitData, Refactoring ref, String side, List<CodeRange> codeRanges) {
+		for (CodeRange range : codeRanges) {
+			reporter1.write(commitData.getId().getName(), 
+					ref.getRefactoringType(), 
+					ref.getName(),
+					side, 
+					range.getCodeElement(),
+					range.getCodeElementType(),
+					range.getFilePath(),
+					range.getStartLine(),
+					range.getEndLine(),
+					range.getStartColumn(),
+					range.getEndColumn(),
+					range.getDescription().replaceAll(";", ","));
 		}
 	}
 }
