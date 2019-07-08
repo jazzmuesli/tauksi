@@ -49,7 +49,7 @@ public class RefactoringMinerMojo extends AbstractMojo {
 
 			GitHistoryRefactoringMiner miner = new GitHistoryRefactoringMinerImpl();
 
-			CSVReporter reporter = new CSVReporter("refminer.csv", "commit", "refactoringType","refactoringName",
+			CSVReporter mainReporter = new CSVReporter("refminer.csv", "commit", "refactoringType","refactoringName",
 					"classesBefore","classesAfter","description");
 			CSVReporter codeRangeReporter = new CSVReporter("refminer-coderange.csv", 
 					"commit", "refactoringType","refactoringName","side",
@@ -59,7 +59,7 @@ public class RefactoringMinerMojo extends AbstractMojo {
 				@Override
 				public void handle(RevCommit commitData, List<Refactoring> refactorings) {
 					for (Refactoring ref : refactorings) {
-						reporter.write(commitData.getId().getName(), 
+						mainReporter.write(commitData.getId().getName(), 
 								ref.getRefactoringType(), 
 								ref.getName(),
 								ref.getInvolvedClassesBeforeRefactoring().stream().collect(Collectors.joining(",")),
@@ -71,16 +71,16 @@ public class RefactoringMinerMojo extends AbstractMojo {
 					}
 				}
 			});
-			reporter.close();
+			mainReporter.close();
 			codeRangeReporter.close();
 		} catch (Exception e) {
 			getLog().error(e.getMessage(), e);
 		}
 	}
 
-	private void reportCodeRanges(CSVReporter reporter1, RevCommit commitData, Refactoring ref, String side, List<CodeRange> codeRanges) {
+	private void reportCodeRanges(CSVReporter reporter, RevCommit commitData, Refactoring ref, String side, List<CodeRange> codeRanges) {
 		for (CodeRange range : codeRanges) {
-			reporter1.write(commitData.getId().getName(), 
+			reporter.write(commitData.getId().getName(), 
 					ref.getRefactoringType(), 
 					ref.getName(),
 					side, 
