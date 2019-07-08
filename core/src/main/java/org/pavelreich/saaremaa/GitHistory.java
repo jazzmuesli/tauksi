@@ -1,10 +1,20 @@
 package org.pavelreich.saaremaa;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.LineNumberReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
@@ -55,10 +65,11 @@ public class GitHistory {
 		df.setDiffComparator(RawTextComparator.DEFAULT);
 		df.setDetectRenames(true);
 
-		CSVReporter csvReporter = new CSVReporter("git-history.csv", new String[] { "commit", "author", "timestamp",
-				"changeType", "oldFilename", "oldSize", "newFilename", "newSize" });
+		CSVReporter csvReporter = new CSVReporter("git-history.csv", new String[] { "commit", "author", 
+				"timestamp",
+				"changeType", "oldFilename", "oldSize", "oldLines","newFilename", "newSize","newLines" });
 		CSVReporter fullCsvReporter = new CSVReporter("git-fullm-history.csv", new String[] { "commit", "author",
-				"timestamp", "changeType", "oldFilename", "oldSize", "newFilename", "newSize", "message" });
+				"timestamp", "changeType", "oldFilename", "oldSize", "oldLines","newFilename", "newSize", "newLines","message" });
 		RevWalk rw = new RevWalk(repository);
 		int i = 0;
 		while (it.hasNext()) {
@@ -66,15 +77,17 @@ public class GitHistory {
 			RevTree parentTree = getParentTree(rw, commit);
 			List<DiffEntry> diffs = df.scan(parentTree, commit.getTree());
 			for (DiffEntry diff : diffs) {
-				long oldSize = getSize(repository, diff, Side.OLD);
-				long newSize = getSize(repository, diff, Side.NEW);
+				Pair<Long,Long> oldSize = getSize(repository, diff, Side.OLD);
+				Pair<Long,Long> newSize = getSize(repository, diff, Side.NEW);
 				String fullMessage = commit.getFullMessage().trim().replaceAll("\n", "<CR>");
 				csvReporter.write(commit.getId().name(), commit.getAuthorIdent().getEmailAddress(),
-						commit.getCommitTime(), diff.getChangeType(), diff.getOldPath(), oldSize, diff.getNewPath(),
-						newSize);
+						commit.getCommitTime(), diff.getChangeType(), diff.getOldPath(), 
+						oldSize.getLeft(), oldSize.getRight(), diff.getNewPath(),
+						newSize.getLeft(), newSize.getRight());
 				fullCsvReporter.write(commit.getId().name(), commit.getAuthorIdent().getEmailAddress(),
-						commit.getCommitTime(), diff.getChangeType(), diff.getOldPath(), oldSize, diff.getNewPath(),
-						newSize, fullMessage);
+						commit.getCommitTime(), diff.getChangeType(), diff.getOldPath(), 
+						oldSize.getLeft(), oldSize.getRight(), diff.getNewPath(),
+						newSize.getLeft(), newSize.getRight(), fullMessage);
 
 			}
 			if (i++ % 10 == 0) { // don't flush too often
@@ -110,19 +123,37 @@ public class GitHistory {
 
 	}
 
-	private long getSize(Repository repository, DiffEntry diff, DiffEntry.Side side) {
+	private Pair<Long, Long> getSize(Repository repository, DiffEntry diff, DiffEntry.Side side) {
 		AbbreviatedObjectId id = side == Side.OLD ? diff.getOldId() : diff.getNewId();
 		String path = side == Side.OLD ? diff.getOldPath() : diff.getNewPath();
 		if (path.equals("/dev/null")) {
-			return 0;
+			return Pair.<Long, Long>of(0L, 0L);
 		}
 		ObjectLoader loader;
 		try {
 			loader = repository.open(id.toObjectId());
-			return loader.getSize();
+			long bytes = loader.getSize();
+			if (loader.isLarge()) {
+				return Pair.<Long, Long>of(bytes, -1L);
+			}
+
+			try {
+				ByteArrayOutputStream stream = new ByteArrayOutputStream();
+				loader.copyTo(stream);
+
+				ByteArrayInputStream in = new ByteArrayInputStream(stream.toByteArray());
+				int lines = IOUtils.readLines(in, "UTF-8").size();
+				in.close();
+				stream.close();
+				return Pair.<Long, Long>of(bytes, Long.valueOf(lines));
+			} catch (Exception e) {
+				LOG.error("Can't get size for " + diff + " on side " + side + " due to " + e.getMessage(), e);
+				return Pair.<Long, Long>of(bytes, 0L);
+			}
 		} catch (Exception e) {
 			LOG.error("Can't get size for " + diff + " on side " + side + " due to " + e.getMessage(), e);
-			return -1;
+			return Pair.<Long, Long>of(0L, 0L);
 		}
 	}
+	
 }
