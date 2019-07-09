@@ -1,6 +1,7 @@
 package org.pavelreich.saaremaa;
 
 import java.io.File;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -12,6 +13,8 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.refactoringminer.api.GitHistoryRefactoringMiner;
@@ -20,6 +23,7 @@ import org.refactoringminer.api.RefactoringHandler;
 import org.refactoringminer.rm1.GitHistoryRefactoringMinerImpl;
 
 import gr.uom.java.xmi.diff.CodeRange;
+import me.tongfei.progressbar.ProgressBar;
 
 /**
  * taken from https://github.com/tsantalis/RefactoringMiner
@@ -61,19 +65,32 @@ public class RefactoringMinerMojo extends AbstractMojo {
 					"commit", "refactoringType","refactoringName","side",
 					"codeElement","codeElementType","filePath","startLine","endLine",
 					"startColumn","endColumn","description");
+
+			int commitCount = countCommits(git);
+			final ProgressBar progressBar = new ProgressBar("commits",commitCount);
 			miner.detectAll(repository, "master", new RefactoringHandler() {
 				@Override
 				public void handle(RevCommit commitData, List<Refactoring> refactorings) {
 					for (Refactoring ref : refactorings) {
 						processRefactoring(mainReporter, codeRangeReporter, commitData, ref);
 					}
+					progressBar.step();
 				}
 			});
+			progressBar.close();
 			mainReporter.close();
 			codeRangeReporter.close();
 		} catch (Exception e) {
 			getLog().error(e.getMessage(), e);
 		}
+	}
+	private int countCommits(Git git) throws GitAPIException, NoHeadException {
+		Iterable<RevCommit> commits = git.log().call();
+		int count = 0;
+		for (RevCommit commit : commits) {
+			count++;
+		}
+		return count;
 	}
 
 	private void reportCodeRanges(CSVReporter reporter, RevCommit commitData, Refactoring ref, String side, List<CodeRange> codeRanges) {
