@@ -76,6 +76,11 @@ public class RefactoringMinerMojo extends AbstractMojo {
 					}
 					progressBar.step();
 				}
+				@Override
+				public void handleException(String commitId, Exception e) {
+					getLog().error("Can't handle commit= " + commitId + " due to " + e.getMessage(), e);
+					progressBar.step();
+				}
 			});
 			progressBar.close();
 			mainReporter.close();
