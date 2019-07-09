@@ -33,16 +33,22 @@ public class RefactoringMinerMojo extends AbstractMojo {
 	@Parameter(defaultValue = "${project}", readonly = true, required = true)
 	MavenProject project;
 
+	public static void main(String[] args) {
+		new RefactoringMinerMojo().process(new File("."));
+		
+	}
 	public void execute() throws MojoExecutionException {
 		File dir = project.getBasedir();
 		getLog().info("parent: " + project.getParentArtifact());
 		
-		if (project.getParent() != null) {
+		if (!Helper.isRootProject(project)) {
 			getLog().info("Ignoring " + dir + " because it has parent  " + project.getParent());
 			return;
 		}
 		getLog().info("Processing " + dir);
-
+		process(dir);
+	}
+	private void process(File dir) {
 		try {
 			Git git = Git.open(dir);
 			Repository repository = git.getRepository();

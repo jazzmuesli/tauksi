@@ -18,7 +18,7 @@ public class GitHistoryMojo extends AbstractMojo {
 
 	public void execute() throws MojoExecutionException {
 		File dir = project.getBasedir();
-		if (project.getParent() != null) {
+		if (!Helper.isRootProject(project)) {
 			getLog().info("Ignoring " + dir + " because it has parent  " + project.getParent());
 			return;
 		}
