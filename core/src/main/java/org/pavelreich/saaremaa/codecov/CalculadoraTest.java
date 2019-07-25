@@ -31,6 +31,11 @@ public class CalculadoraTest {
 	}
 
 	@Test
+	public void testAdd2() {
+		Assert.assertTrue(c1.add(1, 3) == 4);
+	}
+
+	@Test
 	public void testSubtract() {
 		Assert.assertEquals(1, c1.minus(3, 2).intValue());
 	}

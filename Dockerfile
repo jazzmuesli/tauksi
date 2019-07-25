@@ -10,7 +10,7 @@ RUN \
   apt-get install -y software-properties-common && \
   apt-get install -y byobu curl git htop man unzip vim wget zip && \
   apt-get install python3.6 python3-pip -y && \
-  apt-get install python2.7 python-pip -y && \
+  apt-get install python2.7 python-pip parallel -y && \
   apt-get install r-base -y && \
   rm -rf /var/lib/apt/lists/*
 
@@ -22,7 +22,7 @@ WORKDIR /root
 
 RUN pip3 install pandas
 
-RUN pip3 install tqdm 
+RUN pip3 install tqdm jupyter
 
 
 # Add files.

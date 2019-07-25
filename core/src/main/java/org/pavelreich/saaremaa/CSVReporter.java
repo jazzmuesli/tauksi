@@ -30,6 +30,13 @@ public class CSVReporter implements AutoCloseable {
 		this.csvPrinter = csvPrinter;
 	}
 
+	public synchronized void writeArray(Object[] values) {
+		try {
+			csvPrinter.printRecord(values);
+		} catch (IOException e) {
+			throw new IllegalArgumentException(e.getMessage(), e);
+		}
+	}
 	public synchronized void write(Object... values) {
 		try {
 			csvPrinter.printRecord(values);

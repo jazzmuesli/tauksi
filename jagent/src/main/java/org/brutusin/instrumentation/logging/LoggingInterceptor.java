@@ -33,6 +33,7 @@ import org.objectweb.asm.tree.MethodNode;
 /**
  * taken from https://github.com/brutusin/logging-instrumentation/blob/master/src/main/java/org/brutusin/instrumentation/logging/LoggingInterceptor.java
  *
+ *TODO: report to mongo
  */
 public class LoggingInterceptor extends Interceptor {
 
@@ -41,6 +42,7 @@ public class LoggingInterceptor extends Interceptor {
 
     @Override
     public void init(String arg) throws Exception {
+    	arg="/tmp";
         if (arg == null) {
             throw new IllegalArgumentException(LoggingInterceptor.class.getCanonicalName() + " failed. Argument required specifying the value of logging root-path");
         }
@@ -53,7 +55,7 @@ public class LoggingInterceptor extends Interceptor {
 
     @Override
     public boolean interceptClass(String className, byte[] byteCode) {
-    	return true;
+    	return className.contains("junit");
     }
 
     @Override

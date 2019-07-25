@@ -41,6 +41,11 @@ import org.slf4j.Logger;
 public class CodeCoverageAnalyseMojo
     extends AbstractMojo
 {
+	
+	
+	int getI() {
+		return 0;
+	}
     /**
      * Location of the file.
      */

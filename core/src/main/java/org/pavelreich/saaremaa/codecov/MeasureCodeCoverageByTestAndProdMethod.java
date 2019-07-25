@@ -6,8 +6,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -17,13 +15,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVPrinter;
 import org.jacoco.core.analysis.Analyzer;
 import org.jacoco.core.analysis.CoverageBuilder;
 import org.jacoco.core.analysis.IClassCoverage;
 import org.jacoco.core.analysis.ICounter;
-import org.jacoco.core.analysis.IMethodCoverage;
 import org.jacoco.core.data.ExecutionDataStore;
 import org.jacoco.core.data.SessionInfoStore;
 import org.jacoco.core.instr.Instrumenter;
@@ -156,13 +151,7 @@ public class MeasureCodeCoverageByTestAndProdMethod {
 			List<ProdClassCoverage> xs = new ArrayList();
 			for (Entry<String, IClassCoverage> entry : testExecutionResults.coverageByProdClass.entrySet()) {
 				IClassCoverage coverage = entry.getValue();
-				ProdClassCoverage cc = new ProdClassCoverage(coverage.getName().replaceAll("/", "."), coverage
-						.getMethods().stream().collect(Collectors.
-								toMap(m -> getMethodName(m), 
-										m -> m.getLineCounter(),
-										(a,b) -> {
-											return a;
-										})));
+				ProdClassCoverage cc = ProdClassCoverage.createProdCoverage(coverage);
 				xs.add(cc);
 			}
 			TestCoverage testCoverage = new TestCoverage(junitName, methodName, xs, testExecutionResults.result);
@@ -171,19 +160,9 @@ public class MeasureCodeCoverageByTestAndProdMethod {
 		return ret;
 	}
 
-	private String getMethodName(IMethodCoverage m) {
-		return m.getName() + m.getDesc();
-	}
 
-	static class TestExecutionResults {
-		Map<String, IClassCoverage> coverageByProdClass;
-		Result result;
-		public TestExecutionResults(Map<String, IClassCoverage> map, Result result) {
-			this.coverageByProdClass = map;
-			this.result = result;
-		}
-		
-	}
+
+
 	private TestExecutionResults runTest(final Collection<Class> loadedClasses, final IRuntime runtime,
 			final RuntimeData data, Class<?> junitClass, String methodName) {
 		JUnitCore junit = new JUnitCore();
@@ -286,78 +265,17 @@ public class MeasureCodeCoverageByTestAndProdMethod {
 		assertTrue("depClasses:" + depClasses, depClasses.contains(BuildProjects.class.getName()));
 	}
 
-	class ProdClassCoverage {
-		private String className;
-		private Map<String, ICounter> lineCoverageByMethod;
+	
 
-		ProdClassCoverage(String name, Map<String, ICounter> lineCoverageByMethod) {
-			this.className = name;
-			this.lineCoverageByMethod = lineCoverageByMethod;
-		}
 
-		public List<String> asCSV() {
-			return lineCoverageByMethod.entrySet().stream().map(x -> className + DELIM + x.getKey() + DELIM
-					+ x.getValue().getMissedCount() + DELIM + x.getValue().getCoveredCount())
-					.collect(Collectors.toList());
-					
-		}
-
-		@Override
-		public String toString() {
-			return asCSV().stream().collect(Collectors.joining("\n"));
-		}
-	}
-	private static final String DELIM = "|";
-
-	class TestCoverage {
-		private String testClassName;
-		private String testMethod;
-		private Map<String, ProdClassCoverage> prodClassCoverage;
-		private Result result;
-
-		TestCoverage(String testClassName, String testMethod, Collection<ProdClassCoverage> prodClassCoverage, Result result) {
-			this.testClassName = testClassName;
-			this.testMethod = testMethod;
-			this.prodClassCoverage = prodClassCoverage.stream().collect(Collectors.toMap(e -> e.className, e -> e));
-			this.result = result;
-		}
-		
-		public List<String> asCSV() {
-			List<String> ret = new ArrayList();
-			for (ProdClassCoverage pcc : prodClassCoverage.values()) {
-				List<String> x = pcc.asCSV().stream().map(s -> 
-				testClassName+DELIM+testMethod+
-				DELIM+ result.getFailureCount() + DELIM + result.getIgnoreCount() + DELIM + result.getRunCount() + DELIM + result.getRunTime() + 
-				DELIM + s 
-				).collect(Collectors.toList());
-				ret.addAll(x);
-			}
-			return ret;
-		}
-	}
 
 	public static void writeCSV(Collection<TestCoverage> testCoverages) throws IOException {
-		CSVReporter reporter = createReporter();
-		reportCoverages(testCoverages, reporter);
+		CSVReporter reporter = TestCoverage.createReporter("");
+		TestCoverage.reportCoverages(testCoverages, reporter);
 		reporter.close();
 	}
 
-	private static CSVReporter createReporter() throws IOException {
-		String fname = "coverageByMethod.csv";
-		List<String> fields = Arrays.asList(
-				"testClassName","testMethod","testsFailed","testsIgnored","testsCount","testRunTime","prodClassName","prodMethod","missedLines","coveredLines"
-				);
-		CSVPrinter printer = new CSVPrinter(Files.newBufferedWriter(Paths.get(fname)),
-				CSVFormat.DEFAULT.withHeader(fields.toArray(new String[0])).withDelimiter('|'));
-		CSVReporter reporter = new CSVReporter(printer);
-		return reporter;
-	}
 
-	private static void reportCoverages(Collection<TestCoverage> testCoverages, CSVReporter reporter) {
-		for (TestCoverage testCov : testCoverages) {
-			testCov.asCSV().stream().forEach(x -> reporter.write(x.split("\\" + DELIM)));
-		}
-	}
 	@Test
 	public void testAllMethodsCovered() throws Exception {
 		List<TestCoverage> result = new MeasureCodeCoverageByTestAndProdMethod().measureTestCoverage(CalculadoraTest.class);
@@ -390,11 +308,11 @@ public class MeasureCodeCoverageByTestAndProdMethod {
 
 	public static void main(final String[] args) throws Exception {
 		LOG.info("classpath: " + System.getProperty("java.class.path"));
-		CSVReporter reporter = createReporter();
+		CSVReporter reporter = TestCoverage.createReporter("");
 		// from https://github.com/ctongfei/progressbar
 		for (String junitClassName : ProgressBar.wrap(Arrays.asList(args),"tests")) {
 			List<TestCoverage> result = new MeasureCodeCoverageByTestAndProdMethod().measureTestCoverage(Class.forName(junitClassName));
-			reportCoverages(result, reporter);
+			TestCoverage.reportCoverages(result, reporter);
 			reporter.flush();
 		}
 		reporter.close();
