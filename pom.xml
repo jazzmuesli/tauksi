@@ -27,6 +27,7 @@
 	<modules>
 		<module>core</module>
 		<module>plugin</module>
+		<module>jagent</module>
 	</modules>
 	<dependencies>
 <!--  for plugin -->
