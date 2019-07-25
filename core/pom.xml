@@ -20,19 +20,25 @@
 		<maven.version>3.3.9</maven.version>
 		<evosuiteVersion>1.0.6</evosuiteVersion>
 	</properties>
-	<!-- <repositories> <repository> <id>WSO2 Repository</id> <url>http://dist.wso2.org/maven2/</url> 
-		</repository> <repository> <id>Eclipse Releases Repository</id> <url>https://repo.eclipse.org/content/groups/releases/</url> 
-		</repository> <repository> <id>Jspresso Repository</id> <url>http://repository.jspresso.org/maven2/</url> 
-		</repository> <repository> <id>jp.mzw.mvn-repo</id> <url>http://mvn-repo.mzw.jp/</url> 
-		</repository> <repository> <id>geomajas</id> <url>http://maven.geomajas.org/</url> 
-		</repository> </repositories> -->
 
 	<dependencies>
-<dependency>
-      <groupId>me.tongfei</groupId>
-      <artifactId>progressbar</artifactId>
-      <version>0.7.4</version>
-  </dependency>
+    <dependency>
+        <groupId>org.mongodb</groupId>
+        <artifactId>mongodb-driver-reactivestreams</artifactId>
+        <version>1.11.0</version>
+    </dependency>
+<!-- 
+		<dependency>
+			<groupId>org.mongodb</groupId>
+			<artifactId>mongodb-driver-sync</artifactId>
+			<version>3.10.2</version>
+		</dependency>
+ -->
+		<dependency>
+			<groupId>me.tongfei</groupId>
+			<artifactId>progressbar</artifactId>
+			<version>0.7.4</version>
+		</dependency>
 
 		<dependency>
 			<groupId>junit</groupId>

@@ -30,6 +30,7 @@
 		<module>jagent</module>
 	</modules>
 	<dependencies>
+	
 <!--  for plugin -->
     <dependency>
       <groupId>org.apache.maven</groupId>

@@ -21,6 +21,8 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.repository.RepositorySystem;
+import org.pavelreich.saaremaa.analysis.DataFrame;
+import org.pavelreich.saaremaa.mongo.MongoDBClient;
 import org.pavelreich.saaremaa.testdepan.ITestClass;
 import org.pavelreich.saaremaa.testdepan.TestFileProcessor;
 
@@ -63,13 +65,19 @@ public class CoverageTestMojo extends AbstractMojo {
 		getLog().info("classpath: " + classpath);
 		MavenLoggerAsSLF4jLoggerAdaptor logger = new MavenLoggerAsSLF4jLoggerAdaptor(getLog());
     	List<String> junitClassNames = new ArrayList();
+    	MongoDBClient db = new MongoDBClient();
     	for(String dirName: project.getTestCompileSourceRoots()) {
         	try {
         		// process test directory
         		getLog().info("Processing "  + dirName);
         		ForkableTestExecutor executor = new ForkableTestExecutor(logger, jagentPath, jacocoPath,new File(targetClasses));
+            	DataFrame df = new DataFrame().
+            			addColumn("startTime", System.currentTimeMillis()).
+            			addColumn("project", project.getArtifact().getGroupId()+":"+project.getArtifact().getId()).
+            			addColumn("basedir", project.getBasedir().toString()).
+            			addColumn("dirName", dirName);
         		
-        		
+        		db.insertCollection("sourceDirectories", df.toDocuments());
         		if (new File(dirName).exists()) {
 					TestFileProcessor processor = TestFileProcessor.run(logger, dirName, null);
     				// extract junit class names
@@ -86,21 +94,9 @@ public class CoverageTestMojo extends AbstractMojo {
 			} catch (Exception e) {
 				getLog().error(e.getMessage(), e);
 			} finally {
-        		if (new File(dirName).exists()) {
-        			//createShellScript(dirName, classpath, junitClassNames);
-        		}
 			}
     	}
     }
-
-	private void unused() {
-		ArtifactResolutionRequest request = new ArtifactResolutionRequest();
-    	Artifact art = new DefaultArtifact("org.pavelreich.saaremaa", "jagent", "1.0-SNAPSHOT", null, "pom", null, new DefaultArtifactHandler("pom"));
-		request.setArtifact(art);
-		ArtifactResolutionResult x = repositorySystem.resolve(request);
-		getLog().info("resolved req: " + request + " to " + x);
-    	getLog().info("pluginArtifactMap: "+ pluginArtifactMap.values());
-	}
 
 	private File resolveJavaAgent(String groupWithArtifact) {
 		Artifact jagent = pluginArtifactMap.get(groupWithArtifact);

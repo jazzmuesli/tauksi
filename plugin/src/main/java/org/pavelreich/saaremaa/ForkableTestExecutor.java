@@ -22,8 +22,10 @@ import org.junit.Test;
 import org.junit.runner.JUnitCore;
 import org.junit.runner.Request;
 import org.junit.runner.Result;
+import org.pavelreich.saaremaa.analysis.DataFrame;
 import org.pavelreich.saaremaa.codecov.ProdClassCoverage;
 import org.pavelreich.saaremaa.codecov.TestCoverage;
+import org.pavelreich.saaremaa.mongo.MongoDBClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -126,14 +128,23 @@ public class ForkableTestExecutor {
 			TestCoverage.reportCoverages(Arrays.asList(testCoverage), reporter);
 			reporter.close();
 
+			MongoDBClient db = new MongoDBClient();
+			DataFrame df = new DataFrame();
 			for (final IClassCoverage cc : coverageBuilder.getClasses()) {
-				String className = cc.getName().replaceAll("/", ".");
+				String prodClassName = cc.getName().replaceAll("/", ".");
+				df=df.append(new DataFrame().
+						addColumn("prodClassName", prodClassName).
+						addColumn("testClassName", jc).
+						addColumn("coveredLines", cc.getLineCounter().getCoveredCount()).
+						addColumn("missedLines", cc.getLineCounter().getMissedCount())
+						);
 				if (cc.getInstructionCounter().getCoveredCount() > 0) {
-					LOG.info("Coverage of class " + className);
+					LOG.info("Coverage of class " + prodClassName);
 					printCounter("instructions", cc.getInstructionCounter());
 
 				}
 			}
+			db.insertCollection("coverage", df.toDocuments());
 
 		}
 	}
@@ -149,9 +160,12 @@ public class ForkableTestExecutor {
 
 	public static void main(String[] args) throws Exception {
 
+		MongoDBClient db = new MongoDBClient();
 		JUnitCore junit = new JUnitCore();
-		Class<?> junitClass = Class.forName(args[0]);
+		String testClassName = args[0];
+		Class<?> junitClass = Class.forName(testClassName);
 		Request request = Request.aClass(junitClass);
+		long stime = System.currentTimeMillis();
 		if (args.length > 1) {
 			String methodName = args[1];
 			request = Request.method(junitClass, methodName);
@@ -162,7 +176,14 @@ public class ForkableTestExecutor {
 		if (result.getFailureCount() > 0) {
 			CLOG.warn("Failures for " + junitClass + " : " + result.getFailures());
 		}
+		DataFrame df = new DataFrame().addColumn("testClassName", testClassName).
+				addColumn("failedTests", result.getFailureCount()).
+				addColumn("runCount", result.getRunCount()).
+				addColumn("ignoreCount", result.getIgnoreCount()).
+				addColumn("startTime", stime).
+				addColumn("runTime", result.getRunTime());
 
+		db.insertCollection("testExecution", df.toDocuments());
 		//TODO: report to mongo
 	}
 }

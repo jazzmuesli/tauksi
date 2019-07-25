@@ -27,8 +27,11 @@ import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.brutusin.commons.json.spi.JsonCodec;
 import org.brutusin.instrumentation.Interceptor;
+import org.jline.utils.Log;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.pavelreich.saaremaa.analysis.DataFrame;
+import org.pavelreich.saaremaa.mongo.MongoDBClient;
 
 /**
  * taken from https://github.com/brutusin/logging-instrumentation/blob/master/src/main/java/org/brutusin/instrumentation/logging/LoggingInterceptor.java
@@ -39,10 +42,12 @@ public class LoggingInterceptor extends Interceptor {
 
     private File rootFile;
     private final Map<String, Long> startMap = new HashMap();
+	private MongoDBClient db;
 
     @Override
     public void init(String arg) throws Exception {
     	arg="/tmp";
+    	this.db = new MongoDBClient();
         if (arg == null) {
             throw new IllegalArgumentException(LoggingInterceptor.class.getCanonicalName() + " failed. Argument required specifying the value of logging root-path");
         }
@@ -67,11 +72,26 @@ public class LoggingInterceptor extends Interceptor {
     protected void doOnStart(Object source, Object[] arg, String executionId) {
         long start = System.currentTimeMillis();
         startMap.put(executionId, start);
-        File file = getFile(source, executionId);
-        trace(file, "#Source: " + source);
-        trace(file, "#Start: " + new Date(start));
-        trace(file, "#Parameters:");
-        trace(file, toString(arg));
+        try {
+            DataFrame df = new DataFrame().addColumn("startTime", start).
+            		addColumn("executionId", executionId).
+            		addColumn("source", String.valueOf(source)).
+            		addColumn("argsCount", arg.length);
+            if (source instanceof Method) {
+            	Method method = (Method) source;
+				df = df.addColumn("methodName", method.getName()).
+						addColumn("className", method.getDeclaringClass().getCanonicalName()).
+						addColumn("returnType", method.getReturnType().getCanonicalName());
+            }
+            db.insertCollection("interceptions", df.toDocuments());
+        } catch (Exception e) {
+        	Log.error(e.getMessage(), e);
+        }
+//        File file = getFile(source, executionId);
+//        trace(file, "#Source: " + source);
+//        trace(file, "#Start: " + new Date(start));
+//        trace(file, "#Parameters:");
+//        trace(file, toString(arg));
     }
 
     @Override
@@ -80,37 +100,39 @@ public class LoggingInterceptor extends Interceptor {
 
     @Override
     protected void doOnThrowableUncatched(Object source, Throwable throwable, String executionId) {
-        long start = startMap.remove(executionId);
-        File file = getFile(source, executionId);
-        trace(file, "#Elapsed: " + (System.currentTimeMillis() - start) + " ms");
-        trace(file, "#Thrown:");
-        trace(file, toString(throwable));
+//        long start = startMap.remove(executionId);
+//        File file = getFile(source, executionId);
+//        trace(file, "#Elapsed: " + (System.currentTimeMillis() - start) + " ms");
+//        trace(file, "#Thrown:");
+//        trace(file, toString(throwable));
     }
 
     @Override
     protected void doOnFinish(Object source, Object result, String executionId) {
-        long start = startMap.remove(executionId);
-        File file = getFile(source, executionId);
-        trace(file, "#Elapsed: " + (System.currentTimeMillis() - start) + " ms");
-        trace(file, "#Returned:");
-        trace(file, toString(result));
+//        long start = startMap.remove(executionId);
+//        File file = getFile(source, executionId);
+//        trace(file, "#Elapsed: " + (System.currentTimeMillis() - start) + " ms");
+//        trace(file, "#Returned:");
+//        trace(file, toString(result));
     }
 
     private static void trace(File f, String s) {
-        if (s == null) {
-            return;
-        }
-        try {
-            FileOutputStream fos = new FileOutputStream(f, true);
-            try {
-                fos.write(s.getBytes());
-                fos.write("\n".getBytes());
-            } finally {
-                fos.close();
-            }
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
+//        if (s == null) {
+//            return;
+//        } else {
+//        	return;
+//        }
+//        try {
+//            FileOutputStream fos = new FileOutputStream(f, true);
+//            try {
+//                fos.write(s.getBytes());
+//                fos.write("\n".getBytes());
+//            } finally {
+//                fos.close();
+//            }
+//        } catch (IOException ex) {
+//            throw new RuntimeException(ex);
+//        }
     }
 
     private File getFile(Object source, String executionId) {
