@@ -7,11 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.DefaultArtifact;
-import org.apache.maven.artifact.handler.DefaultArtifactHandler;
 import org.apache.maven.artifact.repository.ArtifactRepository;
-import org.apache.maven.artifact.resolver.ArtifactResolutionRequest;
-import org.apache.maven.artifact.resolver.ArtifactResolutionResult;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Component;
@@ -71,13 +67,6 @@ public class CoverageTestMojo extends AbstractMojo {
         		// process test directory
         		getLog().info("Processing "  + dirName);
         		ForkableTestExecutor executor = new ForkableTestExecutor(logger, jagentPath, jacocoPath,new File(targetClasses));
-            	DataFrame df = new DataFrame().
-            			addColumn("startTime", System.currentTimeMillis()).
-            			addColumn("project", project.getArtifact().getGroupId()+":"+project.getArtifact().getId()).
-            			addColumn("basedir", project.getBasedir().toString()).
-            			addColumn("dirName", dirName);
-        		
-        		db.insertCollection("sourceDirectories", df.toDocuments());
         		if (new File(dirName).exists()) {
 					TestFileProcessor processor = TestFileProcessor.run(logger, dirName, null);
     				// extract junit class names
@@ -85,7 +74,15 @@ public class CoverageTestMojo extends AbstractMojo {
     				for (ITestClass element : elements) {
     					junitClassNames.add(element.getClassName());
     				}
-    				getLog().info("junitClassNames: " + junitClassNames);
+    				getLog().info("junitClassNames: " + junitClassNames.size());
+                	DataFrame df = new DataFrame().
+                			addColumn("startTime", System.currentTimeMillis()).
+                			addColumn("project", project.getArtifact().getGroupId()+":"+project.getArtifact().getId()).
+                			addColumn("basedir", project.getBasedir().toString()).
+                			addColumn("testsCount", junitClassNames.size()).
+                			addColumn("dirName", dirName);
+            		
+            		db.insertCollection("sourceDirectories", df.toDocuments());
 
     				for (ITestClass testClass : ProgressBar.wrap(elements,"testClasses")) {
     					executor.launch(testClass.getClassName(), classpath);

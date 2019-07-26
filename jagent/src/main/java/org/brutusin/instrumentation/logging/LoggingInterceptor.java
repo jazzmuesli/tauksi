@@ -15,52 +15,55 @@
  */
 package org.brutusin.instrumentation.logging;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import java.util.Date;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import org.apache.commons.io.FileUtils;
-import org.brutusin.commons.json.spi.JsonCodec;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
 import org.brutusin.instrumentation.Interceptor;
+import org.bson.Document;
 import org.jline.utils.Log;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.pavelreich.saaremaa.analysis.DataFrame;
 import org.pavelreich.saaremaa.mongo.MongoDBClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * taken from https://github.com/brutusin/logging-instrumentation/blob/master/src/main/java/org/brutusin/instrumentation/logging/LoggingInterceptor.java
- *
- *TODO: report to mongo
+ * based onhttps://github.com/brutusin/logging-instrumentation/blob/master/src/main/java/org/brutusin/instrumentation/logging/LoggingInterceptor.java
+ * TODO: rename 
  */
 public class LoggingInterceptor extends Interceptor {
 
-    private File rootFile;
     private final Map<String, Long> startMap = new HashMap();
 	private MongoDBClient db;
+	private String testClassName = null;
+	private static final Logger LOG = LoggerFactory.getLogger(LoggingInterceptor.class);
 
     @Override
     public void init(String arg) throws Exception {
-    	arg="/tmp";
     	this.db = new MongoDBClient();
-        if (arg == null) {
-            throw new IllegalArgumentException(LoggingInterceptor.class.getCanonicalName() + " failed. Argument required specifying the value of logging root-path");
-        }
-        this.rootFile = new File(arg);
-        if (!rootFile.exists()) {
-            FileUtils.forceMkdir(rootFile);
-        }
-        System.err.println("[LoggingInterceptor agent] Logging to " + rootFile);
+    	if (arg.contains("testClassName=")) {
+    		this.testClassName = arg.replaceAll("testClassName=", "");
+    	}
+        System.err.println("[LoggingInterceptor agent] Logging to mongo:arg=" + arg);
     }
 
+    Set<String> classes = new HashSet<>();
     @Override
     public boolean interceptClass(String className, byte[] byteCode) {
-    	return className.contains("junit");
+//    	if (classes.add(className)) {
+//    		System.out.println("className: " + className);    		
+//    	}
+    	
+    	return className.contains("org/junit/Assert");
     }
 
     @Override
@@ -72,26 +75,39 @@ public class LoggingInterceptor extends Interceptor {
     protected void doOnStart(Object source, Object[] arg, String executionId) {
         long start = System.currentTimeMillis();
         startMap.put(executionId, start);
+        Exception ex = new Exception("interesting");
+        List<StackTraceElement> stackTrace = Arrays.asList(ex.getStackTrace());
+        List<Document> stackElements = Collections.emptyList();
+        if (testClassName != null && stackTrace.stream().
+                filter(p->p.getClassName().equals(testClassName)).count() > 0) {
+            stackElements = stackTrace.stream().
+                    map(x->new Document().
+                    		append("fileName", x.getFileName()).
+                    		append("className",x.getClassName()).
+                    		append("methodName", x.getMethodName()).
+                    		append("lineNumber", x.getLineNumber())).
+                    collect(Collectors.toList());
+        } else {
+        	return;
+        }
+        
+        
         try {
-            DataFrame df = new DataFrame().addColumn("startTime", start).
-            		addColumn("executionId", executionId).
-            		addColumn("source", String.valueOf(source)).
-            		addColumn("argsCount", arg.length);
+            Document document = new Document().append("startTime", start).
+            		append("executionId", executionId).
+            		append("source", String.valueOf(source)).
+            		append("argsCount", arg.length);
             if (source instanceof Method) {
             	Method method = (Method) source;
-				df = df.addColumn("methodName", method.getName()).
-						addColumn("className", method.getDeclaringClass().getCanonicalName()).
-						addColumn("returnType", method.getReturnType().getCanonicalName());
+            	document = document.append("methodName", method.getName()).
+						append("className", method.getDeclaringClass().getCanonicalName()).
+						append("returnType", method.getReturnType().getCanonicalName());
             }
-            db.insertCollection("interceptions", df.toDocuments());
+            document.append("stackElements", stackElements);
+			db.insertCollection("interceptions", Arrays.asList(document));
         } catch (Exception e) {
         	Log.error(e.getMessage(), e);
         }
-//        File file = getFile(source, executionId);
-//        trace(file, "#Source: " + source);
-//        trace(file, "#Start: " + new Date(start));
-//        trace(file, "#Parameters:");
-//        trace(file, toString(arg));
     }
 
     @Override
@@ -100,76 +116,10 @@ public class LoggingInterceptor extends Interceptor {
 
     @Override
     protected void doOnThrowableUncatched(Object source, Throwable throwable, String executionId) {
-//        long start = startMap.remove(executionId);
-//        File file = getFile(source, executionId);
-//        trace(file, "#Elapsed: " + (System.currentTimeMillis() - start) + " ms");
-//        trace(file, "#Thrown:");
-//        trace(file, toString(throwable));
     }
 
     @Override
     protected void doOnFinish(Object source, Object result, String executionId) {
-//        long start = startMap.remove(executionId);
-//        File file = getFile(source, executionId);
-//        trace(file, "#Elapsed: " + (System.currentTimeMillis() - start) + " ms");
-//        trace(file, "#Returned:");
-//        trace(file, toString(result));
     }
 
-    private static void trace(File f, String s) {
-//        if (s == null) {
-//            return;
-//        } else {
-//        	return;
-//        }
-//        try {
-//            FileOutputStream fos = new FileOutputStream(f, true);
-//            try {
-//                fos.write(s.getBytes());
-//                fos.write("\n".getBytes());
-//            } finally {
-//                fos.close();
-//            }
-//        } catch (IOException ex) {
-//            throw new RuntimeException(ex);
-//        }
-    }
-
-    private File getFile(Object source, String executionId) {
-        String loggingFolderPath = "JVM-" + ManagementFactory.getRuntimeMXBean().getStartTime() + "/" + Thread.currentThread().getName() + "-" + Thread.currentThread().getId() + "/" + executionId + "-";
-        if (source instanceof Method) {
-            Method m = (Method) source;
-            loggingFolderPath += m.getDeclaringClass().getName() + "." + m.getName() + "()";
-        } else if (source instanceof Constructor) {
-            Constructor c = (Constructor) source;
-            String className = c.getDeclaringClass().getName();
-            if (className != null && className.length() > 0) {
-                loggingFolderPath += className + ".init()";
-            } else {
-                loggingFolderPath += "init()";
-            }
-        } else {
-            loggingFolderPath += source;
-        }
-        loggingFolderPath += ".log";
-        loggingFolderPath = loggingFolderPath.replaceAll("[<>:]", "-");
-        File ret = new File(rootFile, loggingFolderPath);
-        try {
-            FileUtils.forceMkdir(ret.getParentFile());
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
-        return ret;
-    }
-
-    private static String toString(Object obj) {
-        if (obj == null) {
-            return null;
-        }
-        try {
-            return JsonCodec.getInstance().transform(obj);
-        } catch (Throwable th) {
-            return obj.toString();
-        }
-    }
 }
