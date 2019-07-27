@@ -196,7 +196,7 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 		}
 
 		boolean hasTests() {
-			return this.methods.values().stream().anyMatch(p -> p.isTest());
+			return !this.ctClass.isAbstract() && this.methods.values().stream().anyMatch(p -> p.isTest());
 		}
 
 		public List<ITestMethod> getTestMethods() {

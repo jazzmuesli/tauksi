@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.brutusin.instrumentation.logging.LoggingInterceptor;
+import org.bson.Document;
 import org.jacoco.core.analysis.Analyzer;
 import org.jacoco.core.analysis.CoverageBuilder;
 import org.jacoco.core.analysis.IClassCoverage;
@@ -30,17 +31,22 @@ public class ForkableTestLauncher {
 	private final File targetClasses;
 	private long timeout = 60;
 	private MongoDBClient db;
-	public ForkableTestLauncher(MongoDBClient db, Logger log, File jagentPath, File jacocoPath, File targetClasses) {
+	private String id;
+	public ForkableTestLauncher(String id, MongoDBClient db, Logger log, File jagentPath, File jacocoPath, File targetClasses) {
+		this.id = id;
 		this.db = db;
 		this.LOG = log;
 		this.jagentPath = jagentPath;
 		this.jacocoPath = jacocoPath;
 		this.targetClasses = targetClasses;
 	}
+	
+	public void setTimeout(long timeout) {
+		this.timeout = timeout;
+	}
 
 	public void run(String jc) {
 		Collection<String> classpath = Arrays.asList(System.getProperty("java.class.path").split(":"));
-		
 		try {
 			launch(jc, classpath);
 		} catch (Exception e) {
@@ -57,19 +63,17 @@ public class ForkableTestLauncher {
 				"-javaagent:" + jacocoPath+ "=destfile=" + fname + 
 				"  -classpath " + classpath.stream().collect(Collectors.joining(File.pathSeparator))
 				+ " " + ForkableTestExecutor.class.getCanonicalName() + " " + testClassName;// + " " + methodName;
-//		LOG.info("cmd: " + cmd);
 		FileWriter fw = new FileWriter("last_command.sh");
 		fw.write(cmd);
 		fw.close();
 		List<String> cmdArgs = Arrays.asList(cmd.split("\\s+"));
-		LOG.info("cmdArgs:"+cmdArgs);
 		ProcessBuilder pb = new ProcessBuilder(cmdArgs);
 		pb.inheritIO();
 		Process p;
 		p = pb.start();
-		boolean ret = p.waitFor(timeout, TimeUnit.SECONDS);
-		LOG.info("ret: " + ret + ", alive: "+ p.isAlive());
-		if (!ret) {
+		boolean finished = p.waitFor(timeout, TimeUnit.SECONDS);
+		LOG.info("ret: " + finished + ", alive: "+ p.isAlive());
+		if (!finished) {
 			p.destroy();
 			p.destroyForcibly();			
 		}
@@ -77,8 +81,16 @@ public class ForkableTestLauncher {
 		long duration = System.currentTimeMillis() - stime;
 		
 		int exitValue = p.isAlive() ? -1 : p.exitValue();
-		LOG.info("took: " + duration + ", result:" + ret + ", exit: " + exitValue);
+		LOG.info("took: " + duration + ", result:" + finished + ", exit: " + exitValue);
 
+		db.insertCollection("testsLaunched", Arrays.asList(
+				new Document().
+				append("id", id).
+				append("testClassName", testClassName).
+				append("exitValue", exitValue).
+				append("duration", duration).
+				append("finished", finished)
+				));
 		
 		processCoverageData(testClassName, fname);
 	}
@@ -98,6 +110,7 @@ public class ForkableTestLauncher {
 				String prodClassName = cc.getName().replaceAll("/", ".");
 				df=df.append(new DataFrame().
 						addColumn("prodClassName", prodClassName).
+						addColumn("id", id).
 						addColumn("testClassName", testClassName).
 						addColumn("coveredLines", cc.getLineCounter().getCoveredCount()).
 						addColumn("missedLines", cc.getLineCounter().getMissedCount())

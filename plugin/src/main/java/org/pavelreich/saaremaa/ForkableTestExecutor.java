@@ -52,7 +52,7 @@ public class ForkableTestExecutor {
 				append("runTime", result.getRunTime()).
 				append("failures", failures);
 
-		db.insertCollection("testExecution", Arrays.asList(df));
+		db.insertCollection("testsExecuted", Arrays.asList(df));
 		db.waitForOperationsToFinish();
 	}
 }
