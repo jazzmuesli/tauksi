@@ -48,7 +48,7 @@ public class LoggingInterceptor extends Interceptor {
 
     @Override
     public void init(String arg) throws Exception {
-    	this.db = new MongoDBClient();
+    	this.db = new MongoDBClient(getClass().getSimpleName());
     	if (arg.contains("testClassName=")) {
     		this.testClassName = arg.replaceAll("testClassName=", "");
     	}
@@ -110,8 +110,9 @@ public class LoggingInterceptor extends Interceptor {
             }
             document.append("stackElements", stackElements);
 			db.insertCollection("interceptions", Arrays.asList(document));
+			db.waitForOperationsToFinish();
         } catch (Exception e) {
-        	Log.error(e.getMessage(), e);
+        	LOG.error(e.getMessage(), e);
         }
     }
 

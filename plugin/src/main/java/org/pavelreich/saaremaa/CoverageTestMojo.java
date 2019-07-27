@@ -64,12 +64,12 @@ public class CoverageTestMojo extends AbstractMojo {
 		getLog().info("classpath: " + classpath);
 		MavenLoggerAsSLF4jLoggerAdaptor logger = new MavenLoggerAsSLF4jLoggerAdaptor(getLog());
     	List<String> junitClassNames = new ArrayList<String>();
-    	MongoDBClient db = new MongoDBClient();
+    	MongoDBClient db = new MongoDBClient(getClass().getSimpleName());
     	for(String dirName: project.getTestCompileSourceRoots()) {
         	try {
         		// process test directory
         		getLog().info("Processing "  + dirName);
-        		ForkableTestExecutor executor = new ForkableTestExecutor(logger, jagentPath, jacocoPath,new File(targetClasses));
+        		ForkableTestLauncher executor = new ForkableTestLauncher(db, logger, jagentPath, jacocoPath,new File(targetClasses));
         		if (new File(dirName).exists()) {
 					TestFileProcessor processor = TestFileProcessor.run(logger, dirName, null);
     				// extract junit class names
@@ -103,9 +103,10 @@ public class CoverageTestMojo extends AbstractMojo {
         		}
 			} catch (Exception e) {
 				getLog().error(e.getMessage(), e);
-			} finally {
 			}
     	}
+		db.waitForOperationsToFinish();
+
     }
 
 	private File resolveJavaAgent(String groupWithArtifact) {
