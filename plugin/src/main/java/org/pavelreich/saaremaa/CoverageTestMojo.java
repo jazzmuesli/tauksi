@@ -2,9 +2,12 @@ package org.pavelreich.saaremaa;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.repository.ArtifactRepository;
@@ -17,7 +20,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.repository.RepositorySystem;
-import org.pavelreich.saaremaa.analysis.DataFrame;
+import org.bson.Document;
 import org.pavelreich.saaremaa.mongo.MongoDBClient;
 import org.pavelreich.saaremaa.testdepan.ITestClass;
 import org.pavelreich.saaremaa.testdepan.TestFileProcessor;
@@ -56,11 +59,10 @@ public class CoverageTestMojo extends AbstractMojo {
     	File jacocoPath = resolveJavaAgent("org.jacoco:org.jacoco.agent");
     	String targetClasses = project.getBuild().getOutputDirectory();
 		getLog().info("output: " + targetClasses);
-//    	unused();
 		Collection<String> classpath = DependencyHelper.prepareClasspath(project, localRepository, repositorySystem, pluginArtifactMap, getLog());
 		getLog().info("classpath: " + classpath);
 		MavenLoggerAsSLF4jLoggerAdaptor logger = new MavenLoggerAsSLF4jLoggerAdaptor(getLog());
-    	List<String> junitClassNames = new ArrayList();
+    	List<String> junitClassNames = new ArrayList<String>();
     	MongoDBClient db = new MongoDBClient();
     	for(String dirName: project.getTestCompileSourceRoots()) {
         	try {
@@ -71,18 +73,23 @@ public class CoverageTestMojo extends AbstractMojo {
 					TestFileProcessor processor = TestFileProcessor.run(logger, dirName, null);
     				// extract junit class names
 					List<ITestClass> elements = processor.getElements();
+					Map<String,List<String>> testClassToMethods = new HashMap<String, List<String>>();
     				for (ITestClass element : elements) {
     					junitClassNames.add(element.getClassName());
+    					List<String> testMethods = element.getTestMethods().stream().map(x->x.getName()).collect(Collectors.toList());
+						testClassToMethods.put(element.getClassName(), testMethods);
     				}
     				getLog().info("junitClassNames: " + junitClassNames.size());
-                	DataFrame df = new DataFrame().
-                			addColumn("startTime", System.currentTimeMillis()).
-                			addColumn("project", project.getArtifact().getGroupId()+":"+project.getArtifact().getId()).
-                			addColumn("basedir", project.getBasedir().toString()).
-                			addColumn("testsCount", junitClassNames.size()).
-                			addColumn("dirName", dirName);
+                	Document df = new Document().
+                			append("startTime", System.currentTimeMillis()).
+                			append("project", project.getArtifact().getId()).
+                			append("basedir", project.getBasedir().toString()).
+                			append("testsCount", junitClassNames.size()).
+                			append("dirName", dirName).
+                			append("testClasses", junitClassNames).
+                			append("testClassMethods", testClassToMethods);
             		
-            		db.insertCollection("sourceDirectories", df.toDocuments());
+            		db.insertCollection("sourceDirectories", Arrays.asList(df));
 
     				for (ITestClass testClass : ProgressBar.wrap(elements,"testClasses")) {
     					executor.launch(testClass.getClassName(), classpath);

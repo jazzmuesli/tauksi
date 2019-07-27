@@ -24,14 +24,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
+
 import org.brutusin.instrumentation.Interceptor;
 import org.bson.Document;
 import org.jline.utils.Log;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
-import org.pavelreich.saaremaa.analysis.DataFrame;
 import org.pavelreich.saaremaa.mongo.MongoDBClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,9 +40,10 @@ import org.slf4j.LoggerFactory;
  */
 public class LoggingInterceptor extends Interceptor {
 
-    private final Map<String, Long> startMap = new HashMap();
+    private final Map<String, Long> startMap = new HashMap<String, Long>();
 	private MongoDBClient db;
 	private String testClassName = null;
+	private long processStartTime;
 	private static final Logger LOG = LoggerFactory.getLogger(LoggingInterceptor.class);
 
     @Override
@@ -53,6 +52,7 @@ public class LoggingInterceptor extends Interceptor {
     	if (arg.contains("testClassName=")) {
     		this.testClassName = arg.replaceAll("testClassName=", "");
     	}
+    	this.processStartTime=System.currentTimeMillis();
         System.err.println("[LoggingInterceptor agent] Logging to mongo:arg=" + arg);
     }
 
@@ -93,15 +93,20 @@ public class LoggingInterceptor extends Interceptor {
         
         
         try {
-            Document document = new Document().append("startTime", start).
+            Document document = new Document().
+            		append("startTime", start).
             		append("executionId", executionId).
             		append("source", String.valueOf(source)).
+            		append("testClassName", testClassName).
+            		append("processStartTime", processStartTime).
             		append("argsCount", arg.length);
             if (source instanceof Method) {
             	Method method = (Method) source;
+            	List<String> argClasses = Arrays.asList(method.getParameterTypes()).stream().map(x->x.getCanonicalName()).collect(Collectors.toList());
             	document = document.append("methodName", method.getName()).
 						append("className", method.getDeclaringClass().getCanonicalName()).
-						append("returnType", method.getReturnType().getCanonicalName());
+						append("returnType", method.getReturnType().getCanonicalName()).
+						append("argClasses", argClasses);
             }
             document.append("stackElements", stackElements);
 			db.insertCollection("interceptions", Arrays.asList(document));

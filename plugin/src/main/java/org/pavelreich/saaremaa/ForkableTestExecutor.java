@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.brutusin.instrumentation.logging.LoggingInterceptor;
+import org.bson.Document;
 import org.jacoco.core.analysis.Analyzer;
 import org.jacoco.core.analysis.CoverageBuilder;
 import org.jacoco.core.analysis.IClassCoverage;
@@ -56,7 +57,6 @@ public class ForkableTestExecutor {
 		
 		try {
 			launch(jc, classpath);
-//			List<String> methodNames = getTestMethods(junitClass);
 		} catch (Exception e) {
 			LOG.error(e.getMessage(), e);
 		}
@@ -94,6 +94,10 @@ public class ForkableTestExecutor {
 		LOG.info("took: " + duration + ", result:" + ret + ", exit: " + exitValue);
 
 		
+		processCoverageData(testClassName, fname);
+	}
+
+	private void processCoverageData(String testClassName, String fname) throws IOException {
 		ExecFileLoader execFileLoader = new ExecFileLoader();
 		File file = new File(fname);
 		if (file.exists()) {
@@ -137,14 +141,15 @@ public class ForkableTestExecutor {
 		if (result.getFailureCount() > 0) {
 			CLOG.warn("Failures for " + junitClass + " : " + result.getFailures());
 		}
-		DataFrame df = new DataFrame().addColumn("testClassName", testClassName).
-				addColumn("failedTests", result.getFailureCount()).
-				addColumn("runCount", result.getRunCount()).
-				addColumn("ignoreCount", result.getIgnoreCount()).
-				addColumn("startTime", stime).
-				addColumn("runTime", result.getRunTime());
+		Document df = new Document().
+				append("testClassName", testClassName).
+				append("failedTests", result.getFailureCount()).
+				append("runCount", result.getRunCount()).
+				append("ignoreCount", result.getIgnoreCount()).
+				append("startTime", stime).
+				append("runTime", result.getRunTime()).
+				append("failures", result.getFailures().stream().map(x -> x.toString()));
 
-		db.insertCollection("testExecution", df.toDocuments());
-		//TODO: report to mongo
+		db.insertCollection("testExecution", Arrays.asList(df));
 	}
 }
