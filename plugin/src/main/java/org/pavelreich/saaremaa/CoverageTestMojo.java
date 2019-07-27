@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import org.apache.maven.artifact.Artifact;
@@ -80,16 +81,21 @@ public class CoverageTestMojo extends AbstractMojo {
 						testClassToMethods.put(element.getClassName(), testMethods);
     				}
     				getLog().info("junitClassNames: " + junitClassNames.size());
-                	Document df = new Document().
+                	List<Document> innerDocs = testClassToMethods.entrySet().stream().map(x -> 
+                	new Document().
+                	append("testClassName", x.getKey()).
+                	append("testMethods",  x.getValue())).
+                			collect(Collectors.toList());
+                	Document doc = new Document().
                 			append("startTime", System.currentTimeMillis()).
                 			append("project", project.getArtifact().getId()).
                 			append("basedir", project.getBasedir().toString()).
                 			append("testsCount", junitClassNames.size()).
                 			append("dirName", dirName).
                 			append("testClasses", junitClassNames).
-                			append("testClassMethods", testClassToMethods);
+                			append("testClassMethods", innerDocs);
             		
-            		db.insertCollection("sourceDirectories", Arrays.asList(df));
+            		db.insertCollection("detectedTests", Arrays.asList(doc));
 
     				for (ITestClass testClass : ProgressBar.wrap(elements,"testClasses")) {
     					executor.launch(testClass.getClassName(), classpath);
