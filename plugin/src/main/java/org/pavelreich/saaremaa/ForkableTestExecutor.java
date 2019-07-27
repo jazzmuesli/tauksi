@@ -141,6 +141,7 @@ public class ForkableTestExecutor {
 		if (result.getFailureCount() > 0) {
 			CLOG.warn("Failures for " + junitClass + " : " + result.getFailures());
 		}
+		List<String> failures = result.getFailures().stream().map(x -> x.toString()).collect(Collectors.toList());
 		Document df = new Document().
 				append("testClassName", testClassName).
 				append("failedTests", result.getFailureCount()).
@@ -148,7 +149,7 @@ public class ForkableTestExecutor {
 				append("ignoreCount", result.getIgnoreCount()).
 				append("startTime", stime).
 				append("runTime", result.getRunTime()).
-				append("failures", result.getFailures().stream().map(x -> x.toString()));
+				append("failures", failures);
 
 		db.insertCollection("testExecution", Arrays.asList(df));
 	}
