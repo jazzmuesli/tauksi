@@ -14,6 +14,7 @@ import org.bson.Document;
 import org.jacoco.core.analysis.Analyzer;
 import org.jacoco.core.analysis.CoverageBuilder;
 import org.jacoco.core.analysis.IClassCoverage;
+import org.jacoco.core.analysis.IMethodCoverage;
 import org.jacoco.core.tools.ExecFileLoader;
 import org.pavelreich.saaremaa.analysis.DataFrame;
 import org.pavelreich.saaremaa.mongo.MongoDBClient;
@@ -106,6 +107,7 @@ public class ForkableTestLauncher {
 			analyzer.analyzeAll(targetClasses);
 
 			DataFrame df = new DataFrame();
+			DataFrame mdf = new DataFrame();
 			for (final IClassCoverage cc : coverageBuilder.getClasses()) {
 				String prodClassName = cc.getName().replaceAll("/", ".");
 				df=df.append(new DataFrame().
@@ -115,8 +117,20 @@ public class ForkableTestLauncher {
 						addColumn("coveredLines", cc.getLineCounter().getCoveredCount()).
 						addColumn("missedLines", cc.getLineCounter().getMissedCount())
 						);
+				for (IMethodCoverage method : cc.getMethods()) {
+					mdf=mdf.append(new DataFrame().
+							addColumn("prodMethodName", method.getName()).
+							addColumn("prodClassName", prodClassName).
+							addColumn("id", id).
+							addColumn("testClassName", testClassName).
+							addColumn("coveredLines", cc.getLineCounter().getCoveredCount()).
+							addColumn("missedLines", cc.getLineCounter().getMissedCount())
+							);
+					
+				}
 			}
-			db.insertCollection("coverage", df.toDocuments());
+			db.insertCollection("classCoverage", df.toDocuments());
+			db.insertCollection("methodCoverage", mdf.toDocuments());
 		}
 	}
 

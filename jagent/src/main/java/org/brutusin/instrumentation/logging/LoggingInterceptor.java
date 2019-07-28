@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 
 import org.brutusin.instrumentation.Interceptor;
 import org.bson.Document;
-import org.jline.utils.Log;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.pavelreich.saaremaa.mongo.MongoDBClient;
@@ -44,14 +43,19 @@ public class LoggingInterceptor extends Interceptor {
 	private MongoDBClient db;
 	private String testClassName = null;
 	private long processStartTime;
+	private String prodClassName;
+	private String prodClassNameFilter;
 	private static final Logger LOG = LoggerFactory.getLogger(LoggingInterceptor.class);
 
     @Override
     public void init(String arg) throws Exception {
     	this.db = new MongoDBClient(getClass().getSimpleName());
-    	if (arg.contains("testClassName=")) {
-    		this.testClassName = arg.replaceAll("testClassName=", "");
-    	}
+		if (arg.contains("testClassName=")) {
+			this.testClassName = arg.replaceAll("testClassName=", "");
+			this.prodClassName = this.testClassName.replaceAll("Test$", "");
+			this.prodClassNameFilter = this.prodClassName.replaceAll("\\.","/");
+		}
+		
     	this.processStartTime=System.currentTimeMillis();
         System.err.println("[LoggingInterceptor agent] Logging to mongo:arg=" + arg);
     }
@@ -62,8 +66,7 @@ public class LoggingInterceptor extends Interceptor {
 //    	if (classes.add(className)) {
 //    		System.out.println("className: " + className);    		
 //    	}
-    	
-    	return className.contains("org/junit/Assert");
+    	return className.contains("org/junit/Assert") || (prodClassNameFilter != null && className.startsWith(prodClassNameFilter));
     }
 
     @Override
@@ -78,12 +81,12 @@ public class LoggingInterceptor extends Interceptor {
         Exception ex = new Exception("interesting");
         List<StackTraceElement> stackTrace = Arrays.asList(ex.getStackTrace());
         List<Document> stackElements = Collections.emptyList();
-        if (testClassName != null && stackTrace.stream().
-                filter(p->p.getClassName().equals(testClassName)).count() > 0) {
+        Set<String> stackClasses = stackTrace.stream().map(p->p.getClassName()).collect(Collectors.toSet());
+        if (testClassName != null && (stackClasses.contains(testClassName) || stackClasses.contains(prodClassName))) {
             stackElements = stackTrace.stream().
                     map(x->new Document().
                     		append("fileName", x.getFileName()).
-                    		append("className",x.getClassName()).
+                    		append("className", x.getClassName()).
                     		append("methodName", x.getMethodName()).
                     		append("lineNumber", x.getLineNumber())).
                     collect(Collectors.toList());
