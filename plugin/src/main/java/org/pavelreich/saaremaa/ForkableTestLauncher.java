@@ -58,7 +58,9 @@ public class ForkableTestLauncher {
 			throws IOException, InterruptedException {
 		long stime = System.currentTimeMillis();
 		String fname = stime + ".exec";
-		String cmd = "java -javaagent:" + jagentPath + 
+		// https://stackoverflow.com/questions/31567532/getting-expecting-a-stackmap-frame-at-branch-target-when-running-maven-integra
+		// https://stackoverflow.com/questions/300639/use-of-noverify-when-launching-java-apps
+		String cmd = "java -noverify -javaagent:" + jagentPath + 
 				"=" + LoggingInterceptor.class.getCanonicalName()+ 
 				";testClassName=" + testClassName + " " + 
 				"-javaagent:" + jacocoPath+ "=destfile=" + fname + 
