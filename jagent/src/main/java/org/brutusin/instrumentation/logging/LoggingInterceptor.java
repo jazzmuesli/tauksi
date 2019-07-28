@@ -57,7 +57,7 @@ public class LoggingInterceptor extends Interceptor {
 		}
 		
     	this.processStartTime=System.currentTimeMillis();
-        System.err.println("[LoggingInterceptor agent] Logging to mongo:arg=" + arg);
+        System.err.println("[LoggingInterceptor agent] Logging to mongo:arg=" + arg + ", prodClassNameFilter: " + prodClassNameFilter + ", prodClassName: "+ prodClassName);
     }
 
     Set<String> classes = new HashSet<>();
@@ -66,7 +66,7 @@ public class LoggingInterceptor extends Interceptor {
 //    	if (classes.add(className)) {
 //    		System.out.println("className: " + className);    		
 //    	}
-    	return className.contains("org/junit/Assert") || (prodClassNameFilter != null && className.startsWith(prodClassNameFilter));
+    	return className.contains("org/junit/Assert") || (prodClassNameFilter != null && className.equals(prodClassNameFilter));
     }
 
     @Override
