@@ -15,6 +15,8 @@
  */
 package org.brutusin.instrumentation.logging;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
@@ -102,14 +104,19 @@ public class LoggingInterceptor extends Interceptor {
             		append("source", String.valueOf(source)).
             		append("testClassName", testClassName).
             		append("processStartTime", processStartTime).
+            		append("sourceClass", source.getClass().getCanonicalName()).
             		append("argsCount", arg.length);
-            if (source instanceof Method) {
-            	Method method = (Method) source;
-            	List<String> argClasses = Arrays.asList(method.getParameterTypes()).stream().map(x->x.getCanonicalName()).collect(Collectors.toList());
-            	document = document.append("methodName", method.getName()).
-						append("className", method.getDeclaringClass().getCanonicalName()).
-						append("returnType", method.getReturnType().getCanonicalName()).
+            if (source instanceof Executable) {
+            	Executable executable = (Executable) source;
+            	List<String> argClasses = Arrays.asList(executable.getParameterTypes()).stream().map(x->x.getCanonicalName()).collect(Collectors.toList());
+            	document = document.append("methodName", executable.getName()).
+						append("className", executable.getDeclaringClass().getCanonicalName()).
+						append("modifiers", executable.getModifiers()).
 						append("argClasses", argClasses);
+            	if (executable instanceof Method) {
+            		Method method = (Method) executable;
+            		document = document.append("returnType", method.getReturnType().getCanonicalName());
+            	}
             }
             document.append("stackElements", stackElements);
 			db.insertCollection("interceptions", Arrays.asList(document));
