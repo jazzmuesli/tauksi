@@ -3,20 +3,20 @@ package org.pavelreich.saaremaa;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.brutusin.instrumentation.logging.LoggingInterceptor;
 import org.bson.Document;
 import org.jacoco.core.analysis.Analyzer;
 import org.jacoco.core.analysis.CoverageBuilder;
 import org.jacoco.core.analysis.IClassCoverage;
 import org.jacoco.core.analysis.IMethodCoverage;
 import org.jacoco.core.tools.ExecFileLoader;
-import org.pavelreich.saaremaa.analysis.DataFrame;
+import org.pavelreich.saaremaa.jagent.MethodInterceptor;
 import org.pavelreich.saaremaa.mongo.MongoDBClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +33,8 @@ public class ForkableTestLauncher {
 	private long timeout = 60;
 	private MongoDBClient db;
 	private String id;
+	private boolean jacocoEnabled;
+	private boolean interceptorEnabled;
 	public ForkableTestLauncher(String id, MongoDBClient db, Logger log, File jagentPath, File jacocoPath, File targetClasses) {
 		this.id = id;
 		this.db = db;
@@ -46,26 +48,51 @@ public class ForkableTestLauncher {
 		this.timeout = timeout;
 	}
 
-	public void run(String jc) {
-		Collection<String> classpath = Arrays.asList(System.getProperty("java.class.path").split(":"));
-		try {
-			launch(jc, classpath);
-		} catch (Exception e) {
-			LOG.error(e.getMessage(), e);
-		}
+//	public void run(String jc) {
+//		Collection<String> classpath = Arrays.asList(System.getProperty("java.class.path").split(":"));
+//		try {
+//			launch(jc, classpath);
+//		} catch (Exception e) {
+//			LOG.error(e.getMessage(), e);
+//		}
+//	}
+	
+	public void enableJacoco(boolean b) {
+		this.jacocoEnabled = b;
 	}
-	void launch(String testClassName, Collection<String> classpath)
+	
+	public void enableInterceptor(boolean b) {
+		this.interceptorEnabled = b;
+	}
+	private String createInterceptorJavaAgentCmd(String testClassName) {
+		if (!interceptorEnabled) {
+			return "";
+		}
+		return "-javaagent:" + jagentPath + "=" + MethodInterceptor.class.getCanonicalName()+  ";testClassName=" + testClassName;
+	}
+	
+	private String createJacocoCmd(String fname) {
+		if (!jacocoEnabled) {
+			return "";
+		}
+		return "-javaagent:" + jacocoPath+ "=destfile=" + fname;
+	}
+	
+	void launch(TestExecutionCommand testExecutionCommand, Collection<String> classpath)
 			throws IOException, InterruptedException {
 		long stime = System.currentTimeMillis();
 		String fname = stime + ".exec";
 		// https://stackoverflow.com/questions/31567532/getting-expecting-a-stackmap-frame-at-branch-target-when-running-maven-integra
 		// https://stackoverflow.com/questions/300639/use-of-noverify-when-launching-java-apps
-		String cmd = "java -noverify -javaagent:" + jagentPath + 
-				"=" + LoggingInterceptor.class.getCanonicalName()+ 
-				";testClassName=" + testClassName + " " + 
-				"-javaagent:" + jacocoPath+ "=destfile=" + fname + 
-				"  -classpath " + classpath.stream().collect(Collectors.joining(File.pathSeparator))
-				+ " " + ForkableTestExecutor.class.getCanonicalName() + " " + testClassName;// + " " + methodName;
+		String cmd = "java -noverify " + 
+		createInterceptorJavaAgentCmd(testExecutionCommand.testClassName)
+		 + " " + 
+		createJacocoCmd(fname) 
+		 + "  -classpath " + classpath.stream().collect(Collectors.joining(File.pathSeparator))
+				+ " " + ForkableTestExecutor.class.getCanonicalName() + " " + testExecutionCommand.testClassName;
+		if (testExecutionCommand.testMethodName !=null) {
+			cmd += " " + testExecutionCommand.testMethodName;
+		}
 		FileWriter fw = new FileWriter("last_command.sh");
 		fw.write(cmd);
 		fw.close();
@@ -87,18 +114,24 @@ public class ForkableTestLauncher {
 		LOG.info("took: " + duration + ", result:" + finished + ", exit: " + exitValue);
 
 		db.insertCollection("testsLaunched", Arrays.asList(
-				new Document().
+				testExecutionCommand.asDocument().
 				append("id", id).
-				append("testClassName", testClassName).
+				append("jacocoEnabled", jacocoEnabled).
+				append("interceptorEnabled", interceptorEnabled).
 				append("exitValue", exitValue).
+				append("cmd", cmd).
 				append("duration", duration).
 				append("finished", finished)
 				));
 		
-		processCoverageData(testClassName, fname);
+		if (jacocoEnabled) {
+			processCoverageData(testExecutionCommand, fname);			
+		}
+		
 	}
 
-	private void processCoverageData(String testClassName, String fname) throws IOException {
+
+	private void processCoverageData(TestExecutionCommand testExecCmd, String fname) throws IOException {
 		ExecFileLoader execFileLoader = new ExecFileLoader();
 		File file = new File(fname);
 		if (file.exists()) {
@@ -108,31 +141,30 @@ public class ForkableTestLauncher {
 
 			analyzer.analyzeAll(targetClasses);
 
-			DataFrame df = new DataFrame();
-			DataFrame mdf = new DataFrame();
+			List<Document> clsCovDocs = new ArrayList<Document>();
+			List<Document> metCovDocs = new ArrayList<Document>();
 			for (final IClassCoverage cc : coverageBuilder.getClasses()) {
 				String prodClassName = cc.getName().replaceAll("/", ".");
-				df=df.append(new DataFrame().
-						addColumn("prodClassName", prodClassName).
-						addColumn("id", id).
-						addColumn("testClassName", testClassName).
-						addColumn("coveredLines", cc.getLineCounter().getCoveredCount()).
-						addColumn("missedLines", cc.getLineCounter().getMissedCount())
+				clsCovDocs.add(testExecCmd.asDocument().
+						append("prodClassName", prodClassName).
+						append("id", id).
+						append("coveredLines", cc.getLineCounter().getCoveredCount()).
+						append("missedLines", cc.getLineCounter().getMissedCount())
 						);
 				for (IMethodCoverage method : cc.getMethods()) {
-					mdf=mdf.append(new DataFrame().
-							addColumn("prodMethodName", method.getName()).
-							addColumn("prodClassName", prodClassName).
-							addColumn("id", id).
-							addColumn("testClassName", testClassName).
-							addColumn("coveredLines", cc.getLineCounter().getCoveredCount()).
-							addColumn("missedLines", cc.getLineCounter().getMissedCount())
+					metCovDocs.add(testExecCmd.asDocument().
+							append("prodMethodName", method.getName()).
+							append("prodClassName", prodClassName).
+							append("prodMethodSignature", method.getSignature()).
+							append("id", id).
+							append("coveredLines", method.getLineCounter().getCoveredCount()).
+							append("missedLines", method.getLineCounter().getMissedCount())
 							);
 					
 				}
 			}
-			db.insertCollection("classCoverage", df.toDocuments());
-			db.insertCollection("methodCoverage", mdf.toDocuments());
+			db.insertCollection("classCoverage", clsCovDocs);
+			db.insertCollection("methodCoverage", metCovDocs);
 		}
 	}
 

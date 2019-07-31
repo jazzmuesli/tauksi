@@ -1,29 +1,13 @@
-/*
- * Copyright 2014 brutusin.org
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-package org.brutusin.instrumentation.logging;
 
-import java.lang.reflect.Constructor;
+package org.pavelreich.saaremaa.jagent;
+
 import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -37,17 +21,14 @@ import org.slf4j.LoggerFactory;
 
 /**
  * based onhttps://github.com/brutusin/logging-instrumentation/blob/master/src/main/java/org/brutusin/instrumentation/logging/LoggingInterceptor.java
- * TODO: rename 
  */
-public class LoggingInterceptor extends Interceptor {
-
-    private final Map<String, Long> startMap = new HashMap<String, Long>();
+public class MethodInterceptor extends Interceptor {
 	private MongoDBClient db;
 	private String testClassName = null;
 	private long processStartTime;
 	private String prodClassName;
 	private String prodClassNameFilter;
-	private static final Logger LOG = LoggerFactory.getLogger(LoggingInterceptor.class);
+	private static final Logger LOG = LoggerFactory.getLogger(MethodInterceptor.class);
 
     @Override
     public void init(String arg) throws Exception {
@@ -63,14 +44,18 @@ public class LoggingInterceptor extends Interceptor {
     }
 
     Set<String> classes = new HashSet<>();
+    static final Collection<String> excludedClasses = Arrays.asList("jacoco","mongo","bson","brutusin","pavelreich","junit","sun/reflect");
     @Override
     public boolean interceptClass(String className, byte[] byteCode) {
-//    	if (classes.add(className)) {
-//    		System.out.println("className: " + className);    		
-//    	}
-    	return className.contains("org/junit/Assert") || (prodClassNameFilter != null && className.equals(prodClassNameFilter));
+    	boolean excluded = excludedClasses.stream().anyMatch(p->className.contains(p));
+    	boolean ret = !excluded  
+    			|| className.contains("org/junit/Assert") || (prodClassNameFilter != null && className.equals(prodClassNameFilter));
+    	if (classes.add(className)) {
+//    		System.out.println("className: " + className + ", ret: " + ret);    		
+    	}
+		return ret;
     }
-
+    
     @Override
     public boolean interceptMethod(ClassNode cn, MethodNode mn) {
         return true;
@@ -79,12 +64,13 @@ public class LoggingInterceptor extends Interceptor {
     @Override
     protected void doOnStart(Object source, Object[] arg, String executionId) {
         long start = System.currentTimeMillis();
-        startMap.put(executionId, start);
         Exception ex = new Exception("interesting");
         List<StackTraceElement> stackTrace = Arrays.asList(ex.getStackTrace());
         List<Document> stackElements = Collections.emptyList();
         Set<String> stackClasses = stackTrace.stream().map(p->p.getClassName()).collect(Collectors.toSet());
-        if (testClassName != null && (stackClasses.contains(testClassName) || stackClasses.contains(prodClassName))) {
+        boolean isConstructor = "init()".equals(source);
+		boolean isRelevant = testClassName != null && (stackClasses.contains(testClassName) || stackClasses.contains(prodClassName));
+		if ((isConstructor && !isRelevant) || (!isConstructor && isRelevant)) {
             stackElements = stackTrace.stream().
                     map(x->new Document().
                     		append("fileName", x.getFileName()).

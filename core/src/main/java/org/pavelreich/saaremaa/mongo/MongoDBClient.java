@@ -29,7 +29,10 @@ public class MongoDBClient {
 
 	public void insertCollection(String name, List<Document> documents) {
 		try {
-//			LOG.info("inserting " + documents.size() + " documents");
+
+			if (LOG.isDebugEnabled()) {
+				LOG.debug("inserting.name=" + this.name + ", collection=" + name + ", " + documents.size() + " documents. Semaphore: " + semaphore.availablePermits());
+			}
 			acquire(1,"insertCollection");
 			
 			Publisher<Success> pub = database.getCollection(name).insertMany(documents);
@@ -37,26 +40,38 @@ public class MongoDBClient {
 
 				@Override
 				public void onSubscribe(Subscription s) {
+
+					if (LOG.isDebugEnabled()) {
+						LOG.debug("onSubscribe:" + s);
+					}
 					s.request(1);
 				}
 
 				@Override
 				public void onNext(Success t) {
+					if (LOG.isDebugEnabled()) {
+						LOG.debug("onNext:" + t);						
+					}
+					
 				}
 
 				@Override
 				public void onError(Throwable t) {
-					LOG.error(t.getMessage() , t);
+					LOG.error("onError: " + t.getMessage() , t);
+					semaphore.release();
 				}
 
 				@Override
 				public void onComplete() {
-//					LOG.info("comp");	
+					if (LOG.isDebugEnabled()) {
+						LOG.info("onComplete");
+					}
 					semaphore.release();
 				}
 			};
 			pub.subscribe(s);
 		} catch (Exception e) {
+			LOG.error(e.getMessage(), e);;
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}
 	}

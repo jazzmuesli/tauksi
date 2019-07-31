@@ -32,11 +32,12 @@ public class ForkableTestExecutor {
 		Class<?> junitClass = Class.forName(testClassName);
 		Request request = Request.aClass(junitClass);
 		long stime = System.currentTimeMillis();
+		String testMethodName = null;
 		if (args.length > 1) {
-			String methodName = args[1];
-			request = Request.method(junitClass, methodName);
+			testMethodName = args[1];
+			request = Request.method(junitClass, testMethodName);
 		}
-		CLOG.info("Req: "+ request + "  for " + junitClass);
+		CLOG.info("Running test "+ request.getClass().getSimpleName() + "  for " + junitClass + ", method=" + testMethodName);
 		Result result = junit.run(request);
 
 		if (result.getFailureCount() > 0) {
@@ -45,6 +46,7 @@ public class ForkableTestExecutor {
 		List<String> failures = result.getFailures().stream().map(x -> x.toString()).collect(Collectors.toList());
 		Document df = new Document().
 				append("testClassName", testClassName).
+				append("testMethodName", testMethodName).
 				append("failedTests", result.getFailureCount()).
 				append("runCount", result.getRunCount()).
 				append("ignoreCount", result.getIgnoreCount()).
