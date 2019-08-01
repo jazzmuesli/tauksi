@@ -33,7 +33,7 @@ public class MongoDBClient {
 			if (LOG.isDebugEnabled()) {
 				LOG.debug("inserting.name=" + this.name + ", collection=" + name + ", " + documents.size() + " documents. Semaphore: " + semaphore.availablePermits());
 			}
-			acquire(1,"insertCollection");
+			acquire(1,"insertCollection",0);
 			
 			Publisher<Success> pub = database.getCollection(name).insertMany(documents);
 			Subscriber<Success> s = new Subscriber<Success>() {
@@ -87,14 +87,21 @@ public class MongoDBClient {
 	}
 
 	public void waitForOperationsToFinish() {
-		acquire(QUEUE_SIZE, "finish");
+		waitForOperationsToFinish(120000L);
+	}
+	public void waitForOperationsToFinish(long maxTimeout) {
+		acquire(QUEUE_SIZE, "finish", maxTimeout);
 		semaphore.release(QUEUE_SIZE);
 	}
-	public void acquire(int permits, String reason) {
+	public void acquire(int permits, String reason, long maxTimeout) {
 		try {
 			long stime = System.currentTimeMillis();
 			while(!semaphore.tryAcquire(permits, 1000, TimeUnit.MILLISECONDS)) {
-				LOG.info(name + "." + reason + ": Waiting for " + semaphore.availablePermits() + " operations to finish since " + (System.currentTimeMillis() - stime));
+				long elapsed = System.currentTimeMillis() - stime;
+				LOG.info(name + "." + reason + ": Waiting for " + semaphore.availablePermits() + " operations to finish since " + elapsed);
+				if (maxTimeout > 0 && elapsed > maxTimeout) {
+					break;
+				}
 			}
 		} catch (InterruptedException e) {
 			throw new IllegalArgumentException(e.getMessage(), e);

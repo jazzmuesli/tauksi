@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -35,6 +36,8 @@ public class ForkableTestLauncher {
 	private String id;
 	private boolean jacocoEnabled;
 	private boolean interceptorEnabled;
+	private String sessionId;
+	
 	public ForkableTestLauncher(String id, MongoDBClient db, Logger log, File jagentPath, File jacocoPath, File targetClasses) {
 		this.id = id;
 		this.db = db;
@@ -42,20 +45,14 @@ public class ForkableTestLauncher {
 		this.jagentPath = jagentPath;
 		this.jacocoPath = jacocoPath;
 		this.targetClasses = targetClasses;
+		this.sessionId= UUID.randomUUID().toString();
 	}
 	
 	public void setTimeout(long timeout) {
 		this.timeout = timeout;
 	}
 
-//	public void run(String jc) {
-//		Collection<String> classpath = Arrays.asList(System.getProperty("java.class.path").split(":"));
-//		try {
-//			launch(jc, classpath);
-//		} catch (Exception e) {
-//			LOG.error(e.getMessage(), e);
-//		}
-//	}
+
 	
 	public void enableJacoco(boolean b) {
 		this.jacocoEnabled = b;
@@ -68,7 +65,10 @@ public class ForkableTestLauncher {
 		if (!interceptorEnabled) {
 			return "";
 		}
-		return "-javaagent:" + jagentPath + "=" + MethodInterceptor.class.getCanonicalName()+  ";testClassName=" + testClassName;
+		return "-javaagent:" + 
+			jagentPath + "=" + MethodInterceptor.class.getCanonicalName()+  
+			";testClassName=" + testClassName +
+			";sessionId=" + sessionId;
 	}
 	
 	private String createJacocoCmd(String fname) {
@@ -102,7 +102,7 @@ public class ForkableTestLauncher {
 		Process p;
 		p = pb.start();
 		boolean finished = p.waitFor(timeout, TimeUnit.SECONDS);
-		LOG.info("ret: " + finished + ", alive: "+ p.isAlive());
+		LOG.info("Test  " + testExecutionCommand + " finished:" + finished + ", alive: "+ p.isAlive());
 		if (!finished) {
 			p.destroy();
 			p.destroyForcibly();			
@@ -116,6 +116,7 @@ public class ForkableTestLauncher {
 		db.insertCollection("testsLaunched", Arrays.asList(
 				testExecutionCommand.asDocument().
 				append("id", id).
+				append("sessionId", sessionId).
 				append("jacocoEnabled", jacocoEnabled).
 				append("interceptorEnabled", interceptorEnabled).
 				append("exitValue", exitValue).
@@ -148,6 +149,7 @@ public class ForkableTestLauncher {
 				clsCovDocs.add(testExecCmd.asDocument().
 						append("prodClassName", prodClassName).
 						append("id", id).
+						append("sessionId", sessionId).
 						append("coveredLines", cc.getLineCounter().getCoveredCount()).
 						append("missedLines", cc.getLineCounter().getMissedCount())
 						);
@@ -157,6 +159,7 @@ public class ForkableTestLauncher {
 							append("prodClassName", prodClassName).
 							append("prodMethodSignature", method.getSignature()).
 							append("id", id).
+							append("sessionId", sessionId).
 							append("coveredLines", method.getLineCounter().getCoveredCount()).
 							append("missedLines", method.getLineCounter().getMissedCount())
 							);

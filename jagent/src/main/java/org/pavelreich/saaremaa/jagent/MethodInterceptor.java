@@ -28,19 +28,24 @@ public class MethodInterceptor extends Interceptor {
 	private long processStartTime;
 	private String prodClassName;
 	private String prodClassNameFilter;
+	private String sessionId = null;
 	private static final Logger LOG = LoggerFactory.getLogger(MethodInterceptor.class);
 
     @Override
     public void init(String arg) throws Exception {
     	this.db = new MongoDBClient(getClass().getSimpleName());
 		if (arg.contains("testClassName=")) {
-			this.testClassName = arg.replaceAll("testClassName=", "");
+			this.testClassName = arg.replaceAll("testClassName=([^;]+).*", "$1");
 			this.prodClassName = this.testClassName.replaceAll("Test$", "");
 			this.prodClassNameFilter = this.prodClassName.replaceAll("\\.","/");
 		}
-		
-    	this.processStartTime=System.currentTimeMillis();
-        System.err.println("[LoggingInterceptor agent] Logging to mongo:arg=" + arg + ", prodClassNameFilter: " + prodClassNameFilter + ", prodClassName: "+ prodClassName);
+		if (arg.contains("sessionId=")) {
+			this.sessionId = arg.replaceAll(".*?sessionId=([^;]+).*", "$1");
+		}
+     	this.processStartTime=System.currentTimeMillis();
+        System.err.println("[LoggingInterceptor agent] Logging to mongo:arg=" + arg + 
+        		", prodClassNameFilter: " + prodClassNameFilter + 
+        		", prodClassName: "+ prodClassName + ", sessionId: " + sessionId);
     }
 
     Set<String> classes = new HashSet<>();
@@ -87,6 +92,7 @@ public class MethodInterceptor extends Interceptor {
             Document document = new Document().
             		append("startTime", start).
             		append("executionId", executionId).
+            		append("sessionId", sessionId).
             		append("source", String.valueOf(source)).
             		append("testClassName", testClassName).
             		append("processStartTime", processStartTime).

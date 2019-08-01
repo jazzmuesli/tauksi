@@ -23,5 +23,10 @@ public class TestExecutionCommand {
 		doc = doc.append("testClassName", testClassName).append("testMethodName", testMethodName);
 		return doc;
 	}
+	
+	@Override
+	public String toString() {
+		return testClassName + ((testMethodName != null) ? (":" + testMethodName) : "");
+	}
 
 }
