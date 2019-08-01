@@ -49,7 +49,7 @@ public class MethodInterceptor extends Interceptor {
     }
 
     Set<String> classes = new HashSet<>();
-    static final Collection<String> excludedClasses = Arrays.asList("jacoco","mongo","bson","brutusin","pavelreich","junit","sun/reflect");
+    static final Collection<String> excludedClasses = Arrays.asList("jacoco","mongo","bson","brutusin","pavelreich","junit","sun/reflect","jdk/internal");
     @Override
     public boolean interceptClass(String className, byte[] byteCode) {
     	boolean excluded = excludedClasses.stream().anyMatch(p->className.contains(p));
