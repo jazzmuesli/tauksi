@@ -156,6 +156,9 @@ public class CoverageTestMojo extends AbstractMojo {
 
 	private void runTest(Collection<String> classpath, ForkableTestLauncher launcher, TestExecutionCommand cmd)
 			throws IOException, InterruptedException {
+		String sessionId = UUID.randomUUID().toString();
+
+		launcher.setSessionId(sessionId);
 		Boolean jacEnabled = Boolean.valueOf(jacocoEnabled);
 		Boolean intercepEnabled = Boolean.valueOf(interceptorEnabled);
 		launcher.enableJacoco(false);
