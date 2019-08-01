@@ -97,8 +97,9 @@ public class CoverageTestMojo extends AbstractMojo {
         	try {
         		// process test directory
         		getLog().info("Processing id=" + id + ", dir="  + dirName);
-        		ForkableTestLauncher launcher = new ForkableTestLauncher(id, db, logger, jagentPath, jacocoPath,new File(targetClasses));
-        		launcher.setTimeout(Long.valueOf(timeout));
+				ForkableTestLauncher launcher = new ForkableTestLauncher(id, db, logger, jagentPath, jacocoPath,
+						new File(targetClasses));
+				launcher.setTimeout(Long.valueOf(timeout));
         		if (new File(dirName).exists()) {
 					TestFileProcessor processor = TestFileProcessor.run(logger, dirName, null);
     				// extract junit class names

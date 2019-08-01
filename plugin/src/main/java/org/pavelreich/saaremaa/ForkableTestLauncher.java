@@ -36,7 +36,6 @@ public class ForkableTestLauncher {
 	private String id;
 	private boolean jacocoEnabled;
 	private boolean interceptorEnabled;
-	private String sessionId;
 	
 	public ForkableTestLauncher(String id, MongoDBClient db, Logger log, File jagentPath, File jacocoPath, File targetClasses) {
 		this.id = id;
@@ -45,7 +44,6 @@ public class ForkableTestLauncher {
 		this.jagentPath = jagentPath;
 		this.jacocoPath = jacocoPath;
 		this.targetClasses = targetClasses;
-		this.sessionId= UUID.randomUUID().toString();
 	}
 	
 	public void setTimeout(long timeout) {
@@ -61,7 +59,7 @@ public class ForkableTestLauncher {
 	public void enableInterceptor(boolean b) {
 		this.interceptorEnabled = b;
 	}
-	private String createInterceptorJavaAgentCmd(String testClassName) {
+	private String createInterceptorJavaAgentCmd(String testClassName, String sessionId) {
 		if (!interceptorEnabled) {
 			return "";
 		}
@@ -80,12 +78,13 @@ public class ForkableTestLauncher {
 	
 	void launch(TestExecutionCommand testExecutionCommand, Collection<String> classpath)
 			throws IOException, InterruptedException {
+		String sessionId = UUID.randomUUID().toString();
 		long stime = System.currentTimeMillis();
 		String fname = stime + ".exec";
 		// https://stackoverflow.com/questions/31567532/getting-expecting-a-stackmap-frame-at-branch-target-when-running-maven-integra
 		// https://stackoverflow.com/questions/300639/use-of-noverify-when-launching-java-apps
 		String cmd = "java -noverify " + 
-		createInterceptorJavaAgentCmd(testExecutionCommand.testClassName)
+		createInterceptorJavaAgentCmd(testExecutionCommand.testClassName, sessionId)
 		 + " " + 
 		createJacocoCmd(fname) 
 		 + "  -classpath " + classpath.stream().collect(Collectors.joining(File.pathSeparator))
@@ -126,13 +125,13 @@ public class ForkableTestLauncher {
 				));
 		
 		if (jacocoEnabled) {
-			processCoverageData(testExecutionCommand, fname);			
+			processCoverageData(testExecutionCommand, fname, sessionId);			
 		}
 		
 	}
 
 
-	private void processCoverageData(TestExecutionCommand testExecCmd, String fname) throws IOException {
+	private void processCoverageData(TestExecutionCommand testExecCmd, String fname, String sessionId) throws IOException {
 		ExecFileLoader execFileLoader = new ExecFileLoader();
 		File file = new File(fname);
 		if (file.exists()) {
