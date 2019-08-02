@@ -32,7 +32,6 @@ public class MethodInterceptor extends Interceptor {
 	private String prodClassNameFilter;
 	private String sessionId = null;
 	private static final Logger LOG = LoggerFactory.getLogger(MethodInterceptor.class);
-	private Set<String> cachedDocuments = new CopyOnWriteArraySet<>();
 
     @Override
     public void init(String arg) throws Exception {
@@ -46,7 +45,7 @@ public class MethodInterceptor extends Interceptor {
 			this.sessionId = arg.replaceAll(".*?sessionId=([^;]+).*", "$1");
 		}
      	this.processStartTime=System.currentTimeMillis();
-        System.err.println("[LoggingInterceptor agent] Logging to mongo:arg=" + arg + 
+        LOG.debug("[LoggingInterceptor agent] Logging to mongo:arg=" + arg + 
         		", prodClassNameFilter: " + prodClassNameFilter + 
         		", prodClassName: "+ prodClassName + ", sessionId: " + sessionId);
     }
@@ -117,9 +116,6 @@ public class MethodInterceptor extends Interceptor {
             	}
             }
             document.append("stackElements", stackElements);
-//            String json = document.toJson();
-//            String md5 = md5(json);
-//            boolean ret = cachedDocuments.add(md5);
             
 			db.insertCollection("interceptions", Arrays.asList(document));
 			db.waitForOperationsToFinish();

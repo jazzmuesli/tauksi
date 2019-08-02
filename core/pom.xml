@@ -110,7 +110,7 @@
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
-			<version>1.0.13</version>
+			<version>1.2.3</version>
 		</dependency>
 
 		<dependency>
@@ -118,9 +118,6 @@
 			<artifactId>spoon-core</artifactId>
 			<version>${spoon.version}</version>
 		</dependency>
-		<!-- available in one of the repos above, can't remember which one. <dependency> 
-			<groupId>GrouMiner</groupId> <artifactId>groum</artifactId> <version>1.0</version> 
-			</dependency> -->
 		<!-- https://mvnrepository.com/artifact/commons-lang/commons-lang -->
 		<dependency>
 			<groupId>commons-lang</groupId>

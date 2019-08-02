@@ -90,6 +90,8 @@ public class CoverageTestMojo extends AbstractMojo {
     	String targetClasses = project.getBuild().getOutputDirectory();
 		getLog().info("output: " + targetClasses);
 		Collection<String> classpath = DependencyHelper.prepareClasspath(project, localRepository, repositorySystem, pluginArtifactMap, getLog());
+		// ignore log4j
+		classpath = classpath.stream().filter(p -> !p.contains("slf4j-log4j12")).collect(Collectors.toList());
 		getLog().info("classpath: " + classpath);
 		MavenLoggerAsSLF4jLoggerAdaptor logger = new MavenLoggerAsSLF4jLoggerAdaptor(getLog());
     	List<String> junitClassNames = new ArrayList<String>();
