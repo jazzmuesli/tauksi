@@ -9,8 +9,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.stream.Collectors;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.brutusin.instrumentation.Interceptor;
 import org.bson.Document;
 import org.objectweb.asm.tree.ClassNode;
@@ -20,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * based onhttps://github.com/brutusin/logging-instrumentation/blob/master/src/main/java/org/brutusin/instrumentation/logging/LoggingInterceptor.java
+ * based on https://github.com/brutusin/logging-instrumentation/blob/master/src/main/java/org/brutusin/instrumentation/logging/LoggingInterceptor.java
  */
 public class MethodInterceptor extends Interceptor {
 	private MongoDBClient db;
@@ -30,6 +32,7 @@ public class MethodInterceptor extends Interceptor {
 	private String prodClassNameFilter;
 	private String sessionId = null;
 	private static final Logger LOG = LoggerFactory.getLogger(MethodInterceptor.class);
+	private Set<String> cachedDocuments = new CopyOnWriteArraySet<>();
 
     @Override
     public void init(String arg) throws Exception {
@@ -68,7 +71,6 @@ public class MethodInterceptor extends Interceptor {
 
     @Override
     protected void doOnStart(Object source, Object[] arg, String executionId) {
-        long start = System.currentTimeMillis();
         Exception ex = new Exception("interesting");
         List<StackTraceElement> stackTrace = Arrays.asList(ex.getStackTrace());
         List<Document> stackElements = Collections.emptyList();
@@ -90,8 +92,7 @@ public class MethodInterceptor extends Interceptor {
         
         try {
             Document document = new Document().
-            		append("startTime", start).
-            		append("executionId", executionId).
+            		//append("executionId", executionId). ignore
             		append("sessionId", sessionId).
             		append("source", String.valueOf(source)).
             		append("testClassName", testClassName).
@@ -111,11 +112,21 @@ public class MethodInterceptor extends Interceptor {
             	}
             }
             document.append("stackElements", stackElements);
-			db.insertCollection("interceptions", Arrays.asList(document));
-			db.waitForOperationsToFinish();
+            String json = document.toJson();
+            String md5 = md5(json);
+            boolean ret = cachedDocuments.add(md5);
+            
+			if (ret) {
+    			db.insertCollection("interceptions", Arrays.asList(document));
+    			db.waitForOperationsToFinish();
+            }
         } catch (Exception e) {
         	LOG.error(e.getMessage(), e);
         }
+    }
+    
+    private static String md5(String s) {
+    	return DigestUtils.md5Hex(s);
     }
 
     @Override

@@ -161,6 +161,9 @@ public class ForkableTestLauncher {
 							append("prodMethodName", method.getName()).
 							append("prodClassName", prodClassName).
 							append("prodMethodSignature", method.getSignature()).
+							append("prodMethodDescription", method.getDesc()).
+							append("firstLine", method.getFirstLine()).
+							append("lastLine", method.getLastLine()).
 							append("id", id).
 							append("sessionId", sessionId).
 							append("coveredLines", method.getLineCounter().getCoveredCount()).

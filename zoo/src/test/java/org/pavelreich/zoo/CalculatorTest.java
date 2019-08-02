@@ -22,7 +22,9 @@ public class CalculatorTest {
 		Assert.assertEquals("Mr", user.getTitle());
 		Assert.assertEquals(18, calculator.getAge(user));
 		Assert.assertEquals("Joe", user.getFirstName());
-		Assert.assertEquals("Mr Joe", user.getSalutation());
+		for (int i=0; i<5; i++) {
+			Assert.assertEquals("Mr Joe", user.getSalutation());			
+		}
 		Assert.assertEquals("Mr", user.getSalutation().replaceAll("(\\S+).*", "$1"));
 	}
 }
