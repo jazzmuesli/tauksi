@@ -102,7 +102,6 @@ public class ForkableTestLauncher {
 		Process p;
 		p = pb.start();
 		boolean finished = p.waitFor(timeout, TimeUnit.SECONDS);
-		LOG.info("Test  " + testExecutionCommand + " finished:" + finished + ", alive: "+ p.isAlive());
 		if (!finished) {
 			p.destroy();
 			p.destroyForcibly();			
@@ -111,7 +110,7 @@ public class ForkableTestLauncher {
 		long duration = System.currentTimeMillis() - stime;
 		
 		int exitValue = p.isAlive() ? -1 : p.exitValue();
-		LOG.info("took: " + duration + ", result:" + finished + ", exit: " + exitValue);
+		LOG.info("Test  " + testExecutionCommand + " finished:" + finished + " in " + duration + " msec, exitCode: "+ exitValue);
 
 		db.insertCollection("testsLaunched", Arrays.asList(
 				testExecutionCommand.asDocument().

@@ -22,30 +22,34 @@
 	</properties>
 
 	<dependencies>
-    <dependency>
-        <groupId>org.mongodb</groupId>
-        <artifactId>mongodb-driver-reactivestreams</artifactId>
-        <version>1.11.0</version>
-    </dependency>
-<!-- 
+
+		<dependency>
+			<groupId>net.sourceforge.pmd</groupId>
+			<artifactId>pmd-java</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jgit</groupId>
+			<artifactId>org.eclipse.jgit</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+		</dependency>
+
 		<dependency>
 			<groupId>org.mongodb</groupId>
-			<artifactId>mongodb-driver-sync</artifactId>
-			<version>3.10.2</version>
+			<artifactId>mongodb-driver-reactivestreams</artifactId>
+			<version>1.11.0</version>
 		</dependency>
- -->
+		<!-- <dependency> <groupId>org.mongodb</groupId> <artifactId>mongodb-driver-sync</artifactId> 
+			<version>3.10.2</version> </dependency> -->
 		<dependency>
 			<groupId>me.tongfei</groupId>
 			<artifactId>progressbar</artifactId>
 			<version>0.7.4</version>
 		</dependency>
 
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.12</version>
-			<scope>test</scope>
-		</dependency>
 		<dependency>
 			<groupId>org.apache.maven.plugin-testing</groupId>
 			<artifactId>maven-plugin-testing-harness</artifactId>
@@ -105,7 +109,7 @@
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<version>4.12</version>
+			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
