@@ -69,10 +69,15 @@ public class MethodInterceptor extends Interceptor {
         return true;
     }
 
+    private Set<List<StackTraceElement>> cachedStacks = new CopyOnWriteArraySet<>();
     @Override
     protected void doOnStart(Object source, Object[] arg, String executionId) {
         Exception ex = new Exception("interesting");
         List<StackTraceElement> stackTrace = Arrays.asList(ex.getStackTrace());
+        boolean cachedStack = cachedStacks.add(stackTrace);
+		if (!cachedStack) {
+        	return;
+        }
         List<Document> stackElements = Collections.emptyList();
         Set<String> stackClasses = stackTrace.stream().map(p->p.getClassName()).collect(Collectors.toSet());
         boolean isConstructor = "init()".equals(source);
@@ -112,14 +117,12 @@ public class MethodInterceptor extends Interceptor {
             	}
             }
             document.append("stackElements", stackElements);
-            String json = document.toJson();
-            String md5 = md5(json);
-            boolean ret = cachedDocuments.add(md5);
+//            String json = document.toJson();
+//            String md5 = md5(json);
+//            boolean ret = cachedDocuments.add(md5);
             
-			if (ret) {
-    			db.insertCollection("interceptions", Arrays.asList(document));
-    			db.waitForOperationsToFinish();
-            }
+			db.insertCollection("interceptions", Arrays.asList(document));
+			db.waitForOperationsToFinish();
         } catch (Exception e) {
         	LOG.error(e.getMessage(), e);
         }
