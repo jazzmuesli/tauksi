@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,13 +77,14 @@ public class CoverageTestMojo extends AbstractMojo {
 	 */
 	@Parameter( property = "seqTestMethods", defaultValue = "true")
 	private String seqTestMethods;
+	
+	@Parameter( property = "shuffleTests", defaultValue = "false")
+	private String shuffleTests;
 
 	public void execute()
         throws MojoExecutionException
     {
-    	
-//    	getLog().info("pluginArtifactMap: "+ pluginArtifactMap.keySet());
-		getLog().info("seqAgents: " + seqAgents + ", jacocoEnabled: " + jacocoEnabled + ", interceptorEnabled: " + interceptorEnabled);
+		getLog().info("seqAgents: " + seqAgents + ", jacocoEnabled: " + jacocoEnabled + ", interceptorEnabled: " + interceptorEnabled +", shuffleTests: " + shuffleTests);
     	File jagentPath = resolveJavaAgent("org.pavelreich.saaremaa:jagent");
     	File jacocoPath = resolveJavaAgent("org.jacoco:org.jacoco.agent");
     	String targetClasses = project.getBuild().getOutputDirectory();
@@ -103,12 +105,12 @@ public class CoverageTestMojo extends AbstractMojo {
         		if (new File(dirName).exists()) {
 					TestFileProcessor processor = TestFileProcessor.run(logger, dirName, null);
     				// extract junit class names
-					List<ITestClass> elements = processor.getElements();
+					List<ITestClass> testClasses = processor.getElements();
 					if (testClassName != null && !testClassName.trim().isEmpty()) {
-						elements = elements.stream().filter(p->p.getClassName().contains(testClassName)).collect(Collectors.toList());
+						testClasses = testClasses.stream().filter(p->p.getClassName().contains(testClassName)).collect(Collectors.toList());
 					}
 					Map<String,List<String>> testClassToMethods = new HashMap<String, List<String>>();
-    				for (ITestClass element : elements) {
+    				for (ITestClass element : testClasses) {
     					junitClassNames.add(element.getClassName());
     					List<String> testMethods = element.getTestMethods().stream().map(x->x.getName()).collect(Collectors.toList());
 						testClassToMethods.put(element.getClassName(), testMethods);
@@ -133,17 +135,25 @@ public class CoverageTestMojo extends AbstractMojo {
             		db.insertCollection("testsDetected", testsDetectedDocs);
             		
 
-    				for (ITestClass testClass : ProgressBar.wrap(elements,"testClasses")) {
+            		List<TestExecutionCommand> commands = new ArrayList<>(); 
+    				for (ITestClass testClass : testClasses) {
     					if (Boolean.valueOf(seqTestMethods)) {
     						List<ITestMethod> testMethods = testClass.getTestMethods();
     						for (ITestMethod testMethod : testMethods) {
         						TestExecutionCommand cmd = TestExecutionCommand.forTestClassMethod(testClass.getClassName(), testMethod.getName());
-        						runTest(classpath, launcher, cmd);
+        						commands.add(cmd);
     						}
     					} else {
     						TestExecutionCommand cmd = TestExecutionCommand.forTestClass(testClass.getClassName());
-    						runTest(classpath, launcher, cmd);
+    						commands.add(cmd);
     					}
+    				}
+    				if (Boolean.valueOf(shuffleTests)) {
+    					Collections.shuffle(commands);
+    				}
+    				for (TestExecutionCommand cmd : ProgressBar.wrap(commands, "testCases")) {
+						runTest(classpath, launcher, cmd);
+    					
     				}
         		}
 			} catch (Exception e) {
