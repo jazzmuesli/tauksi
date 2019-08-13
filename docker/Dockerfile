@@ -29,8 +29,15 @@ WORKDIR /root
 RUN git clone https://github.com/jazzmuesli/ck.git
 RUN git clone https://github.com/jazzmuesli/tauksi.git
 RUN git clone https://github.com/jazzmuesli/javadepextractor.git
+RUN git clone https://github.com/jazzmuesli/RefactoringMiner.git
 RUN cd /root/ck && mvn -DskipTests install
 RUN cd /root/javadepextractor && mvn -DskipTests install
+RUN wget https://services.gradle.org/distributions/gradle-5.0-bin.zip -P /tmp
+RUN unzip -d /opt/gradle /tmp/gradle-*.zip
+ENV export GRADLE_HOME=/opt/gradle/gradle-5.0
+ENV export PATH=${GRADLE_HOME}/bin:${PATH}
+
+RUN cd /root/RefactoringMiner && gradle install
 RUN cd /root/tauksi && mvn -DskipTests install
 RUN mkdir -p /data/db
 RUN nohup mongod &
