@@ -35,9 +35,9 @@ RUN cd /root/javadepextractor && mvn -DskipTests install
 RUN wget https://services.gradle.org/distributions/gradle-5.0-bin.zip -P /tmp
 RUN unzip -d /opt/gradle /tmp/gradle-*.zip
 ENV export GRADLE_HOME=/opt/gradle/gradle-5.0
-ENV export PATH=${GRADLE_HOME}/bin:${PATH}
+ENV export PATH=/opt/gradle/gradle-5.0/bin:${PATH}
 
-RUN cd /root/RefactoringMiner && gradle install
+RUN cd /root/RefactoringMiner && git checkout upgrade-jdt-318 && /opt/gradle/gradle-5.0/bin/gradle install
 RUN cd /root/tauksi && mvn -DskipTests install
 RUN mkdir -p /data/db
 RUN nohup mongod &
