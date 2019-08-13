@@ -26,10 +26,10 @@ ENV HOME /root
 # Define working directory.
 WORKDIR /root
 
+RUN git clone https://github.com/jazzmuesli/RefactoringMiner.git
 RUN git clone https://github.com/jazzmuesli/ck.git
 RUN git clone https://github.com/jazzmuesli/tauksi.git
 RUN git clone https://github.com/jazzmuesli/javadepextractor.git
-RUN git clone https://github.com/jazzmuesli/RefactoringMiner.git
 RUN cd /root/ck && mvn -DskipTests install
 RUN cd /root/javadepextractor && mvn -DskipTests install
 RUN wget https://services.gradle.org/distributions/gradle-5.0-bin.zip -P /tmp
