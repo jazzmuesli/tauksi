@@ -1,3 +1,4 @@
+/*
 package org.pavelreich.saaremaa;
 
 import java.io.File;
@@ -25,12 +26,13 @@ import org.refactoringminer.rm1.GitHistoryRefactoringMinerImpl;
 import gr.uom.java.xmi.diff.CodeRange;
 import me.tongfei.progressbar.ProgressBar;
 
-/**
+
  * taken from https://github.com/tsantalis/RefactoringMiner
  * 
  * @author preich
  *
  */
+/*
 @Mojo(name = "refminer", defaultPhase = LifecyclePhase.PROCESS_SOURCES, requiresDependencyResolution = ResolutionScope.NONE)
 public class RefactoringMinerMojo extends AbstractMojo {
 
@@ -128,3 +130,4 @@ public class RefactoringMinerMojo extends AbstractMojo {
 		reportCodeRanges(codeRangeReporter, commitData, ref, "right", ref.rightSide());
 	}
 }
+*/
