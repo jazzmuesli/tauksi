@@ -15,12 +15,19 @@ RUN \
   apt-get install r-base -y && \
   rm -rf /var/lib/apt/lists/*
 
+RUN wget -qO - https://www.mongodb.org/static/pgp/server-4.2.asc | sudo apt-key add -
+RUN echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/4.2 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-4.2.list
+RUN apt-get update
+RUN apt-get install -y mongodb-org
+
 # Set environment variables.
 ENV HOME /root
 
 # Define working directory.
 WORKDIR /root
 
+RUN git clone https://github.com/jazzmuesli/ck.git
+RUN git clone https://github.com/jazzmuesli/tauksi.git
 
 # Define default command.
 CMD ["bash"]
