@@ -28,6 +28,12 @@ WORKDIR /root
 
 RUN git clone https://github.com/jazzmuesli/ck.git
 RUN git clone https://github.com/jazzmuesli/tauksi.git
+RUN git clone https://github.com/jazzmuesli/javadepextractor.git
+RUN cd /root/ck && mvn -DskipTests install
+RUN cd /root/javadepextractor && mvn -DskipTests install
+RUN cd /root/tauksi && mvn -DskipTests install
+RUN mkdir -p /data/db
+RUN nohup mongod &
 
 # Define default command.
 CMD ["bash"]
