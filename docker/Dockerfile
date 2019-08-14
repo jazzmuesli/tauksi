@@ -38,9 +38,8 @@ ENV export GRADLE_HOME=/opt/gradle/gradle-5.0
 ENV export PATH=/opt/gradle/gradle-5.0/bin:${PATH}
 
 RUN cd /root/RefactoringMiner && git checkout upgrade-jdt-318 && /opt/gradle/gradle-5.0/bin/gradle install
-RUN cd /root/tauksi && mvn -DskipTests install
+RUN cd /root/tauksi && git pull && mvn -DskipTests install
 RUN mkdir -p /data/db
-RUN nohup mongod &
 
 # Define default command.
 CMD ["bash"]
