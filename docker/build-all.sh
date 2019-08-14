@@ -1,6 +1,6 @@
 nohup mongod --bind_ip_all &
 mkdir /projects
-for i in `/root/tauksi/docker/projects.txt`;
+for i in `cat /root/tauksi/docker/projects.txt`;
 do
 	cd /projects && git clone $i
 done
