@@ -1,4 +1,6 @@
+https://github.com/eclipse/eclipse-collections.git
 https://github.com/apache/wicket.git
 https://github.com/jfree/jfreechart.git
 https://github.com/apache/commons-math.git
+https://github.com/apache/commons-lang.git
 https://github.com/apache/commons-collections.git
