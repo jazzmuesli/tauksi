@@ -10,7 +10,7 @@ do
 	echo $i
 	cd /projects/$i
 	
-	mvn -DskipTests install
-	mvn org.pavelreich.saaremaa:plugin:metrics
-	mvn -DseqTestMethods=false -DshuffleTests=true -DinterceptorEnabled=false -Dtimeout=15 org.pavelreich.saaremaa:plugin:ctest
+	mvn -DskipTests install | tee inst.txt
+	mvn org.pavelreich.saaremaa:plugin:metrics | tee metr.txt
+	mvn -DseqTestMethods=false -DshuffleTests=true -DinterceptorEnabled=false -Dtimeout=15 org.pavelreich.saaremaa:plugin:ctest | tee ctest.txt
 done
