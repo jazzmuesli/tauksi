@@ -51,12 +51,12 @@ public class ForkableTestExecutor {
 	private static Document runJunit5(String testClassName, String testMethodName) throws ClassNotFoundException {
 		Class<?> junitClass = Class.forName(testClassName);
 		final LauncherDiscoveryRequest  request;
-		if (testMethodName != null) {
-			request = LauncherDiscoveryRequestBuilder.request()
-					.selectors(selectClass(junitClass)).build();
-		} else {
+		if (testMethodName != null && !testMethodName.trim().isEmpty()) {
 			request = LauncherDiscoveryRequestBuilder.request()
 					.selectors(selectMethod(junitClass, testMethodName)).build();
+		} else {
+			request = LauncherDiscoveryRequestBuilder.request()
+					.selectors(selectClass(junitClass)).build();
 		}
 
 		final Launcher launcher = LauncherFactory.create();
