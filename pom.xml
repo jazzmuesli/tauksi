@@ -16,6 +16,8 @@
 		<evosuiteVersion>1.0.6</evosuiteVersion>
 		<jdt.version>3.18.0</jdt.version>
 		<spoon.version>7.4.0</spoon.version>
+		<junit.version>5.5.1</junit.version>
+		
 	</properties>
 	<!-- <repositories> <repository> <id>WSO2 Repository</id> <url>http://dist.wso2.org/maven2/</url> 
 		</repository> <repository> <id>Eclipse Releases Repository</id> <url>https://repo.eclipse.org/content/groups/releases/</url> 
@@ -64,22 +66,37 @@
 			<artifactId>slf4j-api</artifactId>
 			<version>1.7.26</version>
 		</dependency>
-			<dependency>
-				<groupId>junit</groupId>
-				<artifactId>junit</artifactId>
-				<scope>test</scope>
-			</dependency>
+		<dependency>
+			<groupId>org.junit.platform</groupId>
+			<artifactId>junit-platform-launcher</artifactId>
+			<version>1.2.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.platform</groupId>
+			<artifactId>junit-platform-engine</artifactId>
+			<version>1.5.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.vintage</groupId>
+			<artifactId>junit-vintage-engine</artifactId>
+			<version>${junit.version}</version>
+		</dependency>
 
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-engine</artifactId>
+			<version>${junit.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-api</artifactId>
+			<version>${junit.version}</version>
+		</dependency>
 
 	</dependencies>
 
 	<dependencyManagement>
 		<dependencies>
-			<dependency>
-				<groupId>junit</groupId>
-				<artifactId>junit</artifactId>
-				<version>4.12</version>
-			</dependency>
 
 			<dependency>
 				<groupId>org.mockito</groupId>

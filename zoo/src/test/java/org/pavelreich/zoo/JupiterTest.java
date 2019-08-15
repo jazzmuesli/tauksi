@@ -39,9 +39,9 @@ public class JupiterTest {
 
 		launcher.registerTestExecutionListeners(listener);
 		TestPlan testPlan = launcher.discover(request);
-		Long found = testPlan.getRoots().stream().map(root -> 
-		testPlan.getDescendants(root).size()).collect(Collectors.counting());
-		System.out.println("found: "+found);
+		long found = testPlan.getRoots().stream().mapToLong(root -> 
+		testPlan.getDescendants(root).stream().filter(p->p.getType()==Type.TEST).count()).sum();
+		System.out.println("Found: "+found);
 
 		testPlan.getRoots().forEach(root -> 
 		System.out.println("root: " + root.getDisplayName() + ", planned:"+testPlan.getDescendants(root).stream().filter(p->p.getType()==Type.TEST).map(x->x.getUniqueId()+":"+x.getDisplayName()).collect(Collectors.toList())));

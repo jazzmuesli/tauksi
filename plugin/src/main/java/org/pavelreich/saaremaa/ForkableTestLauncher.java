@@ -125,7 +125,12 @@ public class ForkableTestLauncher {
 				));
 		
 		if (jacocoEnabled) {
-			processCoverageData(testExecutionCommand, fname, sessionId);			
+			try {
+				processCoverageData(testExecutionCommand, fname, sessionId);
+			} catch (Exception e) {
+				LOG.error("Failed to analsye result of " + fname + " from command " + testExecutionCommand + " due to "
+						+ e.getMessage(), e);
+			}
 		}
 		
 	}

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.bson.Document;
+import org.junit.platform.engine.TestDescriptor.Type;
 import org.junit.platform.launcher.Launcher;
 import org.junit.platform.launcher.LauncherDiscoveryRequest;
 import org.junit.platform.launcher.TestPlan;
@@ -63,10 +64,8 @@ public class ForkableTestExecutor {
 		final SummaryGeneratingListener listener = new SummaryGeneratingListener();
 
 		TestPlan testPlan = launcher.discover(request);
-		Long found = testPlan.getRoots().stream().
-			map(root -> 
-				testPlan.getDescendants(root).size()).
-				collect(Collectors.counting());
+		long found = testPlan.getRoots().stream().mapToLong(root -> 
+		testPlan.getDescendants(root).stream().filter(p->p.getType()==Type.TEST).count()).sum();
 		CLOG.info("Running test "+ request + " for " + junitClass + ", method=" + testMethodName + " planned "+ found + " tests");
 
 		launcher.registerTestExecutionListeners(listener);
@@ -81,6 +80,7 @@ public class ForkableTestExecutor {
 			CLOG.warn("Failures for " + junitClass + " : " + summary.getFailures());
 		}
 		List<String> failures = summary.getFailures().stream().map(x -> x.toString()).collect(Collectors.toList());
+		CLOG.info("Finished " + summary.getTestsSucceededCount()+"/"+summary.getTestsFailedCount() +" tests for " + junitClass + ", method=" + testMethodName + " with failures=" + failures);
 		Document df = new Document().
 				append("testClassName", testClassName).
 				append("testMethodName", testMethodName).
