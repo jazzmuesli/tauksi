@@ -165,20 +165,21 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 						.collect(Collectors.toMap(e -> e.getAnnotationType().getQualifiedName(),
 								e -> e.getValues().get("value").toString()));
 			} catch (Exception e) {
-				LOG.error("Error occured for annotations of class:" + ctClass + ", error: " + e.getMessage(), e);
+				//TODO: use junit5-api
+//				LOG.error("Error occured for annotations of class:" + ctClass + ", error: " + e.getMessage(), e);
 			}
 			try {
 				Set<CtMethod> allMethods = ctClass.getAllMethods();
 				this.methods = allMethods.stream().map(x -> new MyMethod(this, x)).filter(p -> p.isPublicVoidMethod())
 						.collect(Collectors.toMap(e -> e.simpleName, e -> e));
 			} catch (Exception e) {
-				LOG.error("Error occured for methods of class:" + ctClass + ", error: " + e.getMessage(), e);
+//				LOG.error("Error occured for methods of class:" + ctClass + ", error: " + e.getMessage(), e);
 			}
 			try {
 				List<CtField> fields = ctClass.getFields();
 				this.fields = fields.stream().map(x -> new MyField(this, x)).collect(Collectors.toList());
 			} catch (Exception e) {
-				LOG.error("Error occured for fields of class:" + ctClass + ", error: " + e.getMessage(), e);
+//				LOG.error("Error occured for fields of class:" + ctClass + ", error: " + e.getMessage(), e);
 			}
 		}
 

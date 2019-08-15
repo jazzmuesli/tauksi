@@ -28,6 +28,9 @@ public class MongoDBClient {
 	private static final int QUEUE_SIZE = 10;
 
 	public void insertCollection(String name, List<Document> documents) {
+		if (documents == null || documents.isEmpty()) {
+			return;
+		}
 		try {
 
 			if (LOG.isDebugEnabled()) {
