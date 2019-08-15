@@ -91,7 +91,7 @@ public class CoverageTestMojo extends AbstractMojo {
 		getLog().info("output: " + targetClasses);
 		Collection<String> classpath = DependencyHelper.prepareClasspath(project, localRepository, repositorySystem, pluginArtifactMap, getLog());
 		// ignore log4j
-		classpath = classpath.stream().filter(p -> !p.contains("slf4j-log4j12")).collect(Collectors.toList());
+		classpath = classpath.stream().filter(this::filterDependency).collect(Collectors.toList());
 		getLog().info("classpath: " + classpath);
 		MavenLoggerAsSLF4jLoggerAdaptor logger = new MavenLoggerAsSLF4jLoggerAdaptor(getLog());
     	List<String> junitClassNames = new ArrayList<String>();
@@ -165,6 +165,14 @@ public class CoverageTestMojo extends AbstractMojo {
 		db.waitForOperationsToFinish();
 
     }
+
+	private boolean filterDependency(String p) {
+		if (p.contains("unit-4") && !p.contains("unit-4.12")) {
+			getLog().info("bad junit: " + p);
+			return false;
+		}
+		return !p.contains("slf4j-log4j12");
+	}
 
 	private void runTest(Collection<String> classpath, ForkableTestLauncher launcher, TestExecutionCommand cmd)
 			throws IOException, InterruptedException {
