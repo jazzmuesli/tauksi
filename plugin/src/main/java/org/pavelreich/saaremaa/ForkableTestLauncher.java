@@ -11,6 +11,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.apache.maven.project.MavenProject;
 import org.bson.Document;
 import org.jacoco.core.analysis.Analyzer;
 import org.jacoco.core.analysis.CoverageBuilder;
@@ -37,6 +38,9 @@ public class ForkableTestLauncher {
 	private boolean jacocoEnabled;
 	private boolean interceptorEnabled;
 	private String sessionId;
+	private MavenProject project;
+	private boolean alwaysIncludeMethodCoverage = false;
+	private boolean alwaysIncludeClassCoverage = false;
 	
 	public ForkableTestLauncher(String id, MongoDBClient db, Logger log, File jagentPath, File jacocoPath, File targetClasses) {
 		this.id = id;
@@ -147,38 +151,62 @@ public class ForkableTestLauncher {
 			final CoverageBuilder coverageBuilder = new CoverageBuilder();
 			final Analyzer analyzer = new Analyzer(execFileLoader.getExecutionDataStore(), coverageBuilder);
 
-			analyzer.analyzeAll(targetClasses);
+			if (targetClasses.exists()) {
+				analyzer.analyzeAll(targetClasses);
+			}
+			if (project != null) {
+				List<String> classpathEntries = DependencyHelper.getCoverageClasspath(project);
+				for (String s : classpathEntries) {
+					LOG.info("Calculating coverage for " + s);
+					File f = new File(s);
+					if (f.exists()) {
+						analyzer.analyzeAll(f);
+					}
+				}
+			}
+			
+			
 
 			List<Document> clsCovDocs = new ArrayList<Document>();
 			List<Document> metCovDocs = new ArrayList<Document>();
 			for (final IClassCoverage cc : coverageBuilder.getClasses()) {
 				String prodClassName = cc.getName().replaceAll("/", ".");
-				clsCovDocs.add(testExecCmd.asDocument().
-						append("prodClassName", prodClassName).
-						append("id", id).
-						append("sessionId", sessionId).
-						append("coveredLines", cc.getLineCounter().getCoveredCount()).
-						append("missedLines", cc.getLineCounter().getMissedCount())
-						);
-				for (IMethodCoverage method : cc.getMethods()) {
-					metCovDocs.add(testExecCmd.asDocument().
-							append("prodMethodName", method.getName()).
+				if (alwaysIncludeClassCoverage || cc.getLineCounter().getCoveredCount() > 0) {
+					clsCovDocs.add(testExecCmd.asDocument().
 							append("prodClassName", prodClassName).
-							append("prodMethodSignature", method.getSignature()).
-							append("prodMethodDescription", method.getDesc()).
-							append("firstLine", method.getFirstLine()).
-							append("lastLine", method.getLastLine()).
 							append("id", id).
 							append("sessionId", sessionId).
-							append("coveredLines", method.getLineCounter().getCoveredCount()).
-							append("missedLines", method.getLineCounter().getMissedCount())
+							append("coveredLines", cc.getLineCounter().getCoveredCount()).
+							append("missedLines", cc.getLineCounter().getMissedCount())
 							);
 					
 				}
+				for (IMethodCoverage method : cc.getMethods()) {
+					if (alwaysIncludeMethodCoverage || method.getLineCounter().getCoveredCount() > 0) {
+						metCovDocs.add(testExecCmd.asDocument().
+								append("prodMethodName", method.getName()).
+								append("prodClassName", prodClassName).
+								append("prodMethodSignature", method.getSignature()).
+								append("prodMethodDescription", method.getDesc()).
+								append("firstLine", method.getFirstLine()).
+								append("lastLine", method.getLastLine()).
+								append("id", id).
+								append("sessionId", sessionId).
+								append("coveredLines", method.getLineCounter().getCoveredCount()).
+								append("missedLines", method.getLineCounter().getMissedCount())
+								);
+					}
+					
+				}
 			}
+			LOG.info("Found coverage for " + coverageBuilder.getClasses().size() + " classes, inserting " + clsCovDocs.size() + " class and " + metCovDocs.size() + " method documents");
 			db.insertCollection("classCoverage", clsCovDocs);
 			db.insertCollection("methodCoverage", metCovDocs);
 		}
+	}
+
+	public void setProject(MavenProject project) {
+		this.project = project;
 	}
 
 

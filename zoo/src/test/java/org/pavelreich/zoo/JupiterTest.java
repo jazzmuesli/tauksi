@@ -3,11 +3,14 @@ package org.pavelreich.zoo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.platform.engine.discovery.DiscoverySelectors.selectClass;
 
+import java.io.File;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
 import org.junit.platform.engine.TestDescriptor.Type;
+import org.junit.platform.engine.discovery.DiscoverySelectors;
 import org.junit.platform.launcher.Launcher;
 import org.junit.platform.launcher.LauncherDiscoveryRequest;
 import org.junit.platform.launcher.TestPlan;
@@ -29,6 +32,19 @@ public class JupiterTest {
 		runTest(JupiterTest.class);
 	}
 
+	@Test
+	public void testDIscover() {
+
+		final LauncherDiscoveryRequest request = LauncherDiscoveryRequestBuilder.request()
+				.selectors(DiscoverySelectors.selectFile(".")).build();
+
+		final Launcher launcher = LauncherFactory.create();
+		TestPlan testPlan = launcher.discover(request);
+		long found = testPlan.getRoots().stream().mapToLong(root -> 
+		testPlan.getDescendants(root).stream().filter(p->p.getType()==Type.TEST).count()).sum();
+		System.out.println("Fxxound: "+found + new File(".").getAbsolutePath());
+		
+	}
 	private static void runTest(Class<?> junitClass) {
 		final LauncherDiscoveryRequest request = LauncherDiscoveryRequestBuilder.request()
 				.selectors(selectClass(junitClass)).build();
