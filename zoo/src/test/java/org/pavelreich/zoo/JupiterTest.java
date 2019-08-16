@@ -36,15 +36,14 @@ public class JupiterTest {
 	@Test
 	public void testDIscover() {
 
-		new ClasspathScanningSupport();
-		final LauncherDiscoveryRequest request = LauncherDiscoveryRequestBuilder.request()
-				.selectors(DiscoverySelectors.selectDirectory("/Users/preich/Documents/git/tauksi/zoo/src/test/java")).build();
-
-		final Launcher launcher = LauncherFactory.create();
-		TestPlan testPlan = launcher.discover(request);
-		long found = testPlan.getRoots().stream().mapToLong(root -> 
-		testPlan.getDescendants(root).stream().filter(p->p.getType()==Type.TEST).count()).sum();
-		System.out.println("Fxxound: "+found + new File(".").getAbsolutePath());
+//		final LauncherDiscoveryRequest request = LauncherDiscoveryRequestBuilder.request()
+//				.selectors(DiscoverySelectors.selectDirectory("/Users/preich/Documents/git/tauksi/zoo/src/test/java")).build();
+//
+//		final Launcher launcher = LauncherFactory.create();
+//		TestPlan testPlan = launcher.discover(request);
+//		long found = testPlan.getRoots().stream().mapToLong(root -> 
+//		testPlan.getDescendants(root).stream().filter(p->p.getType()==Type.TEST).count()).sum();
+//		System.out.println("Fxxound: "+found + new File(".").getAbsolutePath());
 		
 	}
 	private static void runTest(Class<?> junitClass) {
