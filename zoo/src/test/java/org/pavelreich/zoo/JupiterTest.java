@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.engine.TestDescriptor.Type;
 import org.junit.platform.engine.discovery.DiscoverySelectors;
+import org.junit.platform.engine.support.filter.ClasspathScanningSupport;
 import org.junit.platform.launcher.Launcher;
 import org.junit.platform.launcher.LauncherDiscoveryRequest;
 import org.junit.platform.launcher.TestPlan;
@@ -35,8 +36,9 @@ public class JupiterTest {
 	@Test
 	public void testDIscover() {
 
+		new ClasspathScanningSupport();
 		final LauncherDiscoveryRequest request = LauncherDiscoveryRequestBuilder.request()
-				.selectors(DiscoverySelectors.selectFile(".")).build();
+				.selectors(DiscoverySelectors.selectDirectory("/Users/preich/Documents/git/tauksi/zoo/src/test/java")).build();
 
 		final Launcher launcher = LauncherFactory.create();
 		TestPlan testPlan = launcher.discover(request);

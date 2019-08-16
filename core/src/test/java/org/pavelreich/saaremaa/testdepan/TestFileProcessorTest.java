@@ -1,6 +1,7 @@
 package org.pavelreich.saaremaa.testdepan;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -41,7 +42,23 @@ public class TestFileProcessorTest {
 			
 		}
 	}
+
+	public void testJunit3Style() {
+		assertEquals(3,3);
+	}
 	
+	@Test
+	public void testJunit3Parsing() throws FileNotFoundException {
+		TestFileProcessor processor = TestFileProcessor.run(LOG,"./src/test/java/org/pavelreich/saaremaa/testdepan/TestFileProcessorTest.java", null);
+		LOG.info("processor: " + processor);
+		List<ITestClass> classes = processor.getElements();
+		LOG.info("classes: " + classes);
+		ITestClass classe = classes.get(0);
+		List<ITestMethod> methods = classe.getTestMethods();
+		
+		methods.forEach(x-> LOG.info("method: " + x));
+		assertEquals(1, methods.stream().filter(p->p.getName().equals("testJunit3Style")).count());
+	}
 	@Test
 	public void testAssertions() throws Exception {
 		TestFileProcessor processor = TestFileProcessor.run(LOG,"./src/test/java/org/pavelreich/saaremaa/testdepan/TestFileProcessorTest.java", null);
@@ -55,7 +72,7 @@ public class TestFileProcessorTest {
 		List<ITestMethod> methods = myClass.getTestMethods();
 		List<ITestField> mockFields = myClass.getMockFields();
 		assertEquals(2, mockFields.size());
-		assertEquals(4, methods.size());
+		assertTrue(methods.size()>=4);
 		Map<String, ITestMethod> methodsMap = methods.stream().collect(Collectors.toMap(x -> x.getName(), x->x));
 		ITestMethod methodTestAssertions2 = methodsMap.get("testAssertions2");
 		List<ObjectCreationOccurence> testAssertions2Mocks = methodTestAssertions2.getMocks();

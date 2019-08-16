@@ -441,7 +441,7 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 		}
 
 		public boolean isTest() {
-			return annotations.contains("Test");
+			return annotations.contains("Test") || this.method.isPublic() && this.method.getSimpleName().startsWith("test");
 		}
 
 		public boolean isSetup() {
