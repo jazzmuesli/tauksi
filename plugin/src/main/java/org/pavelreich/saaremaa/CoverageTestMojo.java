@@ -6,9 +6,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -25,9 +26,6 @@ import org.apache.maven.project.MavenProject;
 import org.apache.maven.repository.RepositorySystem;
 import org.bson.Document;
 import org.pavelreich.saaremaa.mongo.MongoDBClient;
-import org.pavelreich.saaremaa.testdepan.ITestClass;
-import org.pavelreich.saaremaa.testdepan.ITestMethod;
-import org.pavelreich.saaremaa.testdepan.TestFileProcessor;
 
 import me.tongfei.progressbar.ProgressBar;
 
@@ -81,6 +79,9 @@ public class CoverageTestMojo extends AbstractMojo {
 	@Parameter( property = "shuffleTests", defaultValue = "false")
 	private String shuffleTests;
 
+	@Parameter( property = "testExtractor", defaultValue = "FirstAvailableTestExtractor")
+	private String testExtractor;
+
 	public void execute()
         throws MojoExecutionException
     {
@@ -94,10 +95,10 @@ public class CoverageTestMojo extends AbstractMojo {
 		classpath = classpath.stream().filter(this::filterDependency).collect(Collectors.toList());
 		getLog().info("classpath: " + classpath);
 		MavenLoggerAsSLF4jLoggerAdaptor logger = new MavenLoggerAsSLF4jLoggerAdaptor(getLog());
-    	List<String> junitClassNames = new ArrayList<String>();
     	MongoDBClient db = new MongoDBClient(getClass().getSimpleName());
     	String id = UUID.randomUUID().toString();
-    	for(String dirName: project.getTestCompileSourceRoots()) {
+    	TestExtractor extractor = createTestExtractor(logger);
+		for (String dirName : project.getTestCompileSourceRoots()) {
         	try {
         		// process test directory
         		getLog().info("Processing id=" + id + ", dir="  + dirName);
@@ -106,20 +107,8 @@ public class CoverageTestMojo extends AbstractMojo {
 				launcher.setProject(project);
 				launcher.setTimeout(Long.valueOf(timeout));
         		if (new File(dirName).exists()) {
-					TestFileProcessor processor = TestFileProcessor.run(logger, dirName, null);
-
-    				// extract junit class names
-					List<ITestClass> testClasses = processor.getElements();
-					if (testClassName != null && !testClassName.trim().isEmpty()) {
-						testClasses = testClasses.stream().filter(p->p.getClassName().contains(testClassName)).collect(Collectors.toList());
-					}
-					Map<String,List<String>> testClassToMethods = new HashMap<String, List<String>>();
-    				for (ITestClass element : testClasses) {
-    					junitClassNames.add(element.getClassName());
-    					List<String> testMethods = element.getTestMethods().stream().map(x->x.getName()).collect(Collectors.toList());
-						testClassToMethods.put(element.getClassName(), testMethods);
-    				}
-    				getLog().info("junitClassNames: " + junitClassNames.size());
+					Map<String, Set<String>> testClassToMethods = extractor.extractTestCasesByClass(dirName);
+					getLog().info("Found " + testClassToMethods.size() + " test classes");
                 	List<Document> testsDetectedDocs = testClassToMethods.entrySet().stream().map(x -> 
                 	new Document().
                 	append("id", id).
@@ -131,24 +120,24 @@ public class CoverageTestMojo extends AbstractMojo {
                 			append("id", id).
                 			append("project", project.getArtifact().getId()).
                 			append("basedir", project.getBasedir().toString()).
-                			append("testsCount", junitClassNames.size()).
+                			append("testsCount", testClassToMethods.size()).
                 			append("dirName", dirName).
-                			append("testClasses", junitClassNames);
+                			append("testClasses", testClassToMethods.keySet());
             		
             		db.insertCollection("projects", Arrays.asList(doc));
             		db.insertCollection("testsDetected", testsDetectedDocs);
             		
 
             		List<TestExecutionCommand> commands = new ArrayList<>(); 
-    				for (ITestClass testClass : testClasses) {
+    				for (Entry<String,Set<String>> testClass : testClassToMethods.entrySet()) {
     					if (Boolean.valueOf(seqTestMethods)) {
-    						List<ITestMethod> testMethods = testClass.getTestMethods();
-    						for (ITestMethod testMethod : testMethods) {
-        						TestExecutionCommand cmd = TestExecutionCommand.forTestClassMethod(testClass.getClassName(), testMethod.getName());
+    						Set<String> testMethods = testClass.getValue();
+    						for (String testMethod : testMethods) {
+        						TestExecutionCommand cmd = TestExecutionCommand.forTestClassMethod(testClass.getKey(), testMethod);
         						commands.add(cmd);
     						}
     					} else {
-    						TestExecutionCommand cmd = TestExecutionCommand.forTestClass(testClass.getClassName());
+    						TestExecutionCommand cmd = TestExecutionCommand.forTestClass(testClass.getKey());
     						commands.add(cmd);
     					}
     				}
@@ -167,6 +156,24 @@ public class CoverageTestMojo extends AbstractMojo {
 		db.waitForOperationsToFinish();
 
     }
+
+
+	private TestExtractor createTestExtractor(MavenLoggerAsSLF4jLoggerAdaptor logger) {
+		TestExtractor extractor;
+    	if (testExtractor.equals(SurefireTestExtractor.class.getSimpleName())) {
+    		extractor = new SurefireTestExtractor(logger);
+    	} else if (testExtractor.equals(SpoonTestExtractor.class.getSimpleName())) {
+    		extractor = new SpoonTestExtractor(logger);
+    	} else if (testExtractor.equals(FirstAvailableTestExtractor.class.getSimpleName())) {
+    		extractor = new FirstAvailableTestExtractor(new SurefireTestExtractor(logger),
+    				new SpoonTestExtractor(logger));
+    	} else {
+    		extractor = new CombinedTestExtractor(new SurefireTestExtractor(logger),
+    				new SpoonTestExtractor(logger));
+    	}
+		return extractor;
+	}
+
 
 	private boolean filterDependency(String p) {
 		if (p.contains("unit-4") && !p.contains("unit-4.12")) {

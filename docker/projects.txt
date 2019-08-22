@@ -4,4 +4,13 @@ https://github.com/jfree/jfreechart.git
 https://github.com/apache/commons-math.git
 https://github.com/apache/commons-lang.git
 https://github.com/apache/commons-collections.git
+https://github.com/apache/commons-beanutils.git
+https://github.com/apache/commons-io.git
+https://github.com/apache/commons-codec.git
 https://github.com/google/guava.git
+https://github.com/biojava/biojava.git
+https://github.com/alibaba/fastjson.git
+https://github.com/google/guice.git
+https://github.com/mybatis/mybatis-3.git
+https://github.com/FasterXML/jackson-core.git
+https://github.com/apache/incubator-druid.git
