@@ -1,10 +1,12 @@
 #!/bin/sh
 
-docker stop tauksi2-container
-docker rm tauksi2-container
-docker build . -t tauksi2:v2
+id=tauksi3
+container_id="$id-container"
+docker stop $container_id
+docker rm $container_id
+docker build . -t $id:v2
 # non-interactive
-docker run -p 37017:27017 -it --name tauksi2-container tauksi2:v2 /bin/bash
+docker run -p 37017:27017 -it --name $container_id $id:v2 /bin/bash
 #docker cp tauksi-container:/root/metrics.zip ./
 
 # attach if necessary: docker  exec -it tauksi-container /bin/bash
