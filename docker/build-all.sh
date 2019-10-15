@@ -15,6 +15,8 @@ do
 	root="/logs/`pwd | tr '/' '_'`"
 	mkdir -p $root
 	mvn org.jacoco:jacoco-maven-plugin:LATEST:prepare-agent install | tee $root/inst.txt
+	mvn com.google.testability-explorer:maven-testability-plugin:testability | tee $root/testability.txt
+	mvn -DmemoryInMB=9000 -Dcores=6 -DtimeInMinutesPerClass=2 org.evosuite.plugins:evosuite-maven-plugin:LATEST:generate org.evosuite.plugins:evosuite-maven-plugin:LATEST:export | tee $root/evosuite.txt
 	mvn org.pavelreich.saaremaa:plugin:metrics | tee $root/metr.txt
 	mvn -DseqTestMethods=false -DshuffleTests=true -DinterceptorEnabled=false -Dtimeout=15 org.pavelreich.saaremaa:plugin:ctest | tee $root/ctest.txt
 	mvn -DwithHistory -DoutputFormats=CSV,XML,HTML  org.pitest:pitest-maven:mutationCoverage | tee $root/pitest.txt
