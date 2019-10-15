@@ -50,7 +50,12 @@ public class TestabilityMojo extends AbstractMojo {
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		try {
 			mojo.execute();
+		} catch (Exception e) {
+			getLog().error(e.getMessage(), e);
+		}
+		try {
 			String fname = project.getBuild().getDirectory() + File.separator + "testability.xml";
+			getLog().info("Parse " + fname + " and insert into mongo");
 			List<org.bson.Document> docs = parseTestabilityXml(fname);
 			db.insertCollection("testabilityExplorer", docs);
 			db.waitForOperationsToFinish();
