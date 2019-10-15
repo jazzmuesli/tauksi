@@ -17,6 +17,7 @@
 		<jdt.version>3.18.0</jdt.version>
 		<spoon.version>7.4.0</spoon.version>
 		<junit.version>5.5.1</junit.version>
+		<ck.version>0.3.2</ck.version>
 		
 	</properties>
 	<!-- <repositories> <repository> <id>WSO2 Repository</id> <url>http://dist.wso2.org/maven2/</url> 

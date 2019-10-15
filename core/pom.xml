@@ -79,7 +79,7 @@
 		<dependency>
 			<groupId>com.github.mauricioaniche</groupId>
 			<artifactId>ck</artifactId>
-			<version>0.3.2-SNAPSHOT</version>
+			<version>${ck.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.maven.shared</groupId>
