@@ -7,6 +7,7 @@ RUN \
   apt-get update && \
   apt-get -y upgrade && \
   apt-get install -y build-essential && \
+  apt-get install -y openjdk-8-jdk-headless && \
   apt-get install default-jre default-jdk maven -y && \
   apt-get install -y software-properties-common && \
   apt-get install -y byobu curl git htop man unzip vim wget zip && \
@@ -27,10 +28,10 @@ ENV HOME /root
 WORKDIR /root
 
 RUN git clone https://github.com/jazzmuesli/RefactoringMiner.git
-RUN git clone https://github.com/jazzmuesli/ck.git
+RUN git clone https://github.com/jazzmuesli/ck-mvn-plugin.git
 RUN git clone https://github.com/jazzmuesli/tauksi.git
 RUN git clone https://github.com/jazzmuesli/javadepextractor.git
-RUN cd /root/ck && mvn -DskipTests install
+RUN cd /root/ck-mvn-plugin && mvn -DskipTests install
 RUN cd /root/javadepextractor && mvn -DskipTests install
 RUN wget https://services.gradle.org/distributions/gradle-5.0-bin.zip -P /tmp
 RUN unzip -d /opt/gradle /tmp/gradle-*.zip
