@@ -56,8 +56,9 @@ public class TestabilityMojo extends AbstractMojo {
 		try {
 			String fname = project.getBuild().getDirectory() + File.separator + "testability.xml";
 			List<org.bson.Document> docs = parseTestabilityXml(fname);
-			getLog().info("Parse " + fname + " and insert " + docs.size() + " into mongo");
-			if (!docs.isEmpty()) {
+			int docsLength = docs == null ? 0 : docs.size();
+			getLog().info("Parse " + fname + " and insert " + docsLength + " into mongo");
+			if (docsLength > 0) {
 				db.insertCollection("testabilityExplorer", docs);
 				db.waitForOperationsToFinish();
 				
