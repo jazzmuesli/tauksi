@@ -30,29 +30,28 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import com.google.maven.TestabilityExplorerMojo;
 
-@Mojo(name = "testability", defaultPhase = LifecyclePhase.PROCESS_SOURCES, requiresDependencyResolution = ResolutionScope.NONE)
+@Mojo(name = "parse-testability", defaultPhase = LifecyclePhase.PROCESS_SOURCES, requiresDependencyResolution = ResolutionScope.NONE)
 public class TestabilityMojo extends AbstractMojo {
 
 	@Parameter(defaultValue = "${project}", readonly = true, required = true)
 	MavenProject project;
 	private MongoDBClient db;
-	private TestabilityExplorerMojo mojo;
+//	private TestabilityExplorerMojo mojo;
 
 	public TestabilityMojo() {
 		super();
 		db = new MongoDBClient(getClass().getSimpleName());
-		mojo = new TestabilityExplorerMojo();
+//		mojo = new TestabilityExplorerMojo();
 	}
 
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
-		try {
-			mojo.execute();
-		} catch (Exception e) {
-			getLog().error(e.getMessage(), e);
-		}
+//		try {
+//			mojo.execute();
+//		} catch (Exception e) {
+//			getLog().error(e.getMessage(), e);
+//		}
 		try {
 			String fname = project.getBuild().getDirectory() + File.separator + "testability.xml";
 			getLog().info("Parse " + fname + " and insert into mongo");
