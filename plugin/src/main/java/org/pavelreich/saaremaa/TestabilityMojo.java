@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -54,10 +55,13 @@ public class TestabilityMojo extends AbstractMojo {
 //		}
 		try {
 			String fname = project.getBuild().getDirectory() + File.separator + "testability.xml";
-			getLog().info("Parse " + fname + " and insert into mongo");
 			List<org.bson.Document> docs = parseTestabilityXml(fname);
-			db.insertCollection("testabilityExplorer", docs);
-			db.waitForOperationsToFinish();
+			getLog().info("Parse " + fname + " and insert " + docs.size() + " into mongo");
+			if (!docs.isEmpty()) {
+				db.insertCollection("testabilityExplorer", docs);
+				db.waitForOperationsToFinish();
+				
+			}
 		} catch (Exception e) {
 			getLog().error(e.getMessage(), e);
 		}
@@ -66,6 +70,9 @@ public class TestabilityMojo extends AbstractMojo {
 
 	static List<org.bson.Document> parseTestabilityXml(String fname) {
 		File file = new File(fname);
+		if (!file.exists()) {
+			return Collections.emptyList();
+		}
 		try {
 			JSONObject xmlJSONObj = XML.toJSONObject(new FileReader(file));
 			org.bson.Document parsed = org.bson.Document.parse(xmlJSONObj.toString());
