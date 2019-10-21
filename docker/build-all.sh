@@ -6,6 +6,7 @@ do
 	cd /projects && git clone $i
 done
 
+sed -i -e '/^assistive_technologies=/s/^/#/' /etc/java-*-openjdk/accessibility.properties
 # update-alternatives --config javac
 export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 java -version 2>&1 | tee /logs/java.version
