@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -25,6 +26,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.repository.RepositorySystem;
+import org.eclipse.jdt.core.dom.ITypeBinding;
 
 import core.Architecture;
 import dependencies.Dependency;
@@ -82,22 +84,63 @@ public class JavaDepExtractorMojo extends AbstractMojo {
 			Comparator<Dependency> comp = Comparator.comparing(p -> p.getClassNameA());
 			comp = comp.thenComparing(Comparator.comparing(p -> p.getLineNumber()));
 			deps = deps.stream().sorted(comp).collect(Collectors.toList());
-			String fname = projectPath+File.separator+"dependencies.csv";
-			if (!deps.isEmpty()) {
-				try (CSVReporter reporter = new CSVReporter(fname, "classA","dependencyType","classB","classAline")) {
-					for (Dependency dep : deps) {
-						reporter.write(Architecture.toCSV(dep).split(","));
-					}
-				} catch (Exception e) {
-					getLog().error(e.getMessage(), e);
-				}
+			reportClasses(projectPath, architecture.getITypeBindings());
+			reportDependencies(projectPath, deps);
 
-			}
 //			TxtFileWriter.writeTxtFile(deps.stream().map(Architecture::toCSV).collect(Collectors.toList()), projectPath);
 		} catch (Exception e) {
 			getLog().error(e.getMessage(), e);
 		}
 
+	}
+
+	private void reportClasses(String projectPath, List<ITypeBinding> bindings) {
+		String fname = projectPath+File.separator+"classes.csv";
+		if (!bindings.isEmpty()) {
+			try (CSVReporter reporter = new CSVReporter(fname, "classA","modifiers", "superclasses","interfaces")) {
+				for (ITypeBinding binding : bindings) {
+					if (binding == null) {
+						continue;
+					}
+					String qualifiedName = binding.getQualifiedName();
+					String parentClassName = getParents(binding);
+					binding.isEnum();
+					String interfaceNames = binding.getInterfaces() != null ? Arrays.stream(binding.getInterfaces()).map(x->x.getQualifiedName()).collect(Collectors.joining(",")) : "";
+					reporter.write(qualifiedName, binding.getModifiers(), parentClassName, interfaceNames);
+				}
+			} catch (Exception e) {
+				getLog().error(e.getMessage(), e);
+			}
+
+		}
+	}
+
+	private String getParents(ITypeBinding binding) {
+		if (binding == null || binding.getSuperclass() == null) {
+			return "";
+		} else {
+			String parentName = binding.getSuperclass().getQualifiedName();
+			String grandParentName = getParents(binding.getSuperclass());
+			if (!grandParentName.equals("")) {
+				return parentName + "," + grandParentName;
+			}
+			return parentName;
+		}
+	}
+
+
+	private void reportDependencies(String projectPath, Collection<Dependency> deps) {
+		String fname = projectPath+File.separator+"dependencies.csv";
+		if (!deps.isEmpty()) {
+			try (CSVReporter reporter = new CSVReporter(fname, "classA","dependencyType","classB","classAline")) {
+				for (Dependency dep : deps) {
+					reporter.write(Architecture.toCSV(dep).split(","));
+				}
+			} catch (Exception e) {
+				getLog().error(e.getMessage(), e);
+			}
+
+		}
 	}
 
 
