@@ -1,6 +1,8 @@
 package org.pavelreich.saaremaa.transformer;
 
-import java.io.File;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
@@ -49,8 +51,16 @@ public class MyTransformerTest {
 	}
 
 	@Test
+	public void testHamcrestAssert() {
+		String result = myTransformer.transform("ban");
+		assertThat(result, anyOf(is("ban"), containsString("ban")));
+	}
+
+	@Test
 	public void testAssert() {
-		org.junit.Assert.assertEquals("banban", myTransformer.transform("ban"));
+		String result = myTransformer.transform("ban");
+		org.junit.Assert.assertEquals("banban", result);
+
 	}
 
 	@Test
@@ -66,11 +76,12 @@ public class MyTransformerTest {
 
 	@Test
 	public void serialise() {
-		List<Document> docs = Arrays.asList("a","b","c").stream().map(x -> new Document().append(x, x)).collect(Collectors.toList());
+		List<Document> docs = Arrays.asList("a", "b", "c").stream().map(x -> new Document().append(x, x))
+				.collect(Collectors.toList());
 		System.out.println(docs);
 		BsonTypeClassMap bsonTypeClassMap = new BsonTypeClassMap();
-		CodecRegistry registry = CodecRegistries.fromProviders(new ValueCodecProvider(), new DocumentCodecProvider(), new BsonValueCodecProvider(),
-	            new IterableCodecProvider());
+		CodecRegistry registry = CodecRegistries.fromProviders(new ValueCodecProvider(), new DocumentCodecProvider(),
+				new BsonValueCodecProvider(), new IterableCodecProvider());
 		IterableCodec codec = new IterableCodec(registry, bsonTypeClassMap);
 		StringWriter sw = new StringWriter();
 		BsonWriter bsonWriter = new JsonWriter(sw);
@@ -81,7 +92,7 @@ public class MyTransformerTest {
 		bsonWriter.writeEndDocument();
 		System.out.println(sw);
 	}
-	
+
 	@Test
 	public void testMock() {
 		myTransformer.print(writer);
