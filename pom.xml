@@ -32,6 +32,7 @@
 		<module>zoo</module>
 		<module>plugin</module>
 		<module>jagent</module>
+		<module>transformer</module>
 	</modules>
 	<dependencies>
 
