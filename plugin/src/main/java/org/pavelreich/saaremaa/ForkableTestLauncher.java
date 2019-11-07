@@ -85,7 +85,7 @@ public class ForkableTestLauncher {
 	void launch(TestExecutionCommand testExecutionCommand, Collection<String> classpath)
 			throws IOException, InterruptedException {
 		long stime = System.currentTimeMillis();
-		String fname = stime + ".exec";
+		String fname = sessionId + ".exec";
 		// https://stackoverflow.com/questions/31567532/getting-expecting-a-stackmap-frame-at-branch-target-when-running-maven-integra
 		// https://stackoverflow.com/questions/300639/use-of-noverify-when-launching-java-apps
 		String cmd = "java -noverify " + 
