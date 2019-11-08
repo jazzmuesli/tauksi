@@ -23,7 +23,7 @@ do
 	mvn compile | tee $root/compile.txt
 	mvn org.jacoco:jacoco-maven-plugin:LATEST:prepare-agent install | tee $root/inst.txt
 	mvn com.google.testability-explorer:maven-testability-plugin:testability | tee $root/testability.txt
-	mvn org.pavelreich.saaremaa:plugin:testability | tee $root/ptestability.txt
+	mvn org.pavelreich.saaremaa:plugin:parse-testability | tee $root/ptestability.txt
 	export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/ && mvn -DmemoryInMB=9000 -Dcores=6 -DtimeInMinutesPerClass=2 org.evosuite.plugins:evosuite-maven-plugin:LATEST:generate org.evosuite.plugins:evosuite-maven-plugin:LATEST:export | tee $root/evosuite.txt
 	export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 	mvn org.pavelreich.saaremaa:plugin:metrics | tee $root/metr.txt

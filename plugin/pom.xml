@@ -101,7 +101,7 @@
 		<dependency>
 			<groupId>org.ow2.asm</groupId>
 			<artifactId>asm</artifactId>
-			<version>7.1</version>
+			<version>${asm.version}</version>
 		</dependency>
 
 		<dependency>
@@ -133,7 +133,7 @@
 		<dependency>
 			<groupId>org.jacoco</groupId>
 			<artifactId>org.jacoco.agent</artifactId>
-			<version>0.8.4</version>
+			<version>${jacoco.version}</version>
 			<classifier>runtime</classifier>
 		</dependency>
 

@@ -104,7 +104,6 @@ public class JavaDepExtractorMojo extends AbstractMojo {
 					}
 					String qualifiedName = binding.getQualifiedName();
 					String parentClassName = getParents(binding);
-					binding.isEnum();
 					String interfaceNames = binding.getInterfaces() != null ? Arrays.stream(binding.getInterfaces()).map(x->x.getQualifiedName()).collect(Collectors.joining(",")) : "";
 					reporter.write(qualifiedName, binding.getModifiers(), parentClassName, interfaceNames);
 				}
