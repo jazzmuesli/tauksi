@@ -28,7 +28,8 @@ ENV HOME /root
 WORKDIR /root
 
 RUN git clone https://github.com/jazzmuesli/RefactoringMiner.git
-RUN git clone https://github.com/jazzmuesli/ck-mvn-plugin.git
+RUN git clone --single-branch --branch java8 https://github.com/jazzmuesli/ck.git
+RUN git clone --single-branch --branch java8 https://github.com/jazzmuesli/ck-mvn-plugin.git
 RUN git clone https://github.com/jazzmuesli/tauksi.git
 RUN git clone https://github.com/jazzmuesli/javadepextractor.git
 RUN cd /root/javadepextractor && mvn -DskipTests install
@@ -38,6 +39,7 @@ ENV export GRADLE_HOME=/opt/gradle/gradle-5.0
 ENV export PATH=/opt/gradle/gradle-5.0/bin:${PATH}
 
 RUN cd /root/RefactoringMiner && git checkout upgrade-jdt-318 && /opt/gradle/gradle-5.0/bin/gradle install
+RUN cd /root/ck && git pull && mvn -DskipTests clean install
 RUN cd /root/ck-mvn-plugin && git pull && mvn -DskipTests clean install
 RUN cd /root/tauksi && git pull && mvn -DskipTests clean install
 RUN mkdir -p /data/db
