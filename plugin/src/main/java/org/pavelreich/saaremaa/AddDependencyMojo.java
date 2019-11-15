@@ -23,6 +23,8 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -49,14 +51,14 @@ public class AddDependencyMojo extends AbstractMojo {
 
 	public void execute() throws MojoExecutionException {
 		File file = project.getFile();
-		getLog().info("pom.xml: " + file);
+		getLog().info("Reading from pom.xml: " + file);
 		try {
 			if (dependencies == null || dependencies.trim().isEmpty()) {
 				getLog().info(
 						"No new dependencies provided. Run with -Ddependencies=\"org.junit:junit:4.12;org.banana:core:3.14\"");
 				return;
 			}
-			addDependency(file, Boolean.valueOf(overwrite), dependencies);
+			addDependency(file, Boolean.valueOf(overwrite), dependencies, new MavenLoggerAsSLF4jLoggerAdaptor(getLog()));
 		} catch (Exception e) {
 			getLog().error("Can't parse  " + file + " due to " + e.getMessage(), e);
 		}
@@ -64,10 +66,11 @@ public class AddDependencyMojo extends AbstractMojo {
 	}
 
 	public static void main(String[] args) throws Exception {
-		addDependency(new File("pom.xml"), false, "apple:banana:1.0:test;apple:orange:1.3");
+		Logger logger = LoggerFactory.getLogger(AddDependencyMojo.class);
+		addDependency(new File("pom.xml"), false, "apple:banana:1.0:test;apple:orange:1.3", logger);
 	}
 
-	private static void addDependency(File srcFile, boolean overwrite, String newDependencies) throws Exception {
+	private static void addDependency(File srcFile, boolean overwrite, String newDependencies, Logger logger) throws Exception {
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		DocumentBuilder db;
 		db = dbf.newDocumentBuilder();
@@ -112,14 +115,14 @@ public class AddDependencyMojo extends AbstractMojo {
 
 		TransformerFactory transformerFactory = TransformerFactory.newInstance();
 		Transformer transformer = transformerFactory.newTransformer();
-		String dstFilename = srcFile.getName();
+		String dstFilename = srcFile.getAbsolutePath();
 		if (!overwrite) {
 			dstFilename += ".updated";
 		} else {
 			// leave original name, but make backups
-			Files.copy(srcFile, new File(srcFile.getName() + ".bak"));
+			Files.copy(srcFile, new File(dstFilename + ".bak"));
 			String suffix = new SimpleDateFormat("ddMMyy-HHmmss").format(new Date());
-			Files.copy(srcFile, new File(srcFile.getName() + "." + suffix + ".bak"));
+			Files.copy(srcFile, new File(dstFilename + "." + suffix + ".bak"));
 		}
 
 		StringWriter sw = new StringWriter();
@@ -127,6 +130,7 @@ public class AddDependencyMojo extends AbstractMojo {
 		transformer.transform(source, result);
 		// TODO: find a more elegant way to remove xmlns
 		String content = sw.toString().replaceAll(" xmlns=\"\"", "");
+		logger.info("Writing to pom.xml: " + dstFilename);
 		FileWriter fw = new FileWriter(dstFilename);
 		fw.write(content);
 		fw.close();
