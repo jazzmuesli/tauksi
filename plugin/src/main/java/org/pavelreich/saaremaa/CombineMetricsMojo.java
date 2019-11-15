@@ -105,24 +105,24 @@ public class CombineMetricsMojo extends AbstractMojo {
 		m.merge(value);
 	}
 
-	protected void populate(Pair<String, String> p, Map<String, Metrics> metricsByProdClass) {
+	private void populateTMetrics(Pair<String, String> p, Map<String, Metrics> metricsByProdClass) {
 		String prodClassName = getProdClassName(p.getFirst());
 		metricsByProdClass.putIfAbsent(prodClassName, new Metrics(prodClassName));
 		String metricName = p.getSecond() + getSuffix(p.getFirst());
 		metricsByProdClass.get(prodClassName).incrementMetric(metricName);
 	}
 
-	protected String getSuffix(String testClassName) {
+	private String getSuffix(String testClassName) {
 		String suffix = testClassName.endsWith("_ESTest") ? ".evo" : ".test";
 		return suffix;
 	}
 
-	protected String getProdClassName(String testClassName) {
+	private String getProdClassName(String testClassName) {
 		String prodClassName = testClassName.replaceAll("_ESTest$", "").replaceAll("Test$", "");
 		return prodClassName;
 	}
 
-	protected List<Pair<String, String>> readTMetricPairs(String fname, String field) {
+	private List<Pair<String, String>> readTMetricPairs(String fname, String field) {
 		if (!new File(fname).exists()) {
 			return Collections.emptyList();
 		}
@@ -209,7 +209,9 @@ public class CombineMetricsMojo extends AbstractMojo {
 		project.getTestCompileSourceRoots().forEach(dirName -> {
 			Map<String, Map<String, Long>> allTestCKMetrics = readCKMetricPairs(dirName + File.separator + "class.csv",
 					".test");
-			allTestCKMetrics.entrySet().forEach(p -> populateCK(metricsByProdClass, p));
+			allTestCKMetrics.entrySet().stream().
+			filter(f->!f.getKey().contains("ESTest_scaffolding")).// ignore evosuite
+			forEach(p -> populateCK(metricsByProdClass, p));
 		});
 	}
 
@@ -224,7 +226,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 	protected void addTMetrics(Map<String, Metrics> metricsByProdClass) throws IOException {
 		List<Pair<String, String>> pairs = readTMetricPairs(
 				project.getBuild().getDirectory() + File.separator + "jacoco-tmetrics.csv", "metricType");
-		pairs.forEach(p -> populate(p, metricsByProdClass));
+		pairs.forEach(p -> populateTMetrics(p, metricsByProdClass));
 	}
 
 	protected void addTNOO(Map<String, Metrics> metricsByProdClass) {
