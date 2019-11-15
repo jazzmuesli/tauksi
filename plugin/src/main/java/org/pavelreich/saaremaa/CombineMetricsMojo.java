@@ -130,12 +130,13 @@ public class CombineMetricsMojo extends AbstractMojo {
 		try {
 			parser = getParser(fname, field);
 			List<Pair<String, String>> pairs = parser.getRecords().stream()
+					.filter(p->p.isSet(field))
 					.map(x -> new Pair<String, String>(x.get("testClassName"), x.get(field)))
 					.collect(Collectors.toList());
 			parser.close();
 			return pairs;
 		} catch (Exception e) {
-			getLog().error(e.getMessage(), e);
+			getLog().error("Can't read " + fname + " due to  " + e.getMessage(), e);
 			return Collections.emptyList();
 		}
 	}
