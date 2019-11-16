@@ -14,6 +14,7 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -36,35 +37,32 @@ public class TestabilityMojo extends AbstractMojo {
 	@Parameter(defaultValue = "${project}", readonly = true, required = true)
 	MavenProject project;
 	private MongoDBClient db;
-//	private TestabilityExplorerMojo mojo;
 
 	public TestabilityMojo() {
 		super();
 		db = new MongoDBClient(getClass().getSimpleName());
-//		mojo = new TestabilityExplorerMojo();
 	}
 
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
-//		try {
-//			mojo.execute();
-//		} catch (Exception e) {
-//			getLog().error(e.getMessage(), e);
-//		}
 		try {
 			String fname = project.getBuild().getDirectory() + File.separator + "testability.xml";
 			File file = new File(fname);
 			List<org.bson.Document> docs = null;
 			if (file.exists()) {
-
-				docs = parseTestabilityXml(file);
+				docs = parseXMLToJSON(file);
 				if (docs == null || docs.isEmpty()) {
-					docs = parseXml(file);
+					docs = parseUsingXPath(file);
 				}
 			}
 			int docsLength = docs == null ? 0 : docs.size();
 			getLog().info("Parse " + fname + " and insert " + docsLength + " into mongo");
 			if (docsLength > 0) {
+				CSVReporter reporter = new CSVReporter(project.getBuild().getDirectory()+File.separator+"testability.csv", "className","cost");
+				for (org.bson.Document document : docs) {
+					reporter.write(document.get("class"), document.get("cost"));
+				}
+				reporter.close();
 				db.insertCollection("testabilityExplorer", docs);
 				db.waitForOperationsToFinish();
 
@@ -75,7 +73,7 @@ public class TestabilityMojo extends AbstractMojo {
 
 	}
 
-	static List<org.bson.Document> parseTestabilityXml(File file) {
+	static List<org.bson.Document> parseXMLToJSON(File file) {
 		try {
 			JSONObject xmlJSONObj = XML.toJSONObject(new FileReader(file));
 			org.bson.Document parsed = org.bson.Document.parse(xmlJSONObj.toString());
@@ -88,7 +86,7 @@ public class TestabilityMojo extends AbstractMojo {
 
 	}
 
-	private static List<org.bson.Document> parseXml(File file)
+	private static List<org.bson.Document> parseUsingXPath(File file)
 			throws ParserConfigurationException, SAXException, IOException, XPathExpressionException {
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		DocumentBuilder db = dbf.newDocumentBuilder();
