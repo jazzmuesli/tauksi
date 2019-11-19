@@ -88,7 +88,7 @@ public class ForkableTestLauncher {
 		String fname = sessionId + ".exec";
 		// https://stackoverflow.com/questions/31567532/getting-expecting-a-stackmap-frame-at-branch-target-when-running-maven-integra
 		// https://stackoverflow.com/questions/300639/use-of-noverify-when-launching-java-apps
-		String cmd = "java -noverify " + 
+		String cmd = "java -Dsandbox_mode=OFF -noverify " + 
 		createInterceptorJavaAgentCmd(testExecutionCommand.testClassName, sessionId)
 		 + " " + 
 		createJacocoCmd(fname) 

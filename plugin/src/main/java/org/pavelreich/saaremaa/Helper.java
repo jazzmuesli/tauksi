@@ -25,4 +25,8 @@ public class Helper {
 		return prodClassName;
 	}
 
+	static boolean isTest(String tcn) {
+		return tcn.contains(".Test") || tcn.endsWith("Test");
+	}
+
 }
