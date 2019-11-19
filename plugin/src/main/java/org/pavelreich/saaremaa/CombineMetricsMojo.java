@@ -92,7 +92,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 
 	protected void populateCK(Map<String, Metrics> metricsByProdClass, Entry<String, Map<String, Long>> p) {
 		String testClassName = p.getKey();
-		String prodClassName = getProdClassName(testClassName);
+		String prodClassName = Helper.getProdClassName(testClassName);
 		metricsByProdClass.putIfAbsent(prodClassName, new Metrics(prodClassName));
 		Metrics m = metricsByProdClass.get(prodClassName);
 		Map<String, Long> value = p.getValue();
@@ -106,7 +106,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 	}
 
 	private void populateTMetrics(Pair<String, String> p, Map<String, Metrics> metricsByProdClass) {
-		String prodClassName = getProdClassName(p.getFirst());
+		String prodClassName = Helper.getProdClassName(p.getFirst());
 		metricsByProdClass.putIfAbsent(prodClassName, new Metrics(prodClassName));
 		String metricName = p.getSecond() + getSuffix(p.getFirst());
 		metricsByProdClass.get(prodClassName).incrementMetric(metricName);
@@ -117,11 +117,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 		return suffix;
 	}
 
-	private String getProdClassName(String testClassName) {
-		String prodClassName = testClassName.replaceAll("_ESTest$", "").replaceAll("Test$", "");
-		return prodClassName;
-	}
-
+	
 	private List<Pair<String, String>> readTMetricPairs(String fname, String field) {
 		if (!new File(fname).exists()) {
 			return Collections.emptyList();
@@ -234,7 +230,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 			List<Pair<String, String>> testCases = readTMetricPairs(dirName + File.separator + "testcases.csv",
 					"testCaseName");
 			testCases.stream().filter(p -> !p.getSecond().equals("TOTAL")).forEach(p -> {
-				String prodClassName = getProdClassName(p.getFirst());
+				String prodClassName = Helper.getProdClassName(p.getFirst());
 				metricsByProdClass.putIfAbsent(prodClassName, new Metrics(prodClassName));
 				Metrics m = metricsByProdClass.get(prodClassName);
 				String metricName = "TNOO" + getSuffix(p.getFirst());

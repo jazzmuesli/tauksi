@@ -19,25 +19,27 @@ import org.apache.maven.plugins.surefire.report.ReportTestSuite;
 import org.apache.maven.plugins.surefire.report.TestSuiteXmlParser;
 import org.slf4j.Logger;
 
-public class SurefireTestExtractor implements TestExtractor{
+public class SurefireTestExtractor implements TestExtractor {
 
 	private Logger logger;
 
 	public SurefireTestExtractor(Logger logger) {
 		this.logger = logger;
 	}
+
 	@Override
-	public Map<String, Set<String>> extractTestCasesByClass(String srcDir)  {
+	public Map<String, Set<String>> extractTestCasesByClass(String srcDir) {
 		Collection<String> files;
-		Map<String,Set<String>>ret = new ConcurrentHashMap();
+		Map<String, Set<String>> ret = new ConcurrentHashMap();
 		try {
 			files = getFiles(srcDir);
-			List<Map<String,Set<String>>> results = files.parallelStream().map(x->parseFile(x)).collect(Collectors.toList());
+			List<Map<String, Set<String>>> results = files.parallelStream().map(x -> parseFile(x))
+					.collect(Collectors.toList());
 //TODO: implement using streams
-			//			Stream<Entry<String, List<String>>> streams = null;
+			// Stream<Entry<String, List<String>>> streams = null;
 //			Map<String,List<String>> combined = streams.collect(Collectors.toMap(x->x.getKey(), x->x.getValue(), (x1,x2)->Stream.concat(x1.stream(), x2.stream()).collect(Collectors.toList())));
-			for (Map<String,Set<String>> e : results) {
-				for (Entry<String,Set<String>> entry : e.entrySet()) {
+			for (Map<String, Set<String>> e : results) {
+				for (Entry<String, Set<String>> entry : e.entrySet()) {
 					Set<String> current = ret.get(entry.getKey());
 					if (current == null) {
 						current = new HashSet();
@@ -50,7 +52,7 @@ public class SurefireTestExtractor implements TestExtractor{
 			logger.error(e.getMessage(), e);
 			return ret;
 		}
-		
+
 		return ret;
 	}
 
@@ -60,8 +62,7 @@ public class SurefireTestExtractor implements TestExtractor{
 			logger.info("Path " + srcDir + " doesn't exist");
 			return Collections.emptyList();
 		}
-		List<String> files = java.nio.file.Files.walk(path)
-				.filter(p -> p.toFile().getName().matches("TEST-.*?xml"))
+		List<String> files = java.nio.file.Files.walk(path).filter(p -> p.toFile().getName().matches("TEST-.*?xml"))
 				.map(f -> f.toFile().getAbsolutePath()).collect(Collectors.toList());
 		return files;
 	}
@@ -72,9 +73,11 @@ public class SurefireTestExtractor implements TestExtractor{
 			TestSuiteXmlParser parser = new TestSuiteXmlParser(consoleLogger);
 			List<ReportTestSuite> testSuites = parser.parse(fname);
 //			System.out.println("reports: " + testSuites);
-			List<ReportTestCase> ret = testSuites.stream().map(x->x.getTestCases()).flatMap(List::stream).collect(Collectors.toList());
+			List<ReportTestCase> ret = testSuites.stream().map(x -> x.getTestCases()).flatMap(List::stream)
+					.collect(Collectors.toList());
 //			ret.forEach(x->LOG.info("testClassName:"+ x.getClassName() +", testMethodName:" + x.getName()));
-			Map<String,Set<String>> result = ret.stream().collect(Collectors.groupingBy(ReportTestCase::getFullClassName, Collectors.mapping(ReportTestCase::getName, Collectors.toSet())));
+			Map<String, Set<String>> result = ret.stream().collect(Collectors.groupingBy(
+					ReportTestCase::getFullClassName, Collectors.mapping(ReportTestCase::getName, Collectors.toSet())));
 			return result;
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
