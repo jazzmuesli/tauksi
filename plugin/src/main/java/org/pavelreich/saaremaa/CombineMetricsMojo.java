@@ -223,6 +223,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 	protected void addTMetrics(Map<String, Metrics> metricsByProdClass) throws IOException {
 		String dir = project.getBuild().getDirectory();
 		Path path = new File(dir).toPath();
+		
 		List<String> files = java.nio.file.Files.walk(path).filter(p -> p.toFile().getName().endsWith("-tmetrics.csv")).map(f -> f.toFile().getAbsolutePath()).collect(Collectors.toList());
 		
 		List<Pair<String, String>> pairs = new ArrayList();
