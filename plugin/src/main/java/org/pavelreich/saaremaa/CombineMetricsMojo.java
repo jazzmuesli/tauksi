@@ -173,7 +173,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		try {
 			Map<String, Metrics> metricsByProdClass = new HashMap();
-			addTMetrics(metricsByProdClass);
+			addTMetrics(project.getBasedir().getAbsolutePath(), metricsByProdClass);
 			addTNOO(metricsByProdClass);
 			addProdCKmetrics(metricsByProdClass);
 			addTestCKmetrics(metricsByProdClass);
@@ -220,8 +220,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 		});
 	}
 
-	protected void addTMetrics(Map<String, Metrics> metricsByProdClass) throws IOException {
-		String dir = project.getBuild().getDirectory();
+	protected void addTMetrics(String dir, Map<String, Metrics> metricsByProdClass) throws IOException {
 		Path path = new File(dir).toPath();
 		
 		List<String> files = java.nio.file.Files.walk(path).filter(p -> p.toFile().getName().endsWith("-tmetrics.csv")).map(f -> f.toFile().getAbsolutePath()).collect(Collectors.toList());
