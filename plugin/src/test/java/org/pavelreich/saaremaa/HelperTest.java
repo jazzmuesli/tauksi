@@ -6,6 +6,15 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 public class HelperTest {
+
+	
+	@Test
+	public void testCasePrefix() {
+		String tcn = "org.apache.commons.io.IOUtilsCopyTestCase";
+		String s = Helper.getProdClassName(tcn);
+		assertEquals("org.apache.commons.io.IOUtilsCopy", s);
+		assertTrue(Helper.isTest(tcn));
+	}
 	
 	@Test
 	public void testPrefix() {

@@ -21,12 +21,16 @@ public class Helper {
 	}
 	
 	static String getProdClassName(String testClassName) {
-		String prodClassName = testClassName.replaceAll("_ESTest$", "").replaceAll("Test$", "").replaceAll("\\.Test", ".");
+		String prodClassName = testClassName
+				.replaceAll("_ESTest$", "")
+				.replaceAll("Test$", "")
+				.replaceAll("\\.Test", ".")
+				.replaceAll("TestCase$", "");
 		return prodClassName;
 	}
 
 	static boolean isTest(String tcn) {
-		return tcn.contains(".Test") || tcn.endsWith("Test");
+		return tcn.contains(".Test") || tcn.endsWith("Test") || tcn.endsWith("TestCase");
 	}
 
 }
