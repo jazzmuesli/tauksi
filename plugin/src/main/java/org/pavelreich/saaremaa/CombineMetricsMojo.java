@@ -220,8 +220,13 @@ public class CombineMetricsMojo extends AbstractMojo {
 	}
 
 	protected void addTMetrics(Map<String, Metrics> metricsByProdClass) throws IOException {
-		List<Pair<String, String>> pairs = readTMetricPairs(
-				project.getBuild().getDirectory() + File.separator + "jacoco-tmetrics.csv", "metricType");
+		String dir = project.getBuild().getDirectory();
+		List<String> files = java.nio.file.Files.walk(new File(dir).toPath())
+				.filter(p -> p.toFile().getName().endsWith("-tmetrics.csv"))
+				.map(f -> f.toFile().getAbsolutePath()).collect(Collectors.toList());
+		
+		List<Pair<String, String>> pairs = new ArrayList();
+		files.forEach(file -> pairs.addAll(readTMetricPairs(file, "metricType")));
 		pairs.forEach(p -> populateTMetrics(p, metricsByProdClass));
 	}
 
