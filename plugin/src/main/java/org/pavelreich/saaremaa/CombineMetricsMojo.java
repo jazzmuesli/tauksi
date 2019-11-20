@@ -3,6 +3,7 @@ package org.pavelreich.saaremaa;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -189,7 +190,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 			reporter.close();
 
 			int docsLength = docs == null ? 0 : docs.size();
-			getLog().info("Generated" + fname + " and insert " + docsLength + " into mongo");
+			getLog().info("Generated " + fname + " and insert " + docsLength + " into mongo");
 			if (docsLength > 0) {
 				db.insertCollection("combinedMetrics", docs);
 				db.waitForOperationsToFinish();
@@ -221,12 +222,13 @@ public class CombineMetricsMojo extends AbstractMojo {
 
 	protected void addTMetrics(Map<String, Metrics> metricsByProdClass) throws IOException {
 		String dir = project.getBuild().getDirectory();
-		List<String> files = java.nio.file.Files.walk(new File(dir).toPath())
-				.filter(p -> p.toFile().getName().endsWith("-tmetrics.csv"))
-				.map(f -> f.toFile().getAbsolutePath()).collect(Collectors.toList());
+		Path path = new File(dir).toPath();
+		List<String> files = java.nio.file.Files.walk(path).filter(p -> p.toFile().getName().endsWith("-tmetrics.csv")).map(f -> f.toFile().getAbsolutePath()).collect(Collectors.toList());
 		
 		List<Pair<String, String>> pairs = new ArrayList();
+		getLog().info("Found " + files.size() + " files in dir=" + dir);
 		files.forEach(file -> pairs.addAll(readTMetricPairs(file, "metricType")));
+		getLog().info("Generated " + pairs.size() + " from " + files.size() + " files");
 		pairs.forEach(p -> populateTMetrics(p, metricsByProdClass));
 	}
 
