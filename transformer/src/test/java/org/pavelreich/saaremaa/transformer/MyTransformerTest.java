@@ -7,8 +7,10 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
 import org.bson.BsonWriter;
 import org.bson.Document;
 import org.bson.codecs.BsonTypeClassMap;
@@ -21,6 +23,7 @@ import org.bson.codecs.ValueCodecProvider;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.json.JsonWriter;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -99,6 +102,20 @@ public class MyTransformerTest {
 		Mockito.verify(writer).println("banana");
 		myTransformer.print(writer);
 		Mockito.verify(writer, Mockito.times(2)).println("banana");
+	}
+	
+	@Test
+	public void testThreading() throws InterruptedException {
+		final CountDownLatch latch = new CountDownLatch(1);
+		Executors.newSingleThreadExecutor().submit(
+				() -> {
+					myTransformer.print(writer);
+					latch.countDown();
+				}
+		);
+		Assert.assertTrue(latch.await(1, TimeUnit.SECONDS));
+		Mockito.verify(writer).println("banana");
+
 	}
 
 }
