@@ -64,6 +64,11 @@ public class CombineMetricsMojo extends AbstractMojo {
 			fields.addAll(m.keySet());
 			longMetrics.putAll(m);
 		}
+		
+		void put(String metricName, Long n) {
+			fields.add(metricName);
+			longMetrics.put(metricName, n);
+		}
 
 		@Override
 		public String toString() {
@@ -271,8 +276,8 @@ public class CombineMetricsMojo extends AbstractMojo {
 		getLog().info("Test " + testClassName + "  covered " + prodClassesCovered + " prod classes and " + prodClassName + " with " + coverageRatio);
 				
 		metricsByProdClass.putIfAbsent(prodClassName, new Metrics(prodClassName));
-		metricsByProdClass.get(prodClassName).longMetrics.put("prodClassesCovered", prodClassesCovered);
-		metricsByProdClass.get(prodClassName).longMetrics.put("prod.covratio", 
+		metricsByProdClass.get(prodClassName).put("prodClassesCovered", prodClassesCovered);
+		metricsByProdClass.get(prodClassName).put("prod.covratio", 
 				coverageRatio);
 	}
 
