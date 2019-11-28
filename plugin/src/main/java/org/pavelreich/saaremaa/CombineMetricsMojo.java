@@ -270,6 +270,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 		long coverageRatio = Math.round(covratio.getOrDefault(prodClassName, 0.0)*100);
 		getLog().info("Test " + testClassName + "  covered " + prodClassesCovered + " prod classes and " + prodClassName + " with " + coverageRatio);
 				
+		metricsByProdClass.putIfAbsent(prodClassName, new Metrics(prodClassName));
 		metricsByProdClass.get(prodClassName).longMetrics.put("prodClassesCovered", prodClassesCovered);
 		metricsByProdClass.get(prodClassName).longMetrics.put("prod.covratio", 
 				coverageRatio);
