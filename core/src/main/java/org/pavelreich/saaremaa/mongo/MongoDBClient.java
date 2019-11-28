@@ -1,11 +1,13 @@
 package org.pavelreich.saaremaa.mongo;
 
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -30,7 +32,7 @@ public class MongoDBClient {
 		@Override
 		public void onSubscribe(Subscription s) {
 			LOG.info("onSubscribe: " + s);	
-			
+			 s.request(Integer.MAX_VALUE);
 		}
 
 		@Override
@@ -57,6 +59,42 @@ public class MongoDBClient {
 	private static final Logger LOG = LoggerFactory.getLogger(MongoDBClient.class);
 	private static final int QUEUE_SIZE = 10;
 
+	public List<Document> find(String collectionName, Bson query) {
+		FindPublisher<Document> ret = database.getCollection("classCoverage").find(query);
+		CountDownLatch findLatch = new CountDownLatch(1);
+		List<Document> found = new CopyOnWriteArrayList<Document>();
+		ret.subscribe(new Subscriber<Document>() {
+
+			@Override
+			public void onSubscribe(Subscription s) {
+				s.request(Integer.MAX_VALUE);
+			}
+
+			@Override
+			public void onNext(Document t) {
+				found.add(t);
+			}
+
+			@Override
+			public void onError(Throwable t) {
+				LOG.error("onError for collection " + collectionName + ", query " + query + " got exception " + t.getMessage(), t);
+				findLatch.countDown();
+			}
+
+			@Override
+			public void onComplete() {
+				LOG.error("onComplete for collection " + collectionName + ", query " + query + " got " + found.size() + " results");
+				findLatch.countDown();				
+			}
+		});
+		try {
+			findLatch.await(10, TimeUnit.SECONDS);
+		} catch (InterruptedException e) {
+			LOG.error(e.getLocalizedMessage(), e);
+		}
+		return found;
+		
+	}
 	public void insertCollection(String name, List<Document> documents) {
 		if (documents == null || documents.isEmpty()) {
 			return;
