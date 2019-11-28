@@ -83,7 +83,7 @@ public class MongoDBClient {
 
 			@Override
 			public void onComplete() {
-				LOG.error("onComplete for collection " + collectionName + ", query " + query + " got " + found.size() + " results");
+				LOG.info("onComplete for collection " + collectionName + ", query " + query + " got " + found.size() + " results");
 				findLatch.countDown();				
 			}
 		});
