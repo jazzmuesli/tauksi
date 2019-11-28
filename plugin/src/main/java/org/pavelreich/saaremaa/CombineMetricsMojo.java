@@ -29,6 +29,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.pavelreich.saaremaa.mongo.MongoDBClient;
 
 @Mojo(name = "combine-metrics", defaultPhase = LifecyclePhase.INITIALIZE, requiresDependencyResolution = ResolutionScope.NONE)
@@ -228,8 +229,50 @@ public class CombineMetricsMojo extends AbstractMojo {
 		List<Pair<String, String>> pairs = new ArrayList();
 		getLog().info("Found " + files.size() + " files in dir=" + dir);
 		files.forEach(file -> pairs.addAll(readTMetricPairs(file, "metricType")));
+		files.forEach(file -> addCoverageMetrics(file, metricsByProdClass));
 		getLog().info("Generated " + pairs.size() + " from " + files.size() + " files");
 		pairs.forEach(p -> populateTMetrics(p, metricsByProdClass));
+	}
+
+	protected Map<String, Integer> sumLinesByClass(List<Document> ret, String linesName) {
+		Map<String, Integer> map = ret.stream().collect(Collectors.<Document,String,Integer>toMap(doc -> doc.getString("prodClassName"), 
+				val -> val.getInteger(linesName, 0),
+				(a,b) -> a+b));
+		return map;
+	}
+	
+	private void addCoverageMetrics(String file, Map<String, Metrics> metricsByProdClass) {
+		String sessionId = "730ef9c2-6467-44c3-8b08-2f2f8cdad4b5";
+		File f = new File(file);
+		sessionId = f.getName().replaceAll("-tmetrics.csv", "");
+		getLog().info("Processing sessionId=" + sessionId);
+		Bson query = com.mongodb.client.model.Filters.eq("sessionId",sessionId);
+		List<Document> testsLaunched = db.find("testsLaunched", query);
+
+		Set<String> testClassNames = testsLaunched.stream().map(x->x.getString("testClassName")).collect(Collectors.toSet());
+		getLog().info("Found " + testClassNames + " testsLaunched for  " + sessionId);
+		if (testsLaunched.size() != 1) {
+			return;
+		}
+		
+		String testClassName = testClassNames.iterator().next();
+		String prodClassName = Helper.getProdClassName(testClassName);
+		List<Document> classCoverage = db.find("classCoverage", query);
+		
+		getLog().info("Found " + classCoverage.size() + " classCoverage docs for " + sessionId);
+		Map<String, Integer> coveredLines = sumLinesByClass(classCoverage,"coveredLines");
+		Map<String, Integer> missedLines = sumLinesByClass(classCoverage,"missedLines");
+		long prodClassesCovered = coveredLines.values().stream().filter(p -> p > 0).count();
+		Map<String, Double> covratio = coveredLines.entrySet().stream().collect(
+				Collectors.<Entry<String,Integer>, String,Double>toMap(k -> k.getKey(), 
+						v-> Double.valueOf(v.getValue()) / Double.valueOf(v.getValue() + missedLines.getOrDefault(v.getKey(), 0))
+						));
+		long coverageRatio = Math.round(covratio.getOrDefault(prodClassName, 0.0)*100);
+		getLog().info("Test " + testClassName + "  covered " + prodClassesCovered + " prod classes and " + prodClassName + " with " + coverageRatio);
+				
+		metricsByProdClass.get(prodClassName).longMetrics.put("prodClassesCovered", prodClassesCovered);
+		metricsByProdClass.get(prodClassName).longMetrics.put("prod.covratio", 
+				coverageRatio);
 	}
 
 	protected void addTNOO(Map<String, Metrics> metricsByProdClass) {
