@@ -1,4 +1,0 @@
-class
-org.pavelreich.saaremaa.transformer.MyTransformerTest
-class
-org.pavelreich.saaremaa.transformer.MyTransformer

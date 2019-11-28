@@ -9,11 +9,16 @@ public class MyTransformer {
 	}
 
 	public String transform(String x) {
-		return x + x;
+		Calculator calculator = new Calculator();
+		return calculator.doubleString(x);
 	}
 	
 	public String getName(User u) {
 		return u.toString();
+	}
+	
+	public String uncoveredMethod(String a) {
+		return a+"uncovered";
 	}
 	
 	static class User {
