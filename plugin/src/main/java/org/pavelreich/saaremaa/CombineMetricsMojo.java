@@ -256,7 +256,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 
 		Set<String> testClassNames = testsLaunched.stream().map(x->x.getString("testClassName")).collect(Collectors.toSet());
 		getLog().info("Found " + testClassNames + " testsLaunched for  " + sessionId);
-		if (testsLaunched.size() != 1) {
+		if (testClassNames.size() != 1) {
 			return;
 		}
 		
