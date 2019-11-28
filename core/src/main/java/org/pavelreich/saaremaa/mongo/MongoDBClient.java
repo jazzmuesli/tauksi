@@ -1,6 +1,7 @@
 package org.pavelreich.saaremaa.mongo;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
@@ -11,16 +12,45 @@ import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.reactivestreams.client.FindPublisher;
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoClients;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.mongodb.reactivestreams.client.Success;
 
-
 public class MongoDBClient {
 
+	 static final class MySubscriber implements Subscriber {
+		private final CountDownLatch latch;
+
+		MySubscriber(CountDownLatch latch) {
+			this.latch = latch;
+		}
+
+		@Override
+		public void onSubscribe(Subscription s) {
+			LOG.info("onSubscribe: " + s);	
+			
+		}
+
+		@Override
+		public void onNext(Object t) {
+			LOG.info("onNext: " + t);
+		}
+
+		@Override
+		public void onError(Throwable t) {
+			LOG.error("onError: " + t);				
+		}
+
+		@Override
+		public void onComplete() {
+			LOG.info("onComplete: ");	
+			latch.countDown();
+		}
+	}
 	private MongoClient mongoClient;
-	private MongoDatabase database;
+	MongoDatabase database;
 	private Semaphore semaphore;
 	private String name;
 
@@ -34,10 +64,11 @@ public class MongoDBClient {
 		try {
 
 			if (LOG.isDebugEnabled()) {
-				LOG.debug("inserting.name=" + this.name + ", collection=" + name + ", " + documents.size() + " documents. Semaphore: " + semaphore.availablePermits());
+				LOG.debug("inserting.name=" + this.name + ", collection=" + name + ", " + documents.size()
+						+ " documents. Semaphore: " + semaphore.availablePermits());
 			}
-			acquire(1,"insertCollection",0);
-			
+			acquire(1, "insertCollection", 0);
+
 			Publisher<Success> pub = database.getCollection(name).insertMany(documents);
 			Subscriber<Success> s = new Subscriber<Success>() {
 
@@ -53,14 +84,14 @@ public class MongoDBClient {
 				@Override
 				public void onNext(Success t) {
 					if (LOG.isDebugEnabled()) {
-						LOG.debug("onNext:" + t);						
+						LOG.debug("onNext:" + t);
 					}
-					
+
 				}
 
 				@Override
 				public void onError(Throwable t) {
-					LOG.error("onError: " + t.getMessage() , t);
+					LOG.error("onError: " + t.getMessage(), t);
 					semaphore.release();
 				}
 
@@ -74,15 +105,15 @@ public class MongoDBClient {
 			};
 			pub.subscribe(s);
 		} catch (Exception e) {
-			LOG.error(e.getMessage(), e);;
+			LOG.error(e.getMessage(), e);
+			;
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}
 	}
 
-	
 	public MongoDBClient(String name) {
-		java.util.logging.Logger mongoLogger = java.util.logging.Logger.getLogger( "org.mongodb.driver" );
-		mongoLogger.setLevel(java.util.logging.Level.SEVERE); //TODO: fix logging
+		java.util.logging.Logger mongoLogger = java.util.logging.Logger.getLogger("org.mongodb.driver");
+		mongoLogger.setLevel(java.util.logging.Level.SEVERE); // TODO: fix logging
 		this.mongoClient = MongoClients.create();
 		this.name = name;
 		this.database = mongoClient.getDatabase("db");
@@ -92,16 +123,19 @@ public class MongoDBClient {
 	public void waitForOperationsToFinish() {
 		waitForOperationsToFinish(120000L);
 	}
+
 	public void waitForOperationsToFinish(long maxTimeout) {
 		acquire(QUEUE_SIZE, "finish", maxTimeout);
 		semaphore.release(QUEUE_SIZE);
 	}
+
 	public void acquire(int permits, String reason, long maxTimeout) {
 		try {
 			long stime = System.currentTimeMillis();
-			while(!semaphore.tryAcquire(permits, 1000, TimeUnit.MILLISECONDS)) {
+			while (!semaphore.tryAcquire(permits, 1000, TimeUnit.MILLISECONDS)) {
 				long elapsed = System.currentTimeMillis() - stime;
-				LOG.info(name + "." + reason + ": Waiting for " + semaphore.availablePermits() + " operations to finish since " + elapsed);
+				LOG.info(name + "." + reason + ": Waiting for " + semaphore.availablePermits()
+						+ " operations to finish since " + elapsed);
 				if (maxTimeout > 0 && elapsed > maxTimeout) {
 					break;
 				}
