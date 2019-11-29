@@ -1,6 +1,6 @@
 #!/bin/sh
 export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/; export PATH=$JAVA_HOME/bin:$PATH
-mvn compile
+mvn test-compile
 #mvn -Ddependencies="org.evosuite:evosuite-standalone-runtime:LATEST:test;junit:junit:4.12:test" -Doverwrite=true org.pavelreich.saaremaa:plugin:add-dependency
 #mvn compile
 mvn org.pavelreich.saaremaa:plugin:metrics
