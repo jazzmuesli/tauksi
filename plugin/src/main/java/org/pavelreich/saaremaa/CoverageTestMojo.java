@@ -144,9 +144,12 @@ public class CoverageTestMojo extends AbstractMojo {
     				if (Boolean.valueOf(shuffleTests)) {
     					Collections.shuffle(commands);
     				}
+    				if (testClassName != null && !testClassName.isEmpty()) {
+    					getLog().info("Filtering by testClassName=" + testClassName);
+    					commands = commands.stream().filter(p->p.testClassName.equals(testClassName)).collect(Collectors.toList());
+    				}
     				for (TestExecutionCommand cmd : ProgressBar.wrap(commands, "testCases")) {
 						runTest(classpath, launcher, cmd);
-    					
     				}
         		}
 			} catch (Exception e) {
@@ -176,6 +179,9 @@ public class CoverageTestMojo extends AbstractMojo {
 
 
 	private boolean filterDependency(String p) {
+		if (p.contains("junit-3.")) {
+			return false;
+		}
 		if (p.contains("unit-4") && !p.contains("unit-4.12")) {
 			getLog().info("bad junit: " + p);
 			return false;
