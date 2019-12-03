@@ -60,7 +60,7 @@ public class MongoDBClient {
 	private static final int QUEUE_SIZE = 10;
 
 	public List<Document> find(String collectionName, Bson query) {
-		FindPublisher<Document> ret = database.getCollection("classCoverage").find(query);
+		FindPublisher<Document> ret = database.getCollection(collectionName).find(query);
 		CountDownLatch findLatch = new CountDownLatch(1);
 		List<Document> found = new CopyOnWriteArrayList<Document>();
 		ret.subscribe(new Subscriber<Document>() {
