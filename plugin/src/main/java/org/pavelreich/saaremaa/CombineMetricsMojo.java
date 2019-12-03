@@ -51,7 +51,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 		static Set<String> fields = new LinkedHashSet<>();
 		private String prodClassName;
 
-		Map<String, Long> longMetrics = new HashMap();
+		Map<String, Long> longMetrics = new HashMap<String, Long>();
 
 		Metrics(String prodClassName) {
 			this.prodClassName = prodClassName;
@@ -163,6 +163,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 		try {
 			parser = getParser(fname, "class");
 			Map<String, Map<String, Long>> ret = parser.getRecords().stream()
+					.filter(p-> "class".equals(p.get("type")))
 					.collect(Collectors.toMap(x -> x.get("class"), x -> toCKMetrics(suffix, x)));
 			return ret;
 		} catch (Exception e) {
@@ -186,12 +187,16 @@ public class CombineMetricsMojo extends AbstractMojo {
 			addTestCKmetrics(metricsByProdClass);
 			String fname = project.getBuild().getDirectory() + File.separator + "metrics.csv";
 			CSVReporter reporter = new CSVReporter(fname, Metrics.getFields());
-			List<Document> docs = new ArrayList();
+			List<Document> docs = new ArrayList<Document>();
 			for (Entry<String, Metrics> entry : metricsByProdClass.entrySet()) {
-				Document doc = entry.getValue().toDocument();
+				Metrics metrics = entry.getValue();
+				if (!metrics.longMetrics.containsKey("loc.prod")) {
+					continue;
+				}
+				Document doc = metrics.toDocument();
 				doc.append("project", project.getArtifact().getId()).append("basedir", project.getBasedir().toString());
 				docs.add(doc);
-				reporter.write(entry.getValue().getValues());
+				reporter.write(metrics.getValues());
 			}
 			reporter.close();
 
