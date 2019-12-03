@@ -8,7 +8,7 @@ mvn org.pavelreich.saaremaa:plugin:metrics
 #mvn -Dsandbox_mode=OFF -Duse_separate_classloader=false org.evosuite.plugins:evosuite-maven-plugin:LATEST:export
 #mvn -Drat.skip=true  -Dmaven.compiler.source=1.8 -Dmaven.compiler.target=1.8 -fae -Dmaven.test.failure.ignore=true org.jacoco:jacoco-maven-plugin:LATEST:prepare-agent test
 mvn org.pavelreich.saaremaa:plugin:metrics
-mvn -Drat.skip=true -DseqTestMethods=false -DshuffleTests=true -DinterceptorEnabled=false -Dtimeout=65 org.pavelreich.saaremaa:plugin:ctest
+mvn -Drat.skip=true -DseqTestMethods=false -DshuffleTests=true -DinterceptorEnabled=false -Dtimeout=165 org.pavelreich.saaremaa:plugin:ctest
 #mvn -Dsandbox_mode=OFF
 mvn org.pavelreich.saaremaa:plugin:analyse-testcases
 mvn org.pavelreich.saaremaa:plugin:combine-metrics
