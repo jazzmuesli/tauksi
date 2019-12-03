@@ -37,6 +37,8 @@ import org.pavelreich.saaremaa.mongo.MongoDBClient;
 
 @Mojo(name = "combine-metrics", defaultPhase = LifecyclePhase.INITIALIZE, requiresDependencyResolution = ResolutionScope.NONE)
 public class CombineMetricsMojo extends AbstractMojo {
+	private static final String LOC_PROD = "loc.prod";
+	private static final String PROD_COVERED_LINES = "prod.coveredLines";
 
 	@Parameter(defaultValue = "${project}", readonly = true, required = true)
 	MavenProject project;
@@ -98,6 +100,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 			longMetrics.entrySet().forEach(e -> doc.append(e.getKey().replace('.', '_'), e.getValue()));
 			return doc;
 		}
+
 	}
 
 	protected void populateCK(Map<String, Metrics> metricsByProdClass, Entry<String, Map<String, Long>> p) {
@@ -186,13 +189,20 @@ public class CombineMetricsMojo extends AbstractMojo {
 			addProdCKmetrics(metricsByProdClass);
 			addTestCKmetrics(metricsByProdClass);
 			String fname = project.getBuild().getDirectory() + File.separator + "metrics.csv";
-			CSVReporter reporter = new CSVReporter(fname, Metrics.getFields());
 			List<Document> docs = new ArrayList<Document>();
+			metricsByProdClass.values().forEach(metrics -> {
+				if (metrics.longMetrics.containsKey(PROD_COVERED_LINES) && metrics.longMetrics.containsKey(LOC_PROD)) {
+					long ratio = 100 * metrics.longMetrics.get(PROD_COVERED_LINES) / metrics.longMetrics.get(LOC_PROD);
+					metrics.put("prod.maxCovratio", ratio);
+				}
+			});
+			CSVReporter reporter = new CSVReporter(fname, Metrics.getFields());
 			for (Entry<String, Metrics> entry : metricsByProdClass.entrySet()) {
 				Metrics metrics = entry.getValue();
-				if (!metrics.longMetrics.containsKey("loc.prod")) {
+				if (!metrics.longMetrics.containsKey(LOC_PROD)) {
 					continue;
 				}
+
 				Document doc = metrics.toDocument();
 				doc.append("project", project.getArtifact().getId()).append("basedir", project.getBasedir().toString());
 				docs.add(doc);
@@ -279,8 +289,8 @@ public class CombineMetricsMojo extends AbstractMojo {
 
 
 
-		getLog().info("Found " + classCoverage.size() + " classCoverage docs for " + sessionId);
-		getLog().info("Found " + methodCoverage.size() + " methodCoverage docs for " + sessionId);
+//		getLog().info("Found " + classCoverage.size() + " classCoverage docs for " + sessionId);
+//		getLog().info("Found " + methodCoverage.size() + " methodCoverage docs for " + sessionId);
 		Map<String, Integer> coveredLines = sumLinesByClass(classCoverage, "coveredLines");
 		Map<String, Integer> missedLines = sumLinesByClass(classCoverage, "missedLines");
 		long prodClassesCovered = coveredLines.values().stream().filter(p -> p > 0).count();
@@ -296,6 +306,9 @@ public class CombineMetricsMojo extends AbstractMojo {
 		Metrics metrics = metricsByProdClass.get(prodClassName);
 		metrics.put("prodClassesCovered", prodClassesCovered);
 		metrics.put("prod.covratio", coverageRatio);
+		Integer coveredLinesByThisTest = coveredLines.getOrDefault(prodClassName, 0);
+		long covLines = Math.max(coveredLinesByThisTest, metrics.longMetrics.getOrDefault(PROD_COVERED_LINES, 0L));
+		metrics.put(PROD_COVERED_LINES, covLines);
 		try {
 			calculateQualityIndex(f, methodCoverage, metrics);
 		} catch (Exception e) {
@@ -317,7 +330,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 		Path path = absoluteFile.getParentFile().toPath();
 		List<String> files = java.nio.file.Files.walk(path ).filter(p -> p.toFile().getName().endsWith("method.csv"))
 				.map(f -> f.toFile().getAbsolutePath()).collect(Collectors.toList());
-		getLog().info("from absoluteFile=" + absoluteFile + " found " + files);
+//		getLog().info("from absoluteFile=" + absoluteFile + " found " + files);
 		Map<ClassMethodKey, Document> methodCoverageMap = methodCoverage.stream()
 				.collect(Collectors.toMap(k -> ClassMethodKey.fromMethodCoverage(k), v -> v));
 		Map<ClassMethodKey, CSVRecord> methodMetrics = new HashMap<>();
@@ -326,17 +339,17 @@ public class CombineMetricsMojo extends AbstractMojo {
 			List<CSVRecord> records = parser.getRecords();
 			Map<ClassMethodKey, CSVRecord> map = records.stream()
 					.collect(Collectors.toMap(k -> ClassMethodKey.fromMethodMetric(k), v -> v));
-			getLog().info("found "+ records.size() + " for file=" + f);
+//			getLog().info("found "+ records.size() + " for file=" + f);
 			methodMetrics.putAll(map);
 		}
-		methodCoverageMap.keySet().forEach(x -> getLog().info("methodCoverage: " + x));
-		methodMetrics.keySet().forEach(x -> getLog().info("methodMetrics: " + x));
+//		methodCoverageMap.keySet().forEach(x -> getLog().info("methodCoverage: " + x));
+//		methodMetrics.keySet().forEach(x -> getLog().info("methodMetrics: " + x));
 		Map<String, Long> maxComplexityPerClass = calculateMaxComplexityPerClass(methodMetrics);
 		Map<ClassMethodKey, Double> iqai = methodMetrics.keySet().stream().filter(p->methodCoverageMap.containsKey(p)).
 				collect(
 						Collectors.toMap(k->k, 
 						x -> iqai(maxComplexityPerClass, methodCoverageMap.get(x), methodMetrics.get(x))));
-		iqai.entrySet().forEach(x->getLog().info("iqai: " + x));
+		iqai.entrySet().forEach(x -> getLog().info("iqai: " + x));
 		BinaryOperator<Double> mergeFunction = (a,b) -> a*b;
 		Map<String, Double> classIqai = iqai.entrySet().stream().collect(Collectors.toMap(k->k.getKey().className, 
 				v->v.getValue(), mergeFunction));
