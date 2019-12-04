@@ -337,8 +337,10 @@ public class CombineMetricsMojo extends AbstractMojo {
 		List<String> files = java.nio.file.Files.walk(path ).filter(p -> p.toFile().getName().endsWith("method.csv"))
 				.map(f -> f.toFile().getAbsolutePath()).collect(Collectors.toList());
 //		getLog().info("from absoluteFile=" + absoluteFile + " found " + files);
+		BinaryOperator<Document> mergeDocuments = (a,b) -> { a.putAll(b); return a; };
 		Map<ClassMethodKey, Document> methodCoverageMap = methodCoverage.stream()
-				.collect(Collectors.toMap(k -> ClassMethodKey.fromMethodCoverage(k), v -> v));
+				.collect(Collectors.toMap(k -> ClassMethodKey.fromMethodCoverage(k), v -> v,
+						mergeDocuments ));
 		Map<ClassMethodKey, CSVRecord> methodMetrics = new HashMap<>();
 		for (String f : files) {
 			CSVParser parser = getParser(f, "class");
@@ -355,7 +357,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 				collect(
 						Collectors.toMap(k->k, 
 						x -> iqai(maxComplexityPerClass, methodCoverageMap.get(x), methodMetrics.get(x))));
-		iqai.entrySet().forEach(x -> getLog().info("iqai: " + x));
+		//iqai.entrySet().forEach(x -> getLog().info("iqai: " + x));
 		BinaryOperator<Double> mergeFunction = (a,b) -> a*b;
 		Map<String, Double> classIqai = iqai.entrySet().stream().collect(Collectors.toMap(k->k.getKey().className, 
 				v->v.getValue(), mergeFunction));
