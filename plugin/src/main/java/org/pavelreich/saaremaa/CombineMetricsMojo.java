@@ -33,6 +33,7 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.pavelreich.saaremaa.CombineMetricsMojo.Metrics;
 import org.pavelreich.saaremaa.mongo.MongoDBClient;
 
 @Mojo(name = "combine-metrics", defaultPhase = LifecyclePhase.INITIALIZE, requiresDependencyResolution = ResolutionScope.NONE)
@@ -183,7 +184,11 @@ public class CombineMetricsMojo extends AbstractMojo {
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		try {
-			Map<String, Metrics> metricsByProdClass = new HashMap();
+			if (project.getParent() != null) {
+				getLog().info("Ignoring child project " + project);
+				return;
+			}
+			Map<String, Metrics> metricsByProdClass = new HashMap<String, Metrics>();
 			addTMetrics(project.getBasedir().getAbsolutePath(), metricsByProdClass);
 			addTNOO(metricsByProdClass);
 			addProdCKmetrics(metricsByProdClass);
@@ -215,7 +220,6 @@ public class CombineMetricsMojo extends AbstractMojo {
 			if (docsLength > 0) {
 				db.insertCollection("combinedMetrics", docs);
 				db.waitForOperationsToFinish();
-
 			}
 		} catch (Exception e) {
 			getLog().error(e.getMessage(), e);
