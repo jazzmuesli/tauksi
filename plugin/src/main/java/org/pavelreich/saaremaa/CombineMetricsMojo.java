@@ -193,7 +193,9 @@ public class CombineMetricsMojo extends AbstractMojo {
 			addTNOO(metricsByProdClass);
 			addProdCKmetrics(metricsByProdClass);
 			addTestCKmetrics(metricsByProdClass);
-			String fname = project.getBuild().getDirectory() + File.separator + "metrics.csv";
+			String directory = project.getBuild().getDirectory();
+			new File(directory).mkdirs();
+			String fname = directory + File.separator + "metrics.csv";
 			List<Document> docs = new ArrayList<Document>();
 			metricsByProdClass.values().forEach(metrics -> {
 				if (metrics.longMetrics.containsKey(PROD_COVERED_LINES) && metrics.longMetrics.containsKey(LOC_PROD)) {
