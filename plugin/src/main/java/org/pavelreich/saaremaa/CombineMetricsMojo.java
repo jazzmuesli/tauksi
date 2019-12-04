@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.BinaryOperator;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.commons.csv.CSVFormat;
@@ -23,6 +24,7 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.math3.util.Pair;
+import org.apache.maven.model.Model;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -30,7 +32,12 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.project.DefaultProjectBuilder;
+import org.apache.maven.project.DefaultProjectBuildingRequest;
 import org.apache.maven.project.MavenProject;
+import org.apache.maven.project.MavenProjectHelper;
+import org.apache.maven.project.ProjectBuildingException;
+import org.apache.maven.project.ProjectBuildingRequest;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.pavelreich.saaremaa.CombineMetricsMojo.Metrics;
@@ -188,6 +195,17 @@ public class CombineMetricsMojo extends AbstractMojo {
 				getLog().info("Ignoring child project " + project);
 				return;
 			}
+			getLog().info("modules: " + project.getModules());
+			getLog().info("model: " + project.getModel());
+			getLog().info("projectReferences: " + project.getProjectReferences());
+			for (String module : project.getModules()) {
+				Model childModel = new Model();
+				childModel.addModule(module);
+				MavenProject childProject = new MavenProject(childModel);
+				getLog().info("childProject: " + childProject);
+				getLog().info("childProject.src: " + childProject.getCompileSourceRoots());
+				getLog().info("childProject.src.test: " + childProject.getTestCompileSourceRoots());
+			}
 			Map<String, Metrics> metricsByProdClass = new HashMap<String, Metrics>();
 			addTMetrics(project.getBasedir().getAbsolutePath(), metricsByProdClass);
 			addTNOO(metricsByProdClass);
@@ -230,28 +248,29 @@ public class CombineMetricsMojo extends AbstractMojo {
 	}
 
 	protected void addTestCKmetrics(Map<String, Metrics> metricsByProdClass) throws IOException {
-		project.getTestCompileSourceRoots().forEach(dirName -> {
-			Map<String, Map<String, Long>> allTestCKMetrics = readCKMetricPairs(dirName + File.separator + "class.csv",
+		List<String> files = findFiles(project.getBasedir().getAbsolutePath(), p->p.getName().equals("class.csv"));
+		//TODO: use only test project.getTestCompileSourceRoots()
+		files.forEach(fileName -> {
+			Map<String, Map<String, Long>> allTestCKMetrics = readCKMetricPairs(fileName,
 					".test");
-			allTestCKMetrics.entrySet().stream().filter(f -> !f.getKey().contains("ESTest_scaffolding")).// ignore
+			allTestCKMetrics.entrySet().stream().filter(f -> Helper.isTest(f.getKey()) && !f.getKey().contains("ESTest_scaffolding")).// ignore
 																											// evosuite
 			forEach(p -> populateCK(metricsByProdClass, p));
 		});
 	}
 
 	protected void addProdCKmetrics(Map<String, Metrics> metricsByProdClass) throws IOException {
-		project.getCompileSourceRoots().forEach(dirName -> {
-			Map<String, Map<String, Long>> prodCKMetrics = readCKMetricPairs(dirName + File.separator + "class.csv",
-					".prod");
-			prodCKMetrics.entrySet().forEach(p -> populateCK(metricsByProdClass, p));
+		//TODO: use only prod
+		List<String> files = findFiles(project.getBasedir().getAbsolutePath(), p->p.getName().equals("class.csv"));
+		files.forEach(file -> {
+			Map<String, Map<String, Long>> prodCKMetrics = readCKMetricPairs(file, ".prod");
+			prodCKMetrics.entrySet().stream().filter(p-> !Helper.isTest(p.getKey())).
+			forEach(p -> populateCK(metricsByProdClass, p));
 		});
 	}
 
 	protected void addTMetrics(String dir, Map<String, Metrics> metricsByProdClass) throws IOException {
-		Path path = new File(dir).toPath();
-
-		List<String> files = java.nio.file.Files.walk(path).filter(p -> p.toFile().getName().endsWith("-tmetrics.csv"))
-				.map(f -> f.toFile().getAbsolutePath()).collect(Collectors.toList());
+		List<String> files = findFiles(dir, (p) -> p.getName().endsWith("-tmetrics.csv"));
 
 		List<Pair<String, String>> pairs = new ArrayList();
 		getLog().info("Found " + files.size() + " files in dir=" + dir);
@@ -261,17 +280,19 @@ public class CombineMetricsMojo extends AbstractMojo {
 		pairs.forEach(p -> populateTMetrics(p, metricsByProdClass));
 	}
 
+	protected List<String> findFiles(String dir, Predicate<File> predicate) throws IOException {
+		Path path = new File(dir).toPath();
+		List<String> files = java.nio.file.Files.walk(path).filter(p -> predicate.test(p.toFile()))
+				.map(f -> f.toFile().getAbsolutePath()).collect(Collectors.toList());
+		return files;
+	}
+
 	protected Map<String, Integer> sumLinesByClass(List<Document> ret, String linesName) {
 		Map<String, Integer> map = ret.stream().collect(Collectors.<Document, String, Integer>toMap(
 				doc -> doc.getString("prodClassName"), val -> val.getInteger(linesName, 0), (a, b) -> a + b));
 		return map;
 	}
 
-	//test
-	public static void main(String[] args) {
-		Map<String, Metrics> metricsByProdClass = new HashMap<>();
-		new CombineMetricsMojo().addCoverageMetrics("/Users/preich/Documents/git/tauksi/transformer/b020cd80-e181-4981-a704-b1623eeb352b-tmetrics.csv", metricsByProdClass);
-	}
 	
 	private void addCoverageMetrics(String file, Map<String, Metrics> metricsByProdClass) {
 		String sessionId = "730ef9c2-6467-44c3-8b08-2f2f8cdad4b5";
