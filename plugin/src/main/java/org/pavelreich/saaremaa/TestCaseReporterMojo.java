@@ -33,6 +33,9 @@ public class TestCaseReporterMojo extends AbstractMojo {
 					new SpoonTestExtractor(logger));
 			for (String dirName : project.getTestCompileSourceRoots()) {
 				getLog().info("Processing dir=" + dirName);
+				if (!new File(dirName).exists()) {
+					continue;
+				}
 
 				Map<String, Set<String>> testCasesMap = extractor.extractTestCasesByClass(dirName);
 				CSVReporter reporter = new CSVReporter(dirName + File.separator + "testcases.csv", "testClassName",
