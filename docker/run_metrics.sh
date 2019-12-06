@@ -1,4 +1,12 @@
 #!/bin/sh
+
+echo "params:$*"
+run_tests=true
+if [[ $* == *"skip_ctest"* ]]; then
+  echo "skip ctest"
+  run_tests=false
+fi
+echo "run_tests:$run_tests"
 export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/; export PATH=$JAVA_HOME/bin:$PATH
 mvn -Drat.skip=true test-compile
 #mvn -Ddependencies="org.evosuite:evosuite-standalone-runtime:LATEST:test;junit:junit:4.12:test" -Doverwrite=true org.pavelreich.saaremaa:plugin:add-dependency
@@ -10,7 +18,12 @@ mvn -Drat.skip=true org.pavelreich.saaremaa:plugin:metrics
 mvn -Drat.skip=true org.pavelreich.saaremaa:plugin:metrics
 mvn -Drat.skip=true com.google.testability-explorer:testability-mvn-plugin:testability
 mvn -Drat.skip=true org.pavelreich.saaremaa:plugin:parse-testability
-mvn -Drat.skip=true -DseqTestMethods=false -DshuffleTests=true -DinterceptorEnabled=false -Dtimeout=165 org.pavelreich.saaremaa:plugin:ctest
+if [[ "$run_tests" == "true" ]];
+then
+	mvn -Drat.skip=true -DseqTestMethods=false -DshuffleTests=true -DinterceptorEnabled=false -Dtimeout=165 org.pavelreich.saaremaa:plugin:ctest
+else
+	echo "Not running tests"
+fi
 #mvn -Dsandbox_mode=OFF
 mvn -Drat.skip=true org.pavelreich.saaremaa:plugin:analyse-testcases
 mvn -Drat.skip=true org.pavelreich.saaremaa:plugin:combine-metrics
