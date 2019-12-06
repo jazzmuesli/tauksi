@@ -1,10 +1,15 @@
 #!/bin/sh
 
 echo "params:$*"
+ignoreChildProjects=true
 run_tests=true
 if [[ $* == *"skip_ctest"* ]]; then
   echo "skip ctest"
   run_tests=false
+fi
+if [[ $* == *"ignore_child_projects"* ]]; then
+  echo "ignore child projects"
+  ignoreChildProjects=false
 fi
 echo "run_tests:$run_tests"
 export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/; export PATH=$JAVA_HOME/bin:$PATH
@@ -26,5 +31,5 @@ else
 fi
 #mvn -Dsandbox_mode=OFF
 mvn -Drat.skip=true org.pavelreich.saaremaa:plugin:analyse-testcases
-mvn -Drat.skip=true org.pavelreich.saaremaa:plugin:combine-metrics
+mvn -Drat.skip=true -DignoreChildProjects=$ignoreChildProjects org.pavelreich.saaremaa:plugin:combine-metrics
 
