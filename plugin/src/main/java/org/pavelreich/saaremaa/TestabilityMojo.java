@@ -58,7 +58,8 @@ public class TestabilityMojo extends AbstractMojo {
 			int docsLength = docs == null ? 0 : docs.size();
 			getLog().info("Parse " + fname + " and insert " + docsLength + " into mongo");
 			if (docsLength > 0) {
-				CSVReporter reporter = new CSVReporter(project.getBuild().getDirectory()+File.separator+"testability.csv", "className","cost");
+				CSVReporter reporter = new CSVReporter(
+						project.getBuild().getDirectory() + File.separator + "testability.csv", "className", "cost");
 				for (org.bson.Document document : docs) {
 					reporter.write(document.get("class"), document.get("cost"));
 				}
@@ -95,7 +96,6 @@ public class TestabilityMojo extends AbstractMojo {
 		XPathFactory xpf = XPathFactory.newInstance();
 		XPath xpath = xpf.newXPath();
 		NodeList nodes = (NodeList) xpath.evaluate("//class", xml, XPathConstants.NODESET);
-		System.out.println("nodes: " + nodes);
 
 		List<org.bson.Document> result = new ArrayList();
 		for (int i = 0; i < nodes.getLength(); i++) {

@@ -51,6 +51,8 @@ public class CombineMetricsMojo extends AbstractMojo {
 	@Parameter(defaultValue = "${project}", readonly = true, required = true)
 	MavenProject project;
 	private MongoDBClient db;
+	@Parameter( property = "ignoreChildProjects", defaultValue = "true")
+	private String ignoreChildProjects;
 
 	public CombineMetricsMojo() {
 		super();
@@ -191,26 +193,27 @@ public class CombineMetricsMojo extends AbstractMojo {
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		try {
-			if (project.getParent() != null) {
+			if (Boolean.valueOf(ignoreChildProjects) && project.getParent() != null) {
 				getLog().info("Ignoring child project " + project);
 				return;
 			}
 			getLog().info("modules: " + project.getModules());
-			getLog().info("model: " + project.getModel());
-			getLog().info("projectReferences: " + project.getProjectReferences());
-			for (String module : project.getModules()) {
-				Model childModel = new Model();
-				childModel.addModule(module);
-				MavenProject childProject = new MavenProject(childModel);
-				getLog().info("childProject: " + childProject);
-				getLog().info("childProject.src: " + childProject.getCompileSourceRoots());
-				getLog().info("childProject.src.test: " + childProject.getTestCompileSourceRoots());
-			}
+//			getLog().info("model: " + project.getModel());
+//			getLog().info("projectReferences: " + project.getProjectReferences());
+//			for (String module : project.getModules()) {
+//				Model childModel = new Model();
+//				childModel.addModule(module);
+//				MavenProject childProject = new MavenProject(childModel);
+//				getLog().info("childProject: " + childProject);
+//				getLog().info("childProject.src: " + childProject.getCompileSourceRoots());
+//				getLog().info("childProject.src.test: " + childProject.getTestCompileSourceRoots());
+//			}
 			Map<String, Metrics> metricsByProdClass = new HashMap<String, Metrics>();
 			addTMetrics(project.getBasedir().getAbsolutePath(), metricsByProdClass);
 			addTNOO(metricsByProdClass);
 			addProdCKmetrics(metricsByProdClass);
 			addTestCKmetrics(metricsByProdClass);
+			addTestability(metricsByProdClass);
 			String directory = project.getBuild().getDirectory();
 			new File(directory).mkdirs();
 			String fname = directory + File.separator + "metrics.csv";
@@ -244,6 +247,25 @@ public class CombineMetricsMojo extends AbstractMojo {
 		} catch (Exception e) {
 			getLog().error(e.getMessage(), e);
 		}
+
+	}
+
+	private void addTestability(Map<String, Metrics> metricsByProdClass) throws IOException {
+		List<String> files = findFiles(project.getBasedir().getAbsolutePath(),
+				p -> p.getName().equals("testability.csv"));
+		files.forEach(fileName -> {
+			try {
+				CSVParser parser = getParser(fileName, "className");
+				parser.getRecords().forEach(record -> {
+					String prodClassName = record.get("className");
+					Metrics metrics = getMetrics(metricsByProdClass, prodClassName);
+					Long cost = Long.valueOf(record.get("cost"));
+					metrics.put("testabilityCost", cost);
+				});
+			} catch (Exception e) {
+				getLog().error("Can't parse " + fileName + " due to  " + e.getMessage(), e);
+			}
+		});
 
 	}
 
@@ -329,8 +351,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 		getLog().info("Test " + testClassName + "  covered " + prodClassesCovered + " prod classes and " + prodClassName
 				+ " with " + coverageRatio);
 
-		metricsByProdClass.putIfAbsent(prodClassName, new Metrics(prodClassName));
-		Metrics metrics = metricsByProdClass.get(prodClassName);
+		Metrics metrics = getMetrics(metricsByProdClass, prodClassName);
 		metrics.put("prodClassesCovered", prodClassesCovered);
 		metrics.put("prod.covratio", coverageRatio);
 		Integer coveredLinesByThisTest = coveredLines.getOrDefault(prodClassName, 0);
@@ -342,6 +363,12 @@ public class CombineMetricsMojo extends AbstractMojo {
 			getLog().error(e.getMessage(), e);
 		}
 
+	}
+
+	protected Metrics getMetrics(Map<String, Metrics> metricsByProdClass, String prodClassName) {
+		metricsByProdClass.putIfAbsent(prodClassName, new Metrics(prodClassName));
+		Metrics metrics = metricsByProdClass.get(prodClassName);
+		return metrics;
 	}
 
 	/**
