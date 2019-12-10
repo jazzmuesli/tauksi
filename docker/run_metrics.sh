@@ -4,19 +4,25 @@ echo "params:$*"
 ignoreChildProjects=true
 run_tests=true
 evosuite=false
-if [[ $* == *"skip_ctest"* ]]; then
-  echo "skip ctest"
-  run_tests=false
-fi
+usage() { echo "Usage: $0 [-c -r -e]" 1>&2; exit 1; }
 
-if [[ $* == *"evo"* ]]; then
-  echo "run evosuite"
-  evosuite=true
-fi
+while getopts "cre" o; do
+    case "${o}" in
+        c)
+            ignoreChildProjects=false
+            ;;
+        r)
+            run_tests=false
+            ;;
+	e)
+	    evosuite=true
+	    ;;
+        *)
+            usage
+            ;;
+    esac
+done
 
-if [[ $* == *"process_child_projects"* ]]; then
-  ignoreChildProjects=false
-fi
 echo "run_tests:$run_tests, evo: $evosuite, ignoreChildProjects: $ignoreChildProjects"
 export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/; export PATH=$JAVA_HOME/bin:$PATH
 mvn -Drat.skip=true test-compile
