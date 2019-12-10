@@ -25,8 +25,8 @@ done
 
 echo "run_tests:$run_tests, evo: $evosuite, ignoreChildProjects: $ignoreChildProjects"
 export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/; export PATH=$JAVA_HOME/bin:$PATH
-mvn -Drat.skip=true test-compile
-#mvn -Ddependencies="org.evosuite:evosuite-standalone-runtime:LATEST:test;junit:junit:4.12:test" -Doverwrite=true org.pavelreich.saaremaa:plugin:add-dependency
+mvn -Drat.skip=true -Ddependencies="org.evosuite:evosuite-standalone-runtime:LATEST:test;junit:junit:4.12:test" -Doverwrite=true org.pavelreich.saaremaa:plugin:add-dependency
+mvn -Drat.skip=true test-compile || exit 1
 #mvn compile
 mvn -Drat.skip=true org.pavelreich.saaremaa:plugin:metrics
 
