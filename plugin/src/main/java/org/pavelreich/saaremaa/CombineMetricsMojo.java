@@ -51,8 +51,12 @@ public class CombineMetricsMojo extends AbstractMojo {
 	@Parameter(defaultValue = "${project}", readonly = true, required = true)
 	MavenProject project;
 	private MongoDBClient db;
+	
 	@Parameter( property = "ignoreChildProjects", defaultValue = "true")
 	private String ignoreChildProjects;
+	
+	@Parameter( property = "usePomDirectories", defaultValue = "false")
+	private String usePomDirectories;
 
 	public CombineMetricsMojo() {
 		super();
@@ -270,8 +274,14 @@ public class CombineMetricsMojo extends AbstractMojo {
 	}
 
 	protected void addTestCKmetrics(Map<String, Metrics> metricsByProdClass) throws IOException {
-		List<String> files = findFiles(project.getBasedir().getAbsolutePath(), p->p.getName().equals("class.csv"));
-		//TODO: use only test project.getTestCompileSourceRoots()
+		List<String> files = new ArrayList<String>();
+		if (Boolean.valueOf(usePomDirectories)) {
+			for (String dir : project.getTestCompileSourceRoots()) {
+				files.addAll(findFiles(dir, p -> p.getName().equals("class.csv")));
+			}
+		} else {
+			files = findFiles(project.getBasedir().getAbsolutePath(), p -> p.getName().equals("class.csv"));
+		}
 		files.forEach(fileName -> {
 			Map<String, Map<String, Long>> allTestCKMetrics = readCKMetricPairs(fileName,
 					".test");
@@ -282,8 +292,15 @@ public class CombineMetricsMojo extends AbstractMojo {
 	}
 
 	protected void addProdCKmetrics(Map<String, Metrics> metricsByProdClass) throws IOException {
-		//TODO: use only prod
-		List<String> files = findFiles(project.getBasedir().getAbsolutePath(), p->p.getName().equals("class.csv"));
+		List<String> files = new ArrayList<String>();
+		if (Boolean.valueOf(usePomDirectories)) {
+			for (String dir : project.getCompileSourceRoots()) {
+				files.addAll(findFiles(dir, p -> p.getName().equals("class.csv")));
+			}
+		} else {
+			files = findFiles(project.getBasedir().getAbsolutePath(), p -> p.getName().equals("class.csv"));
+		}
+
 		files.forEach(file -> {
 			Map<String, Map<String, Long>> prodCKMetrics = readCKMetricPairs(file, ".prod");
 			prodCKMetrics.entrySet().stream().filter(p-> !Helper.isTest(p.getKey())).
