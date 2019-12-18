@@ -23,6 +23,8 @@ public class Helper {
 	static String getProdClassName(String testClassName) {
 		String prodClassName = testClassName
 				.replaceAll("_ESTest$", "")
+				.replaceAll("UnitTests$", "")
+				.replaceAll("UnitTest$", "")
 				.replaceAll("Test$", "")
 				.replaceAll("Tests$", "")
 				.replaceAll("\\.Test", ".")
@@ -31,7 +33,12 @@ public class Helper {
 	}
 
 	static boolean isTest(String tcn) {
-		return tcn.contains(".Test") || tcn.endsWith("Test") || tcn.endsWith("TestCase") || tcn.endsWith("Tests");
+		return tcn.contains(".Test") || 
+				tcn.endsWith("Test") || 
+				tcn.endsWith("UnitTests") ||
+				tcn.endsWith("UnitTest") ||
+				tcn.endsWith("TestCase") || 
+				tcn.endsWith("Tests") ;
 	}
 
 }
