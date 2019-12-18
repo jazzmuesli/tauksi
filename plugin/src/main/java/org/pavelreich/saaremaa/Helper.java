@@ -24,13 +24,14 @@ public class Helper {
 		String prodClassName = testClassName
 				.replaceAll("_ESTest$", "")
 				.replaceAll("Test$", "")
+				.replaceAll("Tests$", "")
 				.replaceAll("\\.Test", ".")
 				.replaceAll("TestCase$", "");
 		return prodClassName;
 	}
 
 	static boolean isTest(String tcn) {
-		return tcn.contains(".Test") || tcn.endsWith("Test") || tcn.endsWith("TestCase");
+		return tcn.contains(".Test") || tcn.endsWith("Test") || tcn.endsWith("TestCase") || tcn.endsWith("Tests");
 	}
 
 }
