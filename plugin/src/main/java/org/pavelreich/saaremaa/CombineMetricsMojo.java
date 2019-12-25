@@ -6,16 +6,20 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -24,7 +28,6 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.math3.util.Pair;
-import org.apache.maven.model.Model;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -32,16 +35,11 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
-import org.apache.maven.project.DefaultProjectBuilder;
-import org.apache.maven.project.DefaultProjectBuildingRequest;
 import org.apache.maven.project.MavenProject;
-import org.apache.maven.project.MavenProjectHelper;
-import org.apache.maven.project.ProjectBuildingException;
-import org.apache.maven.project.ProjectBuildingRequest;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.pavelreich.saaremaa.CombineMetricsMojo.Metrics;
 import org.pavelreich.saaremaa.mongo.MongoDBClient;
+
 
 import me.tongfei.progressbar.ProgressBar;
 
@@ -191,6 +189,79 @@ public class CombineMetricsMojo extends AbstractMojo {
 		}
 	}
 
+	public static void main(String[] args) {
+		CombineMetricsMojo mojo = new CombineMetricsMojo();
+		try {
+			List<String> files = mojo.findFiles("/Users/preich/Documents/github/jfreechart", 
+					p->p.getName().contains("field.csv")).stream().map(x->x.replaceAll("field.csv","")).
+					collect(Collectors.toList());
+			for (String dir : files) {
+				mojo.printNonDataMethods(dir);				
+			}
+//			String dir = "/Users/preich/Documents/github/jfreechart/src/main/java/";
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+
+	protected void printNonDataMethods(String dir) throws IOException {
+		CSVParser fieldsParser = getParser(dir + "field.csv", "class");
+		Map<String, List<CSVRecord>> fieldsByClass = fieldsParser.getRecords().stream()
+				.collect(Collectors.groupingBy(x -> x.get("class")));
+		CSVParser methodsParser = getParser(dir + "method.csv", "class");
+		Map<String, List<CSVRecord>> methodsByClass = methodsParser.getRecords().stream()
+				.collect(Collectors.groupingBy(x -> x.get("class")));
+		// fields.forEach(f -> System.out.println(f));
+//		methodsByClass.keySet().forEach(k->System.out.println(k));
+		Map<String, Pair<Integer, Integer>> nonDataMethods = methodsByClass.entrySet().stream()
+				.collect(Collectors.toMap(e -> e.getKey(), e -> calculateNonDataMethodsCount(fieldsByClass, e, new Metrics(e.getKey()))));
+		nonDataMethods.entrySet().stream().filter(p -> p.getValue().getSecond() == 0)
+				.forEach(e -> System.out.println(e));
+	}
+
+	private static Pair<Integer, Integer> calculateNonDataMethodsCount(Map<String, List<CSVRecord>> fieldsByClass,
+			Entry<String, List<CSVRecord>> methodEntry, Metrics m) {
+		String className = methodEntry.getKey();
+		Set<String> fields = fieldsByClass.getOrDefault(className, Collections.emptyList()).stream()
+				.map(x -> x.get("variable").toLowerCase()).collect(Collectors.toSet());
+		List<String> methods = methodEntry.getValue().stream().map(x -> x.get("method")).collect(Collectors.toList());
+		List<Optional<String>> setters = getMethods(methods, "^set.*", "(set)");
+		List<Optional<String>> getters = getMethods(methods, "^(get|is).*", "(get|is)");
+		Collection<String> dataMethods = IntStream.range(0, methods.size()).mapToObj(i -> {
+			boolean isSetter = setters.get(i).isPresent() && fields.contains(setters.get(i).get());
+			boolean isGetter = getters.get(i).isPresent() && fields.contains(getters.get(i).get());
+			return (isSetter || isGetter) ? methods.get(i) : null;
+		}).filter(p -> p != null).collect(Collectors.toSet());
+		String simpleClassName = className.replaceAll(".*?\\.([^\\.]+)$", "$1");
+		List<CSVRecord> constructors = methodEntry.getValue().stream().filter(p->simpleClassName.equals(p.get("method").replaceAll("(.*?)/.*", "$1"))).collect(Collectors.toList());
+		if (!constructors.isEmpty()) {
+			OptionalInt maxConstructorArgs = constructors.stream().mapToInt(x -> Integer.valueOf(x.get("parameters"))).max();
+			System.out.println("construftors: " + maxConstructorArgs + " for " + className);
+			if (maxConstructorArgs.isPresent()) {
+				m.put("prod.maxConstructorArgs", Long.valueOf(maxConstructorArgs.getAsInt()));				
+			}
+			
+		}
+		m.put("prod.dataMethods", Long.valueOf(dataMethods.size()));
+		m.put("prod.methods", Long.valueOf(methods.size()));
+		m.put("prod.setters", Long.valueOf(setters.stream().filter(p->p.isPresent()).count()));
+		m.put("prod.getters", Long.valueOf(getters.stream().filter(p->p.isPresent()).count()));
+		List<String> nonDataMethods = methods.stream().filter(p -> !dataMethods.contains(p)).collect(Collectors.toList());
+		return new Pair<>(methods.size(), nonDataMethods.size());
+	}
+
+	protected static List<Optional<String>> getMethods(List<String> methods, String startPrefix, String prefix) {
+		List<Optional<String>> setters = methods.stream()
+				.map(p -> p.matches(startPrefix)
+						? Optional.of(p.toLowerCase().replaceAll("^" + prefix + "(.*?)\\/.*", "$2").toLowerCase())
+						: Optional.<String>empty())
+				.collect(Collectors.toList());
+		return setters;
+	}
+	
 	private Map<String, Long> toCKMetrics(String suffix, CSVRecord r) {
 		return Arrays.asList("cbo", "wmc", "rfc", "loc", "lcom").stream()
 				.collect(Collectors.toMap(k -> k + suffix, k -> Long.valueOf(r.get(k))));
@@ -307,7 +378,30 @@ public class CombineMetricsMojo extends AbstractMojo {
 			Map<String, Map<String, Long>> prodCKMetrics = readCKMetricPairs(file, ".prod");
 			prodCKMetrics.entrySet().stream().filter(p-> !Helper.isTest(p.getKey())).
 			forEach(p -> populateCK(metricsByProdClass, p));
+			
+			try {
+				CSVParser fieldsParser = getParser(file.replaceAll("class.csv", "field.csv"), "class");
+				Map<String, List<CSVRecord>> fieldsByClass = fieldsParser.getRecords().stream()
+						.collect(Collectors.groupingBy(x -> x.get("class")));
+				CSVParser methodsParser = getParser(file.replaceAll("class.csv", "method.csv"), "class");
+				Map<String, List<CSVRecord>> methodsByClass = methodsParser.getRecords().stream()
+						.collect(Collectors.groupingBy(x -> x.get("class")));
+				methodsByClass.entrySet().forEach(methodEntry -> 
+				calculateNonDataMethodsCount(fieldsByClass, methodEntry, metricsByProdClass.computeIfAbsent(methodEntry.getKey(), (cn) -> new Metrics(cn)))
+				);
+			} catch (IOException e) {
+				getLog().error(e.getMessage(), e);
+			}
+
 		});
+		// fields.forEach(f -> System.out.println(f));
+//		methodsByClass.keySet().forEach(k->System.out.println(k));
+//		Map<String, Pair<Integer, Integer>> nonDataMethods = methodsByClass.entrySet().stream()
+//				.collect(Collectors.toMap(e -> e.getKey(), e -> calculateNonDataMethodsCount(fieldsByClass, e, new Metrics(e.getKey()))));
+//		nonDataMethods.entrySet().stream().filter(p -> p.getValue().getSecond() == 0)
+//				.forEach(e -> System.out.println(e));
+		
+		
 	}
 
 	protected void addTMetrics(String dir, Map<String, Metrics> metricsByProdClass) throws IOException {
@@ -338,9 +432,8 @@ public class CombineMetricsMojo extends AbstractMojo {
 
 	
 	private void addCoverageMetrics(String file, Map<String, Metrics> metricsByProdClass) {
-		String sessionId = "730ef9c2-6467-44c3-8b08-2f2f8cdad4b5";
 		File f = new File(file);
-		sessionId = f.getName().replaceAll("-tmetrics.csv", "");
+		String sessionId = f.getName().replaceAll("-tmetrics.csv", "");
 //		getLog().info("Processing sessionId=" + sessionId);
 		Bson query = com.mongodb.client.model.Filters.eq("sessionId", sessionId);
 		List<Document> testsLaunched = db.find("testsLaunched", query);
