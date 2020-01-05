@@ -150,11 +150,17 @@
 			<classifier>jar-with-dependencies</classifier>
 		</dependency>
 
-		<dependency>
-			<groupId>org.pavelreich.saaremaa</groupId>
-			<artifactId>core</artifactId>
-			<version>${project.version}</version>
-		</dependency>
+	<dependency>
+		<groupId>org.pavelreich.saaremaa</groupId>
+		<artifactId>core</artifactId>
+		<version>${project.version}</version>
+		<exclusions>
+			<exclusion>
+				<groupId>ant</groupId>
+				<artifactId>ant</artifactId>
+			</exclusion>
+		</exclusions>
+	</dependency>
 
 		<dependency>
 			<groupId>org.apache.maven</groupId>
