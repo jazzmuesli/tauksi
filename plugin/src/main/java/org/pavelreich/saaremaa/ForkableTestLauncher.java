@@ -23,6 +23,8 @@ import org.pavelreich.saaremaa.mongo.MongoDBClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.io.Files;
+
 public class ForkableTestLauncher {
 	
 	private static final Logger CLOG = LoggerFactory.getLogger(ForkableTestLauncher.class);
@@ -97,9 +99,11 @@ public class ForkableTestLauncher {
 		if (testExecutionCommand.testMethodName !=null) {
 			cmd += " " + testExecutionCommand.testMethodName;
 		}
-		FileWriter fw = new FileWriter("last_command.sh");
+		File lastCmdFile = new File("last_command.sh");
+		FileWriter fw = new FileWriter(lastCmdFile);
 		fw.write(cmd);
 		fw.close();
+		Files.copy(lastCmdFile, new File(sessionId+".run"));
 		List<String> cmdArgs = Arrays.asList(cmd.split("\\s+"));
 		ProcessBuilder pb = new ProcessBuilder(cmdArgs);
 		pb.inheritIO();

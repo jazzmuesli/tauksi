@@ -77,7 +77,7 @@ public class ForkableTestExecutor {
 		
 
 		if (summary.getTotalFailureCount() > 0) {
-			CLOG.warn("Failures for " + junitClass + " : " + summary.getFailures());
+			CLOG.warn("Failures for " + junitClass + " : " + summary.getFailures().stream().map(x->x.getException()).collect(Collectors.toList()));
 		}
 		List<String> failures = summary.getFailures().stream().map(x -> x.toString()).collect(Collectors.toList());
 		CLOG.info("Finished " + summary.getTestsSucceededCount()+"/"+summary.getTestsFailedCount() +" tests for " + junitClass + ", method=" + testMethodName + " with failures=" + failures);
