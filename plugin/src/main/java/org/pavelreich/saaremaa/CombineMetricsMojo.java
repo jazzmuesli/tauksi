@@ -46,7 +46,7 @@ import me.tongfei.progressbar.ProgressBar;
 @Mojo(name = "combine-metrics", defaultPhase = LifecyclePhase.INITIALIZE, requiresDependencyResolution = ResolutionScope.NONE)
 public class CombineMetricsMojo extends AbstractMojo {
 	private static final String LOC_PROD = "loc.prod";
-	private static final String PROD_COVERED_LINES = "prod.coveredLines";
+	private static final String PROD_COVERED_LINES = "coveredLines";
 
 	@Parameter(defaultValue = "${project}", readonly = true, required = true)
 	MavenProject project;
@@ -68,6 +68,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 		private String prodClassName;
 
 		Map<String, Long> longMetrics = new HashMap<String, Long>();
+		String sessionId = "";
 
 		Metrics(String prodClassName) {
 			this.prodClassName = prodClassName;
@@ -97,6 +98,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 		public static String[] getFields() {
 			List<String> vals = new ArrayList();
 			vals.add("prodClassName");
+			vals.add("sessionId");
 			vals.addAll(fields);
 			return vals.toArray(new String[0]);
 		}
@@ -104,6 +106,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 		public String[] getValues() {
 			List<String> vals = new ArrayList();
 			vals.add(prodClassName);
+			vals.add(sessionId);
 			vals.addAll(fields.stream().map(f -> longMetrics.containsKey(f) ? String.valueOf(longMetrics.get(f)) : "")
 					.collect(Collectors.toList()));
 			return vals.toArray(new String[0]);
@@ -263,7 +266,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 	}
 	
 	private Map<String, Long> toCKMetrics(String suffix, CSVRecord r) {
-		return Arrays.asList("cbo", "wmc", "rfc", "loc", "lcom").stream()
+		return Arrays.asList("cbo", "wmc", "rfc", "loc", "lcom","dit").stream()
 				.collect(Collectors.toMap(k -> k + suffix, k -> Long.valueOf(r.get(k))));
 	}
 
@@ -466,15 +469,15 @@ public class CombineMetricsMojo extends AbstractMojo {
 				+ " with " + coverageRatio + " for sessionId= " + sessionId);
 
 		Metrics metrics = getMetrics(metricsByProdClass, prodClassName);
-		metrics.put("prodClassesCovered", prodClassesCovered);
-		
 		String testCat = Helper.classifyTest(testClassName);
+		metrics.put("prodClassesCovered." + testCat, prodClassesCovered);
+		metrics.sessionId = sessionId;
 		metrics.put("covratio." + testCat, coverageRatio);
 		Integer coveredLinesByThisTest = coveredLines.getOrDefault(prodClassName, 0);
 		long covLines = Math.max(coveredLinesByThisTest, metrics.longMetrics.getOrDefault(PROD_COVERED_LINES, 0L));
-		metrics.put(PROD_COVERED_LINES, covLines);
+		metrics.put(PROD_COVERED_LINES+"." + testCat, covLines);
 		try {
-			calculateQualityIndex(f, methodCoverage, metrics);
+			calculateQualityIndex(f, testCat, methodCoverage, metrics);
 		} catch (Exception e) {
 			getLog().error(e.getMessage(), e);
 		}
@@ -495,7 +498,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 	 * @return
 	 * @throws IOException
 	 */
-	protected double calculateQualityIndex(File tmetricsFile, List<Document> methodCoverage, Metrics metrics) throws IOException {
+	protected double calculateQualityIndex(File tmetricsFile, String testCat, List<Document> methodCoverage, Metrics metrics) throws IOException {
 		File absoluteFile = tmetricsFile.getAbsoluteFile();
 		Path path = absoluteFile.getParentFile().toPath();
 		List<String> files = java.nio.file.Files.walk(path ).filter(p -> p.toFile().getName().endsWith("method.csv"))
@@ -525,7 +528,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 		BinaryOperator<Double> mergeFunction = (a,b) -> a*b;
 		Map<String, Double> classIqai = iqai.entrySet().stream().collect(Collectors.toMap(k->k.getKey().className, 
 				v->v.getValue(), mergeFunction));
-		metrics.put("iqai", (long) (classIqai.getOrDefault(metrics.prodClassName, (double) -1)*100));
+		metrics.put("iqai." + testCat, (long) (classIqai.getOrDefault(metrics.prodClassName, (double) -1)*100));
 		double qi = 1.0;
 		return qi;
 	}

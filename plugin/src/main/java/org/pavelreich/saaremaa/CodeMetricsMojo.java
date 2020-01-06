@@ -47,6 +47,7 @@ public class CodeMetricsMojo extends AbstractMojo {
 	class InternalMojo extends CKMetricsMojo {
 		@Override
 		protected MetricsWriter createMetricsWriter(String dirName) {
+			getLog().info("Analysing dirName=" + dirName);
 			MetricsWriter csvWriter = super.createMetricsWriter(dirName);
 			if (csvWriter instanceof MetricsCSVWriter) {
 				return new MongoMetricsWriter(dirName, (MetricsCSVWriter) csvWriter);

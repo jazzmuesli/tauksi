@@ -31,23 +31,23 @@ public class MongoDBClient {
 
 		@Override
 		public void onSubscribe(Subscription s) {
-			LOG.info("onSubscribe: " + s);	
+//			LOG.info("onSubscribe: " + s);	
 			 s.request(Integer.MAX_VALUE);
 		}
 
 		@Override
 		public void onNext(Object t) {
-			LOG.info("onNext: " + t);
+//			LOG.info("onNext: " + t);
 		}
 
 		@Override
 		public void onError(Throwable t) {
-			LOG.error("onError: " + t);				
+//			LOG.error("onError: " + t);				
 		}
 
 		@Override
 		public void onComplete() {
-			LOG.info("onComplete: ");	
+//			LOG.info("onComplete: ");	
 			latch.countDown();
 		}
 	}
@@ -114,7 +114,7 @@ public class MongoDBClient {
 				public void onSubscribe(Subscription s) {
 
 					if (LOG.isDebugEnabled()) {
-						LOG.debug("onSubscribe:" + s);
+//						LOG.debug("onSubscribe:" + s);
 					}
 					s.request(1);
 				}
@@ -122,7 +122,7 @@ public class MongoDBClient {
 				@Override
 				public void onNext(Success t) {
 					if (LOG.isDebugEnabled()) {
-						LOG.debug("onNext:" + t);
+//						LOG.debug("onNext:" + t);
 					}
 
 				}
@@ -136,7 +136,7 @@ public class MongoDBClient {
 				@Override
 				public void onComplete() {
 					if (LOG.isDebugEnabled()) {
-						LOG.info("onComplete");
+//						LOG.info("onComplete");
 					}
 					semaphore.release();
 				}
@@ -144,7 +144,6 @@ public class MongoDBClient {
 			pub.subscribe(s);
 		} catch (Exception e) {
 			LOG.error(e.getMessage(), e);
-			;
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}
 	}

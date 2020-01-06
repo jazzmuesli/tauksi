@@ -24,10 +24,12 @@ import org.codehaus.plexus.classworlds.realm.ClassRealm;
 
 public class DependencyHelper {
 
+	private static final String CTESTER_PACKAGE = "org.pavelreich.saaremaa:ctester";
+
 	private static Set<Artifact> getDevArtifacts(ArtifactRepository localRepository, RepositorySystem repositorySystem,
 			Map<String, Artifact> pluginArtifactMap) {
 		ArtifactResolutionRequest request = new ArtifactResolutionRequest()
-				.setArtifact(pluginArtifactMap.get("org.pavelreich.saaremaa:plugin")).setResolveTransitively(true)
+				.setArtifact(pluginArtifactMap.get(CTESTER_PACKAGE)).setResolveTransitively(true)
 				.setLocalRepository(localRepository);
 		ArtifactResolutionResult result = repositorySystem.resolve(request);
 		return result.getArtifacts();
@@ -67,6 +69,7 @@ public class DependencyHelper {
 			// https://github.com/tbroyer/gwt-maven-plugin/blob/54fe4621d1ee5127b14030f6e1462de44bace901/src/main/java/net/ltgt/gwt/maven/CompileMojo.java#L295
 			ClassWorld world = new ClassWorld();
 			ClassRealm realm;
+			log.info("pluginArtifactMap:" + pluginArtifactMap.keySet());
 			try {
 				realm = world.newRealm("gwt", null);
 				for (String elt : project.getCompileSourceRoots()) {
@@ -82,9 +85,9 @@ public class DependencyHelper {
 				for (Artifact elt : getDevArtifacts(localRepository, repositorySystem, pluginArtifactMap)) {
 					URL url = elt.getFile().toURI().toURL();
 					realm.addURL(url);
-//					log.info("transitive classpath: " + url);
+					log.info("transitive classpath: " + url);
 				}
-				URL pluginUrls = pluginArtifactMap.get("org.pavelreich.saaremaa:plugin").getFile().toURI().toURL();
+				URL pluginUrls = pluginArtifactMap.get(CTESTER_PACKAGE).getFile().toURI().toURL();
 				realm.addURL(pluginUrls);
 				List<String> urls = Arrays.asList(realm.getURLs()).stream().map(x -> {
 					try {
@@ -93,7 +96,7 @@ public class DependencyHelper {
 						throw new IllegalArgumentException(e.getMessage(), e);
 					}
 				}).collect(Collectors.toList());
-				urls.stream().forEach(x -> classpath.add(x));
+				urls.stream().filter(p->isAcceptedDependency(p)).forEach(x -> classpath.add(x));
 			} catch (Exception e) {
 				throw new MojoExecutionException(e.getMessage(), e);
 			}
@@ -102,6 +105,13 @@ public class DependencyHelper {
 			log.error(e1.getMessage(), e1);
 		}
 		return classpath;
+	}
+
+	private static boolean isAcceptedDependency(String p) {
+//		if (p.contains("maven-") || p.contains("eclipse/") || p.contains("testability") || p.contains("spinellis")) {
+//			return false;
+//		}
+		return true;
 	}
 
 	/**

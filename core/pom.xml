@@ -57,6 +57,16 @@
 			<scope>test</scope>
 		</dependency>
 
+	<dependency>
+		<groupId>org.pavelreich.saaremaa</groupId>
+		<artifactId>mongo</artifactId>
+		<version>${project.version}</version>
+	</dependency>
+	<dependency>
+		<groupId>org.pavelreich.saaremaa</groupId>
+		<artifactId>csv</artifactId>
+		<version>${project.version}</version>
+	</dependency>
 
 
 
@@ -111,7 +121,11 @@
 			<artifactId>logback-classic</artifactId>
 			<version>1.2.3</version>
 		</dependency>
-
+	<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>compile</scope>
+		</dependency>
 		<dependency>
 			<groupId>fr.inria.gforge.spoon</groupId>
 			<artifactId>spoon-core</artifactId>

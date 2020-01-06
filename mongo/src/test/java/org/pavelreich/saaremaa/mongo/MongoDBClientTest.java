@@ -1,5 +1,6 @@
 package org.pavelreich.saaremaa.mongo;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -7,7 +8,6 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.pavelreich.saaremaa.analysis.DataFrame;
 
 public class MongoDBClientTest {
 
@@ -17,16 +17,18 @@ public class MongoDBClientTest {
 		long stime = System.currentTimeMillis();
 		MongoDBClient db = new MongoDBClient(getClass().getSimpleName());
 		for (int op=0; op<1000; op++) {
-			DataFrame df = new DataFrame();
+			List<Document> dfs = new ArrayList();
 			for (int i=0;i<10;i++) {
-				df=df.append(new DataFrame().
-						addColumn("startTime", stime).
-						addColumn("name", "Banana").
-						addColumn("surname", "cake").
-						addColumn("dateTime", new Date()));
+				Document df = new Document();
+				df=new Document().
+						append("startTime", stime).
+						append("name", "Banana").
+						append("surname", "cake").
+						append("dateTime", new Date());
+				dfs.add(df);
 			}
 			
-			db.insertCollection("users", df.toDocuments());
+			db.insertCollection("users", dfs);
 		}
 
 		db.waitForOperationsToFinish();

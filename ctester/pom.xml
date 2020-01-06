@@ -12,7 +12,7 @@
 		<version>1.0-SNAPSHOT</version>
 	</parent>
 	<artifactId>ctester</artifactId>
-	<packaging>maven-plugin</packaging>
+	<packaging>jar</packaging>
 
 	<name>ctester</name>
 
@@ -29,72 +29,21 @@
 	</properties>
 
 	<dependencies>
+
 		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-			<version>LATEST</version>
-		</dependency>
-		<!-- for plugin -->
-		<!-- https://mvnrepository.com/artifact/org.apache.maven.surefire/surefire-report-parser -->
-		<dependency>
-			<groupId>org.apache.maven.surefire</groupId>
-			<artifactId>surefire-report-parser</artifactId>
-			<version>3.0.0-M3</version>
-		</dependency>
-		<!--
-		<dependency>
-			<groupId>com.github.jazzmuesli</groupId>
-			<artifactId>ck-mvn-plugin</artifactId>
-			<version>1.1-SNAPSHOT</version>
-		</dependency>
--->
-		<dependency>
-			<groupId>org.apache.maven</groupId>
-			<artifactId>maven-plugin-api</artifactId>
-			<version>${maven.version}</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.maven</groupId>
-			<artifactId>maven-core</artifactId>
-			<version>${maven.version}</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.maven</groupId>
-			<artifactId>maven-artifact</artifactId>
-			<version>${maven.version}</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.maven</groupId>
-			<artifactId>maven-compat</artifactId>
-			<version>${maven.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.maven.plugin-tools</groupId>
-			<artifactId>maven-plugin-annotations</artifactId>
-			<version>3.6.0</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.maven.plugin-testing</groupId>
-			<artifactId>maven-plugin-testing-harness</artifactId>
-			<version>3.3.0</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-core</artifactId>
+			<groupId>org.junit.platform</groupId>
+			<artifactId>junit-platform-launcher</artifactId>
 		</dependency>
 
-		<!--
 		<dependency>
-			<groupId>org.apache.maven.shared</groupId>
-			<artifactId>maven-invoker</artifactId>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-engine</artifactId>
 		</dependency>
--->
+		<dependency>
+			<groupId>org.junit.vintage</groupId>
+			<artifactId>junit-vintage-engine</artifactId>
+		</dependency>
+
 		<!-- https://mvnrepository.com/artifact/org.jacoco/org.jacoco.core -->
 		<dependency>
 			<groupId>org.jacoco</groupId>
@@ -102,317 +51,36 @@
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.ow2.asm/asm -->
 		<dependency>
-			<groupId>org.ow2.asm</groupId>
-			<artifactId>asm</artifactId>
-			<version>${asm.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>fr.inria.gforge.spoon</groupId>
-			<artifactId>spoon-core</artifactId>
-		</dependency>
-		<dependency>
-		<groupId>com.google.guava</groupId>
-		<artifactId>guava</artifactId>
-		<version>18.0</version>
-		</dependency>
-
-		<dependency>
-			<groupId>ch.qos.logback</groupId>
-			<artifactId>logback-classic</artifactId>
-		</dependency>
-		<!-- 
-		<dependency>
-			<groupId>com.github.rterrabh</groupId>
-			<artifactId>javadepextractor</artifactId>
-			<version>1.0-SNAPSHOT</version>
-		</dependency>
-		<dependency>
-			<groupId>org.refactoringminer</groupId>
-			<artifactId>RefactoringMiner</artifactId>
-			<version>1.0</version>
-		</dependency>
-		 -->
-
-		<dependency>
-			<groupId>me.tongfei</groupId>
-			<artifactId>progressbar</artifactId>
-			<version>0.7.4</version>
-		</dependency>
-
-		<dependency>
 			<groupId>org.jacoco</groupId>
 			<artifactId>org.jacoco.agent</artifactId>
 			<version>${jacoco.version}</version>
 			<classifier>runtime</classifier>
 		</dependency>
 
-<dependency>
-    <groupId>rhino</groupId>
-    <artifactId>js</artifactId>
-    <version>1.7R2</version>
-</dependency>
-<!-- 
+		<dependency>
+			<groupId>rhino</groupId>
+			<artifactId>js</artifactId>
+			<version>1.7R2</version>
+		</dependency>
 		<dependency>
 			<groupId>org.pavelreich.saaremaa</groupId>
-			<artifactId>jagent</artifactId>
+			<artifactId>mongo</artifactId>
 			<version>${project.version}</version>
-			<classifier>jar-with-dependencies</classifier>
-		</dependency>
--->
-	<dependency>
-		<groupId>org.pavelreich.saaremaa</groupId>
-		<artifactId>core</artifactId>
-		<version>${project.version}</version>
-		<exclusions>
-			<exclusion>
-				<groupId>ant</groupId>
-				<artifactId>ant</artifactId>
-			</exclusion>
-			<exclusion>
-			<groupId>org.eclipse.jgit</groupId>
-			<artifactId>org.eclipse.jgit</artifactId>
-			</exclusion>
-			<exclusion>
-			<groupId>gr.spinellis</groupId>
-			<artifactId>ckjm</artifactId>
-			</exclusion>
-			<exclusion>
-			<groupId>net.sourceforge.pmd</groupId>
-			<artifactId>pmd-java</artifactId>
-			</exclusion>
-			<exclusion>
-			<groupId>com.github.mauricioaniche</groupId>
-			<artifactId>ck</artifactId>
-			</exclusion>
-			<exclusion>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-core</artifactId>
-			</exclusion>
-		</exclusions>
-	</dependency>
- 
-		<dependency>
-			<groupId>org.apache.maven</groupId>
-			<artifactId>maven-plugin-api</artifactId>
-			<version>${maven.version}</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.maven</groupId>
-			<artifactId>maven-core</artifactId>
-			<version>${maven.version}</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.maven</groupId>
-			<artifactId>maven-artifact</artifactId>
-			<version>${maven.version}</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.maven</groupId>
-			<artifactId>maven-compat</artifactId>
-			<version>${maven.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.maven.plugin-tools</groupId>
-			<artifactId>maven-plugin-annotations</artifactId>
-			<version>3.6.0</version>
-			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<version>4.12</version>
 			<scope>compile</scope>
 		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter -->
 		<dependency>
-			<groupId>org.apache.maven.plugin-testing</groupId>
-			<artifactId>maven-plugin-testing-harness</artifactId>
-			<version>3.3.0</version>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<version>5.5.2</version>
 			<scope>test</scope>
 		</dependency>
 
-
-		<!-- for jupiter/junit5 
-		<dependency>
-			<groupId>org.junit.platform</groupId>
-			<artifactId>junit-platform-launcher</artifactId>
-			<version>1.2.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.junit.platform</groupId>
-			<artifactId>junit-platform-engine</artifactId>
-			<version>1.5.1</version>
-		</dependency>
-		<dependency>
-			<groupId>org.junit.vintage</groupId>
-			<artifactId>junit-vintage-engine</artifactId>
-			<version>${junit.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.junit.jupiter</groupId>
-			<artifactId>junit-jupiter-engine</artifactId>
-			<version>${junit.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.junit.jupiter</groupId>
-			<artifactId>junit-jupiter-api</artifactId>
-			<version>${junit.version}</version>
-		</dependency>
-		-->
-
-        <!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter -->
-<dependency>
-    <groupId>org.junit.jupiter</groupId>
-    <artifactId>junit-jupiter</artifactId>
-    <version>5.5.2</version>
-    <scope>test</scope>
-</dependency>
-        
-		<!-- https://github.com/jazzmuesli/testability-explorer 
-		<dependency>
-			<groupId>com.google.testability-explorer</groupId>
-			<artifactId>testability-mvn-plugin</artifactId>
-			<version>1.3.5-SNAPSHOT</version>
-		</dependency>
--->
 	</dependencies>
 
-	<build>
-		<pluginManagement><!-- lock down plugins versions to avoid using Maven 
-				defaults (may be moved to parent pom) -->
-			<plugins>
-				<plugin>
-					<artifactId>maven-clean-plugin</artifactId>
-					<version>3.1.0</version>
-				</plugin>
-				<!-- see http://maven.apache.org/ref/current/maven-core/default-bindings.html#Plugin_bindings_for_maven-plugin_packaging -->
-				<plugin>
-					<artifactId>maven-resources-plugin</artifactId>
-					<version>3.0.2</version>
-				</plugin>
-				<plugin>
-					<artifactId>maven-compiler-plugin</artifactId>
-					<version>3.8.0</version>
-				</plugin>
-				<plugin>
-					<artifactId>maven-plugin-plugin</artifactId>
-					<version>3.6.0</version>
-				</plugin>
-				<plugin>
-					<artifactId>maven-surefire-plugin</artifactId>
-					<version>2.22.1</version>
-				</plugin>
-				<plugin>
-					<artifactId>maven-jar-plugin</artifactId>
-					<version>3.0.2</version>
-				</plugin>
-				<plugin>
-					<artifactId>maven-install-plugin</artifactId>
-					<version>2.5.2</version>
-				</plugin>
-				<plugin>
-					<artifactId>maven-deploy-plugin</artifactId>
-					<version>2.8.2</version>
-				</plugin>
-				<plugin>
-					<artifactId>maven-invoker-plugin</artifactId>
-					<version>3.1.0</version>
-				</plugin>
-			</plugins>
-		</pluginManagement>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-dependency-plugin</artifactId>
-				<version>2.9</version>
-				<executions>
-					<execution>
-						<id>copy-dependencies</id>
-						<phase>install</phase>
-						<goals>
-							<goal>copy-dependencies</goal>
-						</goals>
-						<configuration>
-							<outputDirectory>${project.build.directory}/lib</outputDirectory>
-							<overWriteReleases>false</overWriteReleases>
-							<overWriteSnapshots>false</overWriteSnapshots>
-							<overWriteIfNewer>true</overWriteIfNewer>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-plugin-plugin</artifactId>
-				<version>3.6.0</version>
-				<configuration>
-					<!-- <goalPrefix>maven-archetype-plugin</goalPrefix> -->
-					<skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
-					<!-- <skipDescriptor>true</skipDescriptor> <skip>true</skip> -->
-					<detail>true</detail>
-				</configuration>
-				<executions>
-					<execution>
-						<id>mojo-descriptor</id>
-						<goals>
-							<goal>descriptor</goal>
-						</goals>
-						<phase>process-classes</phase>
-					</execution>
-					<execution>
-						<id>help-goal</id>
-						<goals>
-							<goal>helpmojo</goal>
-						</goals>
-						<phase>process-classes</phase>
-					</execution>
-				</executions>
-			</plugin>
-		</plugins>
-	</build>
-
-	<profiles>
-		<profile>
-			<id>run-its</id>
-			<build>
-
-				<plugins>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-invoker-plugin</artifactId>
-						<version>3.1.0</version>
-						<configuration>
-							<debug>true</debug>
-							<cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
-							<pomIncludes>
-								<pomInclude>*/pom.xml</pomInclude>
-							</pomIncludes>
-							<postBuildHookScript>verify</postBuildHookScript>
-							<localRepositoryPath>${project.build.directory}/local-repo</localRepositoryPath>
-							<settingsFile>src/it/settings.xml</settingsFile>
-							<goals>
-								<goal>clean</goal>
-								<goal>test-compile</goal>
-							</goals>
-						</configuration>
-						<executions>
-							<execution>
-								<id>integration-test</id>
-								<goals>
-									<goal>install</goal>
-									<goal>integration-test</goal>
-									<goal>verify</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-	</profiles>
 </project>

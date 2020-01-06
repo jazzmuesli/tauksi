@@ -68,13 +68,14 @@ public class ForkableTestLauncher {
 		this.interceptorEnabled = b;
 	}
 	private String createInterceptorJavaAgentCmd(String testClassName, String sessionId) {
-		if (!interceptorEnabled) {
-			return "";
-		}
-		return "-javaagent:" + 
-			jagentPath + "=" + MethodInterceptor.class.getCanonicalName()+  
-			";testClassName=" + testClassName +
-			";sessionId=" + sessionId;
+		return "";
+//		if (!interceptorEnabled) {
+//			return "";
+//		}
+//		return "-javaagent:" + 
+//			jagentPath + "=" + MethodInterceptor.class.getCanonicalName()+  
+//			";testClassName=" + testClassName +
+//			";sessionId=" + sessionId;
 	}
 	
 	private String createJacocoCmd(String fname) {
@@ -157,6 +158,8 @@ public class ForkableTestLauncher {
 
 			if (targetClasses.exists()) {
 				analyzer.analyzeAll(targetClasses);
+			} else {
+				LOG.info("targetClasses=" + targetClasses + " doesn't exist");
 			}
 			if (project != null) {
 				List<String> classpathEntries = DependencyHelper.getCoverageClasspath(project);

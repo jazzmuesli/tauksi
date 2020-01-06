@@ -20,7 +20,7 @@ public class CalculatorTest {
 		user.setBirthYear(2001);
 		user.setFirstName("Joe");
 		Assert.assertEquals("Mr", user.getTitle());
-		Assert.assertEquals(18, calculator.getAge(user));
+		Assert.assertEquals(19, calculator.getAge(user));
 		Assert.assertEquals("Joe", user.getFirstName());
 		for (int i=0; i<5; i++) {
 			Assert.assertEquals("Mr Joe", user.getSalutation());			
