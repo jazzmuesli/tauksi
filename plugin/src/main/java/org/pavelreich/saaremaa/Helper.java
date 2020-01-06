@@ -32,6 +32,15 @@ public class Helper {
 		return prodClassName;
 	}
 
+	static String classifyTest(String tcn) {
+		if (tcn.contains("ESTest")) {
+			return "evo";
+		} else if (isTest(tcn)) {
+			return "test";
+		}
+		return null;
+	}
+	
 	static boolean isTest(String tcn) {
 		return tcn.contains(".Test") || 
 				tcn.endsWith("Test") || 

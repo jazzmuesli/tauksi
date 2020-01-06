@@ -440,8 +440,8 @@ public class CombineMetricsMojo extends AbstractMojo {
 
 		Set<String> testClassNames = testsLaunched.stream().map(x -> x.getString("testClassName"))
 				.collect(Collectors.toSet());
-//		getLog().info("Found " + testClassNames + " testsLaunched for  " + sessionId);
 		if (testClassNames.size() != 1) {
+			getLog().info("Found " + testClassNames + " testsLaunched for  " + sessionId);
 			return;
 		}
 
@@ -467,7 +467,9 @@ public class CombineMetricsMojo extends AbstractMojo {
 
 		Metrics metrics = getMetrics(metricsByProdClass, prodClassName);
 		metrics.put("prodClassesCovered", prodClassesCovered);
-		metrics.put("prod.covratio", coverageRatio);
+		
+		String testCat = Helper.classifyTest(testClassName);
+		metrics.put("covratio." + testCat, coverageRatio);
 		Integer coveredLinesByThisTest = coveredLines.getOrDefault(prodClassName, 0);
 		long covLines = Math.max(coveredLinesByThisTest, metrics.longMetrics.getOrDefault(PROD_COVERED_LINES, 0L));
 		metrics.put(PROD_COVERED_LINES, covLines);
