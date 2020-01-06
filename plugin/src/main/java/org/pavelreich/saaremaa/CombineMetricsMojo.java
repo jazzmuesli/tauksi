@@ -307,7 +307,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 			CSVReporter reporter = new CSVReporter(fname, Metrics.getFields());
 			for (Entry<String, Metrics> entry : metricsByProdClass.entrySet()) {
 				Metrics metrics = entry.getValue();
-				if (!metrics.longMetrics.containsKey(LOC_PROD)) {
+				if (!metrics.longMetrics.containsKey(LOC_PROD) || metrics.prodClassName.contains("ESTest_scaffolding")) {
 					continue;
 				}
 
