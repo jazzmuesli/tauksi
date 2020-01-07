@@ -68,7 +68,8 @@ public class CombineMetricsMojo extends AbstractMojo {
 		private String prodClassName;
 
 		Map<String, Long> longMetrics = new HashMap<String, Long>();
-		String sessionId = "";
+		String testSessionId = "";
+		String evoSessionId = "";
 
 		Metrics(String prodClassName) {
 			this.prodClassName = prodClassName;
@@ -98,7 +99,8 @@ public class CombineMetricsMojo extends AbstractMojo {
 		public static String[] getFields() {
 			List<String> vals = new ArrayList();
 			vals.add("prodClassName");
-			vals.add("sessionId");
+			vals.add("testSessionId");
+			vals.add("evoSessionId");
 			vals.addAll(fields);
 			return vals.toArray(new String[0]);
 		}
@@ -106,7 +108,8 @@ public class CombineMetricsMojo extends AbstractMojo {
 		public String[] getValues() {
 			List<String> vals = new ArrayList();
 			vals.add(prodClassName);
-			vals.add(sessionId);
+			vals.add(testSessionId);
+			vals.add(evoSessionId);
 			vals.addAll(fields.stream().map(f -> longMetrics.containsKey(f) ? String.valueOf(longMetrics.get(f)) : "")
 					.collect(Collectors.toList()));
 			return vals.toArray(new String[0]);
@@ -471,7 +474,12 @@ public class CombineMetricsMojo extends AbstractMojo {
 		Metrics metrics = getMetrics(metricsByProdClass, prodClassName);
 		String testCat = Helper.classifyTest(testClassName);
 		metrics.put("prodClassesCovered." + testCat, prodClassesCovered);
-		metrics.sessionId = sessionId;
+		if ("evo".equals(testCat)) {
+			metrics.evoSessionId = sessionId;	
+		} else {
+			metrics.testSessionId = sessionId;
+		}
+		
 		metrics.put("covratio." + testCat, coverageRatio);
 		Integer coveredLinesByThisTest = coveredLines.getOrDefault(prodClassName, 0);
 		long covLines = Math.max(coveredLinesByThisTest, metrics.longMetrics.getOrDefault(PROD_COVERED_LINES, 0L));
