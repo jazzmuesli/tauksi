@@ -66,8 +66,8 @@ public class CoverageTestMojo extends AbstractMojo {
 	@Parameter( property = "interceptorEnabled", defaultValue = "true")
 	private String interceptorEnabled;
 
-	@Parameter( property = "logging", defaultValue = "false")
-	private String loggingEnabled;
+	@Parameter( property = "extraClassPath", defaultValue = "false")
+	private String extraCp;
 
 	/**
 	 * Run jacoco agent and then interceptor
@@ -98,6 +98,9 @@ public class CoverageTestMojo extends AbstractMojo {
 		Collection<String> classpath = DependencyHelper.prepareClasspath(project, localRepository, repositorySystem, pluginArtifactMap, getLog());
 		// ignore log4j
 		classpath = classpath.stream().filter(this::filterDependency).collect(Collectors.toList());
+		if (this.extraCp != null && !extraCp.trim().isEmpty()) {
+			classpath.addAll(Arrays.asList(extraCp.split(":")));
+		}
 		getLog().info("classpath: " + classpath);
 		MavenLoggerAsSLF4jLoggerAdaptor logger = new MavenLoggerAsSLF4jLoggerAdaptor(getLog());
     	MongoDBClient db = new MongoDBClient(getClass().getSimpleName());
