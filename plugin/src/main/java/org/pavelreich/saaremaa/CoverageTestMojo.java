@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -36,6 +37,7 @@ import me.tongfei.progressbar.ProgressBar;
 @Mojo(name = "ctest", defaultPhase = LifecyclePhase.PROCESS_SOURCES, requiresDependencyResolution = ResolutionScope.TEST)
 public class CoverageTestMojo extends AbstractMojo {
 
+
 	/**
 	 * Location of the file.
 	 */
@@ -63,6 +65,9 @@ public class CoverageTestMojo extends AbstractMojo {
 
 	@Parameter( property = "interceptorEnabled", defaultValue = "true")
 	private String interceptorEnabled;
+
+	@Parameter( property = "logging", defaultValue = "false")
+	private String loggingEnabled;
 
 	/**
 	 * Run jacoco agent and then interceptor
@@ -97,7 +102,7 @@ public class CoverageTestMojo extends AbstractMojo {
 		MavenLoggerAsSLF4jLoggerAdaptor logger = new MavenLoggerAsSLF4jLoggerAdaptor(getLog());
     	MongoDBClient db = new MongoDBClient(getClass().getSimpleName());
     	String id = UUID.randomUUID().toString();
-    	TestExtractor extractor = createTestExtractor(logger);
+    	TestExtractor extractor = createTestExtractor(logger, testClassName);
 		for (String dirName : project.getTestCompileSourceRoots()) {
         	try {
         		// process test directory
@@ -161,8 +166,11 @@ public class CoverageTestMojo extends AbstractMojo {
     }
 
 
-	private TestExtractor createTestExtractor(MavenLoggerAsSLF4jLoggerAdaptor logger) {
+	private TestExtractor createTestExtractor(MavenLoggerAsSLF4jLoggerAdaptor logger, String testClassName) {
 		TestExtractor extractor;
+		if (testClassName != null && !testClassName.trim().isEmpty()) {
+			return new SingleClassExtractor(testClassName);
+		}
     	if (testExtractor.equals(SurefireTestExtractor.class.getSimpleName())) {
     		extractor = new SurefireTestExtractor(logger);
     	} else if (testExtractor.equals(SpoonTestExtractor.class.getSimpleName())) {
