@@ -3,7 +3,6 @@ package org.pavelreich.saaremaa;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -13,11 +12,9 @@ import org.apache.commons.csv.CSVParser;
 public class MetricsTestExtractor implements TestExtractor{
 
 	private MavenLoggerAsSLF4jLoggerAdaptor logger;
-	private List<String> srcRoots;
 
-	public MetricsTestExtractor(MavenLoggerAsSLF4jLoggerAdaptor logger, List<String> srcRoots) {
+	public MetricsTestExtractor(MavenLoggerAsSLF4jLoggerAdaptor logger) {
 		this.logger = logger;
-		this.srcRoots= srcRoots;
 	}
 
 	@Override

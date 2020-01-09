@@ -114,16 +114,14 @@ public class CoverageTestMojo extends AbstractMojo {
     	String id = UUID.randomUUID().toString();
     	TestExtractor extractor = createTestExtractor(logger, testClassName);
     	Integer nThreads = Integer.valueOf(poolSize);
-		ExecutorService pool = new ThreadPoolExecutor(nThreads, nThreads,
-                 5000L, TimeUnit.MILLISECONDS,
-                 new ArrayBlockingQueue<Runnable>(nThreads, true), new ThreadPoolExecutor.CallerRunsPolicy());
 
+    	ParallelPool pool = new ParallelPool(nThreads);
+		ForkableTestLauncher launcher = new ForkableTestLauncher(id, db, logger, jagentPath, jacocoPath,
+				new File(targetClasses));
 		for (String dirName : project.getTestCompileSourceRoots()) {
         	try {
         		// process test directory
         		getLog().info("Processing id=" + id + ", dir="  + dirName);
-				ForkableTestLauncher launcher = new ForkableTestLauncher(id, db, logger, jagentPath, jacocoPath,
-						new File(targetClasses));
 				launcher.setProject(project);
 				launcher.setTimeout(Long.valueOf(timeout));
         		if (new File(dirName).exists()) {
@@ -169,15 +167,12 @@ public class CoverageTestMojo extends AbstractMojo {
     					commands = commands.stream().filter(p->p.testClassName.equals(testClassName)).collect(Collectors.toList());
     				}
     				for (TestExecutionCommand cmd : ProgressBar.wrap(commands, "testCases")) {
-						if (nThreads == 1) {
-							runTest(classpath, launcher, cmd);
-						} else {
-							pool.submit(() -> runTest(classpath, launcher, cmd));							
-						}
-    					 
+						pool.submit(() -> runTest(classpath, launcher, cmd));							
     				}
         		}
-    			pool.awaitTermination(1, TimeUnit.HOURS);
+        		getLog().info("Waiting for " + pool.getTasksCount() + " tasks");
+    			pool.await();
+    			getLog().info("Finished");
 			} catch (Exception e) {
 				getLog().error(e.getMessage(), e);
 			}
@@ -197,7 +192,7 @@ public class CoverageTestMojo extends AbstractMojo {
     	} else if (testExtractor.equals(SpoonTestExtractor.class.getSimpleName())) {
     		extractor = new SpoonTestExtractor(logger);
     	} else if (testExtractor.equals(MetricsTestExtractor.class.getSimpleName())) {
-    		extractor = new MetricsTestExtractor(logger, project.getTestCompileSourceRoots());
+    		extractor = new MetricsTestExtractor(logger);
     	} else if (testExtractor.equals(FirstAvailableTestExtractor.class.getSimpleName())) {
     		extractor = new FirstAvailableTestExtractor(new SurefireTestExtractor(logger),
     				new SpoonTestExtractor(logger));
@@ -221,9 +216,8 @@ public class CoverageTestMojo extends AbstractMojo {
 	}
 
 	private void runTest(Collection<String> classpath, ForkableTestLauncher launcher, TestExecutionCommand cmd) {
-		String sessionId = UUID.randomUUID().toString();
 		try {
-
+			String sessionId = UUID.randomUUID().toString();
 			launcher.setSessionId(sessionId);
 			Boolean jacEnabled = Boolean.valueOf(jacocoEnabled);
 			Boolean intercepEnabled = Boolean.valueOf(interceptorEnabled);

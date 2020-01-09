@@ -91,7 +91,7 @@ public class ForkableTestLauncher {
 		String fname = sessionId + ".exec";
 		// https://stackoverflow.com/questions/31567532/getting-expecting-a-stackmap-frame-at-branch-target-when-running-maven-integra
 		// https://stackoverflow.com/questions/300639/use-of-noverify-when-launching-java-apps
-		String cmd = "java -Dsandbox_mode=OFF -noverify " + 
+		String cmd = "java -DsessionId=" + sessionId + " -Dsandbox_mode=OFF -noverify " + 
 		createInterceptorJavaAgentCmd(testExecutionCommand.testClassName, sessionId)
 		 + " " + 
 		createJacocoCmd(fname) 
@@ -101,10 +101,11 @@ public class ForkableTestLauncher {
 			cmd += " " + testExecutionCommand.testMethodName;
 		}
 		File lastCmdFile = new File("last_command.sh");
-		FileWriter fw = new FileWriter(lastCmdFile);
+		File file = new File(sessionId+".run");
+		FileWriter fw = new FileWriter(file);
 		fw.write(cmd);
 		fw.close();
-		Files.copy(lastCmdFile, new File(sessionId+".run"));
+		Files.copy(file, lastCmdFile);
 		List<String> cmdArgs = Arrays.asList(cmd.split("\\s+"));
 		ProcessBuilder pb = new ProcessBuilder(cmdArgs);
 		pb.inheritIO();
@@ -128,6 +129,7 @@ public class ForkableTestLauncher {
 				append("jacocoEnabled", jacocoEnabled).
 				append("interceptorEnabled", interceptorEnabled).
 				append("exitValue", exitValue).
+				append("startTime", stime).
 				append("cmd", cmd).
 				append("duration", duration).
 				append("finished", finished)
@@ -135,7 +137,7 @@ public class ForkableTestLauncher {
 		
 		if (jacocoEnabled) {
 			try {
-				processCoverageData(testExecutionCommand, fname, sessionId);
+				processCoverageData(testExecutionCommand, fname, sessionId, stime);
 			} catch (Exception e) {
 				LOG.error("Failed to analsye result of " + fname + " from command " + testExecutionCommand + " due to "
 						+ e.getMessage(), e);
@@ -148,7 +150,7 @@ public class ForkableTestLauncher {
 		this.sessionId = sessionId;
 	}
 
-	private void processCoverageData(TestExecutionCommand testExecCmd, String fname, String sessionId) throws IOException {
+	private void processCoverageData(TestExecutionCommand testExecCmd, String fname, String sessionId, long stime) throws IOException {
 		ExecFileLoader execFileLoader = new ExecFileLoader();
 		File file = new File(fname);
 		if (file.exists()) {
@@ -183,6 +185,7 @@ public class ForkableTestLauncher {
 							append("prodClassName", prodClassName).
 							append("id", id).
 							append("sessionId", sessionId).
+							append("startTime", stime).
 							append("coveredLines", cc.getLineCounter().getCoveredCount()).
 							append("missedLines", cc.getLineCounter().getMissedCount())
 							);
@@ -193,6 +196,7 @@ public class ForkableTestLauncher {
 						metCovDocs.add(testExecCmd.asDocument().
 								append("prodMethodName", method.getName()).
 								append("prodClassName", prodClassName).
+								append("startTime", stime).
 								append("prodMethodSignature", method.getSignature()).
 								append("prodMethodDescription", method.getDesc()).
 								append("firstLine", method.getFirstLine()).

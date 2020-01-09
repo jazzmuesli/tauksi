@@ -7,7 +7,6 @@ import org.junit.Test;
 
 public class HelperTest {
 
-	
 	@Test
 	public void testCasePrefix() {
 		String tcn = "org.apache.commons.io.IOUtilsCopyTestCase";
@@ -15,7 +14,7 @@ public class HelperTest {
 		assertEquals("org.apache.commons.io.IOUtilsCopy", s);
 		assertTrue(Helper.isTest(tcn));
 	}
-	
+
 	@Test
 	public void testPrefix() {
 		String tcn = "org.joda.time.tz.TestFixedDateTimeZone";
