@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
  *
  */
 public class ForkableTestExecutor {
+	public static final String TESTS_EXECUTED_COL_NAME = "testsExecuted";
 	private static final Logger CLOG = LoggerFactory.getLogger(ForkableTestExecutor.class);
 
 
@@ -45,11 +46,13 @@ public class ForkableTestExecutor {
 		//Document df = runJunit4(testClassName, testMethodName);
 		Document df = runJunit5(testClassName, testMethodName);
 
-		db.insertCollection("testsExecuted", Arrays.asList(df));
+		db.insertCollection(TESTS_EXECUTED_COL_NAME, Arrays.asList(df));
 		db.waitForOperationsToFinish();
 	}
 
 	private static Document runJunit5(String testClassName, String testMethodName) throws ClassNotFoundException {
+		String runId = System.getProperty("id");
+
 		Class<?> junitClass = Class.forName(testClassName);
 		final LauncherDiscoveryRequest  request;
 		if (testMethodName != null && !testMethodName.trim().isEmpty()) {
@@ -84,13 +87,19 @@ public class ForkableTestExecutor {
 		Document df = new Document().
 				append("testClassName", testClassName).
 				append("testMethodName", testMethodName).
-				append("failedTests", summary.getTotalFailureCount()).
-				append("runCount", summary.getTestsSucceededCount()).
-				append("ignoreCount", summary.getTestsSkippedCount()).
+				append(TestExecutedMetrics.testsFailedCount.name(), summary.getTotalFailureCount()).
+				append(TestExecutedMetrics.testsSucceededCount.name(), summary.getTestsSucceededCount()).
+				append(TestExecutedMetrics.testsSkippedCount.name(), summary.getTestsSkippedCount()).
 				append("startTime", stime).
-				append("runTime", summary.getTimeFinished() - summary.getTimeStarted()).
+				append("sessionId", System.getProperty("sessionId")).
+				append("id", runId).
+				append(TestExecutedMetrics.runDuration.name(), summary.getTimeFinished() - summary.getTimeStarted()).
 				append("failures", failures);
 		return df;
+	}
+	
+	public enum TestExecutedMetrics {
+		testsFailedCount, testsSucceededCount, testsSkippedCount, runDuration;
 	}
 
 
