@@ -294,6 +294,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 			addProdCKmetrics(metricsByProdClass);
 			addTestCKmetrics(metricsByProdClass);
 			addTestability(metricsByProdClass);
+
 			String directory = project.getBuild().getDirectory();
 			new File(directory).mkdirs();
 			String fname = directory + File.separator + "metrics.csv";
@@ -413,9 +414,14 @@ public class CombineMetricsMojo extends AbstractMojo {
 		List<Pair<String, String>> pairs = new ArrayList();
 		getLog().info("Found " + files.size() + " files in dir=" + dir);
 		files.forEach(file -> pairs.addAll(readTMetricPairs(file, "metricType")));
+		Set<Path> paths = files.stream().map(file -> new File(file).getAbsoluteFile().getParentFile().toPath()).collect(Collectors.toSet());
+		Map<ClassMethodKey, CSVRecord> methodMetrics = new HashMap();
+		paths.forEach(path -> methodMetrics.putAll(loadMethodMetrics(path)));
 		for (String file : ProgressBar.wrap(files, "coverageMetrics")) {
-			addCoverageMetrics(file, metricsByProdClass);
+			addCoverageMetrics(methodMetrics, file, metricsByProdClass);
 		}
+
+
 		getLog().info("Generated " + pairs.size() + " from " + files.size() + " files");
 		pairs.forEach(p -> populateTMetrics(p, metricsByProdClass));
 	}
@@ -469,7 +475,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 	private final DocumentManager testsExecutedManager = new DocumentManager(ForkableTestExecutor.TESTS_EXECUTED_COL_NAME);
 	private final DocumentManager classCoverageManager = new DocumentManager(ForkableTestLauncher.CLASS_COVERAGE_COL_NAME);
 	private final DocumentManager methodCoverageManager = new DocumentManager(ForkableTestLauncher.METHOD_COVERAGE_COL_NAME);
-	private void addCoverageMetrics(String file, Map<String, Metrics> metricsByProdClass) {
+	private void addCoverageMetrics(Map<ClassMethodKey, CSVRecord> methodMetrics, String file, Map<String, Metrics> metricsByProdClass) {
 		File f = new File(file);
 		String sessionId = f.getName().replaceAll("-tmetrics.csv", "");
 //		getLog().info("Processing sessionId=" + sessionId);
@@ -530,7 +536,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 		long covLines = Math.max(coveredLinesByThisTest, metrics.longMetrics.getOrDefault(PROD_COVERED_LINES, 0L));
 		metrics.put(PROD_COVERED_LINES+"." + testCat, covLines);
 		try {
-			calculateQualityIndex(f, testCat, methodCoverage, metrics);
+			calculateQualityIndex(methodMetrics, testCat, methodCoverage, metrics);
 		} catch (Exception e) {
 			getLog().error(e.getMessage(), e);
 		}
@@ -551,25 +557,12 @@ public class CombineMetricsMojo extends AbstractMojo {
 	 * @return
 	 * @throws IOException
 	 */
-	protected double calculateQualityIndex(File tmetricsFile, String testCat, Collection<Document> methodCoverage, Metrics metrics) throws IOException {
-		File absoluteFile = tmetricsFile.getAbsoluteFile();
-		Path path = absoluteFile.getParentFile().toPath();
-		List<String> files = java.nio.file.Files.walk(path ).filter(p -> p.toFile().getName().endsWith("method.csv"))
-				.map(f -> f.toFile().getAbsolutePath()).collect(Collectors.toList());
+	protected double calculateQualityIndex(Map<ClassMethodKey, CSVRecord> methodMetrics, String testCat, Collection<Document> methodCoverage, Metrics metrics) throws IOException {
 //		getLog().info("from absoluteFile=" + absoluteFile + " found " + files);
 		BinaryOperator<Document> mergeDocuments = (a,b) -> { a.putAll(b); return a; };
 		Map<ClassMethodKey, Document> methodCoverageMap = methodCoverage.stream()
 				.collect(Collectors.toMap(k -> ClassMethodKey.fromMethodCoverage(k), v -> v,
 						mergeDocuments ));
-		Map<ClassMethodKey, CSVRecord> methodMetrics = new HashMap<>();
-		for (String f : files) {
-			CSVParser parser = Helper.getParser(f, "class");
-			List<CSVRecord> records = parser.getRecords();
-			Map<ClassMethodKey, CSVRecord> map = records.stream()
-					.collect(Collectors.toMap(k -> ClassMethodKey.fromMethodMetric(k), v -> v));
-//			getLog().info("found "+ records.size() + " for file=" + f);
-			methodMetrics.putAll(map);
-		}
 //		methodCoverageMap.keySet().forEach(x -> getLog().info("methodCoverage: " + x));
 //		methodMetrics.keySet().forEach(x -> getLog().info("methodMetrics: " + x));
 		Map<String, Long> maxComplexityPerClass = calculateMaxComplexityPerClass(methodMetrics);
@@ -584,6 +577,27 @@ public class CombineMetricsMojo extends AbstractMojo {
 		metrics.put("iqai." + testCat, (long) (classIqai.getOrDefault(metrics.prodClassName, (double) -1)*100));
 		double qi = 1.0;
 		return qi;
+	}
+
+	protected Map<ClassMethodKey, CSVRecord> loadMethodMetrics(Path path) {
+		List<String> files;
+		try {
+			files = java.nio.file.Files.walk(path ).filter(p -> p.toFile().getName().endsWith("method.csv"))
+					.map(f -> f.toFile().getAbsolutePath()).collect(Collectors.toList());
+			Map<ClassMethodKey, CSVRecord> methodMetrics = new HashMap<>();
+			for (String f : files) {
+				CSVParser parser = Helper.getParser(f, "class");
+				List<CSVRecord> records = parser.getRecords();
+				Map<ClassMethodKey, CSVRecord> map = records.stream()
+						.collect(Collectors.toMap(k -> ClassMethodKey.fromMethodMetric(k), v -> v));
+//				getLog().info("found "+ records.size() + " for file=" + f);
+				methodMetrics.putAll(map);
+			}
+			return methodMetrics;
+		} catch (IOException e) {
+			getLog().error(e.getMessage(), e);
+			return Collections.emptyMap();
+		}
 	}
 
 	private double iqai(Map<String, Long> maxComplexityPerClass, Document document, CSVRecord csvRecord) {
