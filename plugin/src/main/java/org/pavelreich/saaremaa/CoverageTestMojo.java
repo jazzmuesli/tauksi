@@ -12,6 +12,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.maven.artifact.Artifact;
@@ -83,6 +88,9 @@ public class CoverageTestMojo extends AbstractMojo {
 	
 	@Parameter( property = "shuffleTests", defaultValue = "true")
 	private String shuffleTests;
+	
+	@Parameter( property = "poolSize", defaultValue = "1")
+	private String poolSize;
 
 	@Parameter( property = "testExtractor", defaultValue = "FirstAvailableTestExtractor")
 	private String testExtractor;
@@ -90,14 +98,13 @@ public class CoverageTestMojo extends AbstractMojo {
 	public void execute()
         throws MojoExecutionException
     {
-		getLog().info("seqAgents: " + seqAgents + ", jacocoEnabled: " + jacocoEnabled + ", interceptorEnabled: " + interceptorEnabled +", shuffleTests: " + shuffleTests);
+		getLog().info("nThreads: " + poolSize + ", seqAgents: " + seqAgents + ", jacocoEnabled: " + jacocoEnabled + ", interceptorEnabled: " + interceptorEnabled +", shuffleTests: " + shuffleTests);
     	File jagentPath = resolveJavaAgent("org.pavelreich.saaremaa:jagent");
     	File jacocoPath = resolveJavaAgent("org.jacoco:org.jacoco.agent");
     	String targetClasses = project.getBuild().getOutputDirectory();
 		getLog().info("output: " + targetClasses);
-		Collection<String> classpath = DependencyHelper.prepareClasspath(project, localRepository, repositorySystem, pluginArtifactMap, getLog());
 		// ignore log4j
-		classpath = classpath.stream().filter(this::filterDependency).collect(Collectors.toList());
+		final Collection<String> classpath = DependencyHelper.prepareClasspath(project, localRepository, repositorySystem, pluginArtifactMap, getLog()).stream().filter(this::filterDependency).collect(Collectors.toList());
 		if (this.extraCp != null && !extraCp.trim().isEmpty()) {
 			classpath.addAll(Arrays.asList(extraCp.split(":")));
 		}
@@ -106,6 +113,11 @@ public class CoverageTestMojo extends AbstractMojo {
     	MongoDBClient db = new MongoDBClient(getClass().getSimpleName());
     	String id = UUID.randomUUID().toString();
     	TestExtractor extractor = createTestExtractor(logger, testClassName);
+    	Integer nThreads = Integer.valueOf(poolSize);
+		ExecutorService pool = new ThreadPoolExecutor(nThreads, nThreads,
+                 5000L, TimeUnit.MILLISECONDS,
+                 new ArrayBlockingQueue<Runnable>(nThreads, true), new ThreadPoolExecutor.CallerRunsPolicy());
+
 		for (String dirName : project.getTestCompileSourceRoots()) {
         	try {
         		// process test directory
@@ -157,9 +169,15 @@ public class CoverageTestMojo extends AbstractMojo {
     					commands = commands.stream().filter(p->p.testClassName.equals(testClassName)).collect(Collectors.toList());
     				}
     				for (TestExecutionCommand cmd : ProgressBar.wrap(commands, "testCases")) {
-						runTest(classpath, launcher, cmd);
+						if (nThreads == 1) {
+							runTest(classpath, launcher, cmd);
+						} else {
+							pool.submit(() -> runTest(classpath, launcher, cmd));							
+						}
+    					 
     				}
         		}
+    			pool.awaitTermination(1, TimeUnit.HOURS);
 			} catch (Exception e) {
 				getLog().error(e.getMessage(), e);
 			}
@@ -178,6 +196,8 @@ public class CoverageTestMojo extends AbstractMojo {
     		extractor = new SurefireTestExtractor(logger);
     	} else if (testExtractor.equals(SpoonTestExtractor.class.getSimpleName())) {
     		extractor = new SpoonTestExtractor(logger);
+    	} else if (testExtractor.equals(MetricsTestExtractor.class.getSimpleName())) {
+    		extractor = new MetricsTestExtractor(logger, project.getTestCompileSourceRoots());
     	} else if (testExtractor.equals(FirstAvailableTestExtractor.class.getSimpleName())) {
     		extractor = new FirstAvailableTestExtractor(new SurefireTestExtractor(logger),
     				new SpoonTestExtractor(logger));
@@ -200,30 +220,33 @@ public class CoverageTestMojo extends AbstractMojo {
 		return !p.contains("slf4j-log4j12");
 	}
 
-	private void runTest(Collection<String> classpath, ForkableTestLauncher launcher, TestExecutionCommand cmd)
-			throws IOException, InterruptedException {
+	private void runTest(Collection<String> classpath, ForkableTestLauncher launcher, TestExecutionCommand cmd) {
 		String sessionId = UUID.randomUUID().toString();
+		try {
 
-		launcher.setSessionId(sessionId);
-		Boolean jacEnabled = Boolean.valueOf(jacocoEnabled);
-		Boolean intercepEnabled = Boolean.valueOf(interceptorEnabled);
-		launcher.enableJacoco(false);
-		launcher.enableInterceptor(false);
-		if (Boolean.valueOf(seqAgents)) {
-			if (jacEnabled) {
+			launcher.setSessionId(sessionId);
+			Boolean jacEnabled = Boolean.valueOf(jacocoEnabled);
+			Boolean intercepEnabled = Boolean.valueOf(interceptorEnabled);
+			launcher.enableJacoco(false);
+			launcher.enableInterceptor(false);
+			if (Boolean.valueOf(seqAgents)) {
+				if (jacEnabled) {
+					launcher.enableJacoco(jacEnabled);
+					launcher.enableInterceptor(false);
+					launcher.launch(cmd, classpath);
+				}
+				if (intercepEnabled) {
+					launcher.enableJacoco(false);
+					launcher.enableInterceptor(intercepEnabled);
+					launcher.launch(cmd, classpath);
+				}
+			} else {
 				launcher.enableJacoco(jacEnabled);
-				launcher.enableInterceptor(false);
-				launcher.launch(cmd, classpath);
-			}
-			if (intercepEnabled) {
-				launcher.enableJacoco(false);
 				launcher.enableInterceptor(intercepEnabled);
 				launcher.launch(cmd, classpath);
 			}
-		} else {
-			launcher.enableJacoco(jacEnabled);
-			launcher.enableInterceptor(intercepEnabled);
-			launcher.launch(cmd, classpath);
+		} catch (Exception e) {
+			getLog().error(e.getMessage(), e);
 		}
 	}
 

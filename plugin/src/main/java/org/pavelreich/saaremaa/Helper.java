@@ -1,8 +1,13 @@
 package org.pavelreich.saaremaa;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
 import org.apache.maven.project.MavenProject;
 
 public class Helper {
@@ -50,4 +55,14 @@ public class Helper {
 				tcn.endsWith("Tests") ;
 	}
 
+  
+	static CSVParser getParser(String fname, String field) throws IOException {
+		CSVParser parser = CSVParser.parse(new File(fname), Charset.defaultCharset(),
+				CSVFormat.DEFAULT.withFirstRecordAsHeader());
+		if (!parser.getHeaderMap().containsKey(field)) {
+			parser = CSVParser.parse(new File(fname), Charset.defaultCharset(),
+					CSVFormat.DEFAULT.withDelimiter(';').withFirstRecordAsHeader());
+		}
+		return parser;
+	}
 }

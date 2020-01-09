@@ -156,7 +156,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 		}
 		CSVParser parser;
 		try {
-			parser = getParser(fname, field);
+			parser = Helper.getParser(fname, field);
 			List<Pair<String, String>> pairs = parser.getRecords().stream().filter(p -> p.isSet(field))
 					.map(x -> new Pair<String, String>(x.get("testClassName"), x.get(field)))
 					.collect(Collectors.toList());
@@ -168,15 +168,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 		}
 	}
 
-	protected CSVParser getParser(String fname, String field) throws IOException {
-		CSVParser parser = CSVParser.parse(new File(fname), Charset.defaultCharset(),
-				CSVFormat.DEFAULT.withFirstRecordAsHeader());
-		if (!parser.getHeaderMap().containsKey(field)) {
-			parser = CSVParser.parse(new File(fname), Charset.defaultCharset(),
-					CSVFormat.DEFAULT.withDelimiter(';').withFirstRecordAsHeader());
-		}
-		return parser;
-	}
+
 
 	protected Map<String, Map<String, Long>> readCKMetricPairs(String fname, String suffix) {
 		if (!new File(fname).exists()) {
@@ -184,7 +176,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 		}
 		CSVParser parser;
 		try {
-			parser = getParser(fname, "class");
+			parser = Helper.getParser(fname, "class");
 			Map<String, Map<String, Long>> ret = parser.getRecords().stream()
 					.filter(p-> "class".equals(p.get("type")))
 					.collect(Collectors.toMap(x -> x.get("class"), x -> toCKMetrics(suffix, x)));
@@ -214,10 +206,10 @@ public class CombineMetricsMojo extends AbstractMojo {
 	}
 
 	protected void printNonDataMethods(String dir) throws IOException {
-		CSVParser fieldsParser = getParser(dir + "field.csv", "class");
+		CSVParser fieldsParser = Helper.getParser(dir + "field.csv", "class");
 		Map<String, List<CSVRecord>> fieldsByClass = fieldsParser.getRecords().stream()
 				.collect(Collectors.groupingBy(x -> x.get("class")));
-		CSVParser methodsParser = getParser(dir + "method.csv", "class");
+		CSVParser methodsParser = Helper.getParser(dir + "method.csv", "class");
 		Map<String, List<CSVRecord>> methodsByClass = methodsParser.getRecords().stream()
 				.collect(Collectors.groupingBy(x -> x.get("class")));
 		// fields.forEach(f -> System.out.println(f));
@@ -338,7 +330,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 				p -> p.getName().equals("testability.csv"));
 		files.forEach(fileName -> {
 			try {
-				CSVParser parser = getParser(fileName, "className");
+				CSVParser parser = Helper.getParser(fileName, "className");
 				parser.getRecords().forEach(record -> {
 					String prodClassName = record.get("className");
 					Metrics metrics = getMetrics(metricsByProdClass, prodClassName);
@@ -386,10 +378,10 @@ public class CombineMetricsMojo extends AbstractMojo {
 			forEach(p -> populateCK(metricsByProdClass, p));
 			
 			try {
-				CSVParser fieldsParser = getParser(file.replaceAll("class.csv", "field.csv"), "class");
+				CSVParser fieldsParser = Helper.getParser(file.replaceAll("class.csv", "field.csv"), "class");
 				Map<String, List<CSVRecord>> fieldsByClass = fieldsParser.getRecords().stream()
 						.collect(Collectors.groupingBy(x -> x.get("class")));
-				CSVParser methodsParser = getParser(file.replaceAll("class.csv", "method.csv"), "class");
+				CSVParser methodsParser = Helper.getParser(file.replaceAll("class.csv", "method.csv"), "class");
 				Map<String, List<CSVRecord>> methodsByClass = methodsParser.getRecords().stream()
 						.collect(Collectors.groupingBy(x -> x.get("class")));
 				methodsByClass.entrySet().forEach(methodEntry -> 
@@ -518,7 +510,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 						mergeDocuments ));
 		Map<ClassMethodKey, CSVRecord> methodMetrics = new HashMap<>();
 		for (String f : files) {
-			CSVParser parser = getParser(f, "class");
+			CSVParser parser = Helper.getParser(f, "class");
 			List<CSVRecord> records = parser.getRecords();
 			Map<ClassMethodKey, CSVRecord> map = records.stream()
 					.collect(Collectors.toMap(k -> ClassMethodKey.fromMethodMetric(k), v -> v));
