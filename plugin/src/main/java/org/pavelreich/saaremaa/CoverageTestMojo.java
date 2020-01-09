@@ -72,16 +72,16 @@ public class CoverageTestMojo extends AbstractMojo {
 	/**
 	 * Run jacoco agent and then interceptor
 	 */
-	@Parameter( property = "seqAgents", defaultValue = "true")
+	@Parameter( property = "seqAgents", defaultValue = "false")
 	private String seqAgents;
 
 	/**
 	 * run test methods in separate sessions
 	 */
-	@Parameter( property = "seqTestMethods", defaultValue = "true")
+	@Parameter( property = "seqTestMethods", defaultValue = "false")
 	private String seqTestMethods;
 	
-	@Parameter( property = "shuffleTests", defaultValue = "false")
+	@Parameter( property = "shuffleTests", defaultValue = "true")
 	private String shuffleTests;
 
 	@Parameter( property = "testExtractor", defaultValue = "FirstAvailableTestExtractor")

@@ -82,7 +82,7 @@ public class ForkableTestLauncher {
 		if (!jacocoEnabled) {
 			return "";
 		}
-		return "-javaagent:" + jacocoPath+ "=destfile=" + fname;
+		return "-javaagent:" + jacocoPath+ "=tmetrics=" + interceptorEnabled + ",destfile=" + fname;
 	}
 	
 	void launch(TestExecutionCommand testExecutionCommand, Collection<String> classpath)
