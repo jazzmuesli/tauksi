@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -18,7 +17,6 @@ import org.jacoco.core.analysis.CoverageBuilder;
 import org.jacoco.core.analysis.IClassCoverage;
 import org.jacoco.core.analysis.IMethodCoverage;
 import org.jacoco.core.tools.ExecFileLoader;
-import org.pavelreich.saaremaa.jagent.MethodInterceptor;
 import org.pavelreich.saaremaa.mongo.MongoDBClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,11 +25,13 @@ import com.google.common.io.Files;
 
 public class ForkableTestLauncher {
 	
+	static final String TESTS_LAUNCHED_COL_NAME = "testsLaunched";
+	static final String METHOD_COVERAGE_COL_NAME = "methodCoverage";
+	static final String CLASS_COVERAGE_COL_NAME = "classCoverage";
 	private static final Logger CLOG = LoggerFactory.getLogger(ForkableTestLauncher.class);
 	private Logger LOG = CLOG;
 
 
-	private final File jagentPath;
 	private final File jacocoPath;
 	private final File targetClasses;
 	private long timeout = 60;
@@ -39,7 +39,6 @@ public class ForkableTestLauncher {
 	private String id;
 	private boolean jacocoEnabled;
 	private boolean interceptorEnabled;
-	private String sessionId;
 	private MavenProject project;
 	private boolean alwaysIncludeMethodCoverage = false;
 	private boolean alwaysIncludeClassCoverage = false;
@@ -48,10 +47,8 @@ public class ForkableTestLauncher {
 		this.id = id;
 		this.db = db;
 		this.LOG = log;
-		this.jagentPath = jagentPath;
 		this.jacocoPath = jacocoPath;
 		this.targetClasses = targetClasses;
-		this.sessionId = UUID.randomUUID().toString();
 	}
 	
 	public void setTimeout(long timeout) {
@@ -85,13 +82,13 @@ public class ForkableTestLauncher {
 		return "-javaagent:" + jacocoPath+ "=tmetrics=" + interceptorEnabled + ",destfile=" + fname;
 	}
 	
-	void launch(TestExecutionCommand testExecutionCommand, Collection<String> classpath)
+	void launch(String sessionId, TestExecutionCommand testExecutionCommand, Collection<String> classpath)
 			throws IOException, InterruptedException {
 		long stime = System.currentTimeMillis();
 		String fname = sessionId + ".exec";
 		// https://stackoverflow.com/questions/31567532/getting-expecting-a-stackmap-frame-at-branch-target-when-running-maven-integra
 		// https://stackoverflow.com/questions/300639/use-of-noverify-when-launching-java-apps
-		String cmd = "java -DsessionId=" + sessionId + " -Dsandbox_mode=OFF -noverify " + 
+		String cmd = "java -Did=" + id + " -DsessionId=" + sessionId + " -Dsandbox_mode=OFF -noverify " + 
 		createInterceptorJavaAgentCmd(testExecutionCommand.testClassName, sessionId)
 		 + " " + 
 		createJacocoCmd(fname) 
@@ -109,8 +106,7 @@ public class ForkableTestLauncher {
 		List<String> cmdArgs = Arrays.asList(cmd.split("\\s+"));
 		ProcessBuilder pb = new ProcessBuilder(cmdArgs);
 		pb.inheritIO();
-		Process p;
-		p = pb.start();
+		Process p = pb.start();
 		boolean finished = p.waitFor(timeout, TimeUnit.SECONDS);
 		if (!finished) {
 			p.destroy();
@@ -122,7 +118,7 @@ public class ForkableTestLauncher {
 		int exitValue = p.isAlive() ? -1 : p.exitValue();
 		LOG.info("Test  " + testExecutionCommand + " finished:" + finished + " in " + duration + " msec, exitCode: "+ exitValue);
 
-		db.insertCollection("testsLaunched", Arrays.asList(
+		db.insertCollection(TESTS_LAUNCHED_COL_NAME, Arrays.asList(
 				testExecutionCommand.asDocument().
 				append("id", id).
 				append("sessionId", sessionId).
@@ -146,9 +142,6 @@ public class ForkableTestLauncher {
 		
 	}
 
-	public void setSessionId(String sessionId) {
-		this.sessionId = sessionId;
-	}
 
 	private void processCoverageData(TestExecutionCommand testExecCmd, String fname, String sessionId, long stime) throws IOException {
 		ExecFileLoader execFileLoader = new ExecFileLoader();
@@ -211,8 +204,8 @@ public class ForkableTestLauncher {
 				}
 			}
 			LOG.info("Found coverage for " + coverageBuilder.getClasses().size() + " classes, inserting " + clsCovDocs.size() + " class and " + metCovDocs.size() + " method documents");
-			db.insertCollection("classCoverage", clsCovDocs);
-			db.insertCollection("methodCoverage", metCovDocs);
+			db.insertCollection(CLASS_COVERAGE_COL_NAME, clsCovDocs);
+			db.insertCollection(METHOD_COVERAGE_COL_NAME, metCovDocs);
 		}
 	}
 

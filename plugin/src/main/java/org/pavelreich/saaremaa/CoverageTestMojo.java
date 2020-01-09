@@ -1,22 +1,15 @@
 package org.pavelreich.saaremaa;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.maven.artifact.Artifact;
@@ -115,7 +108,7 @@ public class CoverageTestMojo extends AbstractMojo {
     	TestExtractor extractor = createTestExtractor(logger, testClassName);
     	Integer nThreads = Integer.valueOf(poolSize);
 
-    	ParallelPool pool = new ParallelPool(nThreads);
+    	WorkerPool pool = new WorkerPool(nThreads);
 		ForkableTestLauncher launcher = new ForkableTestLauncher(id, db, logger, jagentPath, jacocoPath,
 				new File(targetClasses));
 		for (String dirName : project.getTestCompileSourceRoots()) {
@@ -209,7 +202,7 @@ public class CoverageTestMojo extends AbstractMojo {
 			return false;
 		}
 		if (p.contains("unit-4") && !p.contains("unit-4.12")) {
-			getLog().info("bad junit: " + p);
+			getLog().info("bad junit version: " + p);
 			return false;
 		}
 		return !p.contains("slf4j-log4j12");
@@ -218,7 +211,6 @@ public class CoverageTestMojo extends AbstractMojo {
 	private void runTest(Collection<String> classpath, ForkableTestLauncher launcher, TestExecutionCommand cmd) {
 		try {
 			String sessionId = UUID.randomUUID().toString();
-			launcher.setSessionId(sessionId);
 			Boolean jacEnabled = Boolean.valueOf(jacocoEnabled);
 			Boolean intercepEnabled = Boolean.valueOf(interceptorEnabled);
 			launcher.enableJacoco(false);
@@ -227,17 +219,17 @@ public class CoverageTestMojo extends AbstractMojo {
 				if (jacEnabled) {
 					launcher.enableJacoco(jacEnabled);
 					launcher.enableInterceptor(false);
-					launcher.launch(cmd, classpath);
+					launcher.launch(sessionId, cmd, classpath);
 				}
 				if (intercepEnabled) {
 					launcher.enableJacoco(false);
 					launcher.enableInterceptor(intercepEnabled);
-					launcher.launch(cmd, classpath);
+					launcher.launch(sessionId, cmd, classpath);
 				}
 			} else {
 				launcher.enableJacoco(jacEnabled);
 				launcher.enableInterceptor(intercepEnabled);
-				launcher.launch(cmd, classpath);
+				launcher.launch(sessionId, cmd, classpath);
 			}
 		} catch (Exception e) {
 			getLog().error(e.getMessage(), e);

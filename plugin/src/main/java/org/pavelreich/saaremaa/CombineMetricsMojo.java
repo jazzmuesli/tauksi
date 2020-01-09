@@ -16,10 +16,13 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BinaryOperator;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import javax.print.Doc;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -38,8 +41,11 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.pavelreich.saaremaa.ForkableTestExecutor.TestExecutedMetrics;
 import org.pavelreich.saaremaa.mongo.MongoDBClient;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
 
 import me.tongfei.progressbar.ProgressBar;
 
@@ -237,7 +243,6 @@ public class CombineMetricsMojo extends AbstractMojo {
 		List<CSVRecord> constructors = methodEntry.getValue().stream().filter(p->simpleClassName.equals(p.get("method").replaceAll("(.*?)/.*", "$1"))).collect(Collectors.toList());
 		if (!constructors.isEmpty()) {
 			OptionalInt maxConstructorArgs = constructors.stream().mapToInt(x -> Integer.valueOf(x.get("parameters"))).max();
-			System.out.println("construftors: " + maxConstructorArgs + " for " + className);
 			if (maxConstructorArgs.isPresent()) {
 				m.put("prod.maxConstructorArgs", Long.valueOf(maxConstructorArgs.getAsInt()));				
 			}
@@ -422,32 +427,81 @@ public class CombineMetricsMojo extends AbstractMojo {
 		return files;
 	}
 
-	protected Map<String, Integer> sumLinesByClass(List<Document> ret, String linesName) {
+	protected Map<String, Integer> sumLinesByClass(Collection<Document> ret, String linesName) {
 		Map<String, Integer> map = ret.stream().collect(Collectors.<Document, String, Integer>toMap(
 				doc -> doc.getString("prodClassName"), val -> val.getInteger(linesName, 0), (a, b) -> a + b));
 		return map;
 	}
 
+
+	class DocumentManager {
+		final String collectionName; 
+		public DocumentManager(String colName) {
+			this.collectionName = colName;
+		}
+		Multimap<String, Document> map = ArrayListMultimap.create(); 
+		
+		Collection<Document> findDocumentsBySessionId(String sessionId) {
+			Collection<Document> found = map.get(sessionId);
+			if (found != null && !found.isEmpty()) {
+				return found;
+			}
+			Bson query = com.mongodb.client.model.Filters.eq("sessionId", sessionId);
+			List<Document> docs = db.find(collectionName, query);
+			Set<String> ids = docs.stream().map(doc -> doc.getString("id")).filter(p->p!=null).collect(Collectors.toSet());
+			fetch(ids);
+			return docs;
+		}
+		
+		protected void fetch(Set<String> ids) {
+			if (!ids.isEmpty()) {
+				Bson query = com.mongodb.client.model.Filters.in("id", ids);
+				List<Document> docs = db.find(collectionName, query);
+				getLog().info("Fetching " + collectionName + " using id=" + ids + ", found: " + docs.size());
+				for (Document doc : docs) {
+					map.put(doc.getString("sessionId"), doc);
+				}
+			}
+		}
+	}
 	
+	private final DocumentManager testsLaunchedManager = new DocumentManager(ForkableTestLauncher.TESTS_LAUNCHED_COL_NAME);
+	private final DocumentManager testsExecutedManager = new DocumentManager(ForkableTestExecutor.TESTS_EXECUTED_COL_NAME);
+	private final DocumentManager classCoverageManager = new DocumentManager(ForkableTestLauncher.CLASS_COVERAGE_COL_NAME);
+	private final DocumentManager methodCoverageManager = new DocumentManager(ForkableTestLauncher.METHOD_COVERAGE_COL_NAME);
 	private void addCoverageMetrics(String file, Map<String, Metrics> metricsByProdClass) {
 		File f = new File(file);
 		String sessionId = f.getName().replaceAll("-tmetrics.csv", "");
 //		getLog().info("Processing sessionId=" + sessionId);
-		Bson query = com.mongodb.client.model.Filters.eq("sessionId", sessionId);
-		List<Document> testsLaunched = db.find("testsLaunched", query);
+		Collection<Document> testsLaunched = testsLaunchedManager.findDocumentsBySessionId(sessionId);
 
-		Set<String> testClassNames = testsLaunched.stream().map(x -> x.getString("testClassName"))
-				.collect(Collectors.toSet());
+		Map<String,Document> testClassNames = testsLaunched.stream().collect(Collectors.toMap(x -> x.getString("testClassName"), x->x));
 		if (testClassNames.size() != 1) {
-			getLog().info("Found " + testClassNames + " testsLaunched for  " + sessionId);
+			getLog().warn("Found " + testClassNames.keySet() + " testsLaunched for  " + sessionId);
 			return;
 		}
+		Collection<Document> testsExecuted = testsExecutedManager.findDocumentsBySessionId(sessionId);
 
-		String testClassName = testClassNames.iterator().next();
+		Map<String,Document> testsExecutedDocs = testsExecuted.stream().collect(Collectors.toMap(x -> x.getString("testClassName"), x->x));
+
+		Entry<String, Document> testLaunched = testClassNames.entrySet().iterator().next();
+		String testClassName = testLaunched.getKey();
 		String prodClassName = Helper.getProdClassName(testClassName);
-		List<Document> classCoverage = db.find("classCoverage", query);
-		List<Document> methodCoverage = db.find("methodCoverage", query);
+		Collection<Document> classCoverage = classCoverageManager.findDocumentsBySessionId(sessionId);
+		Collection<Document> methodCoverage = methodCoverageManager.findDocumentsBySessionId(sessionId);
+		Metrics metrics = getMetrics(metricsByProdClass, prodClassName);
 
+		String testCat = Helper.classifyTest(testClassName);
+		
+		Document doc = testsExecutedDocs.get(testClassName);
+		if (doc != null) {
+			for (ForkableTestExecutor.TestExecutedMetrics metric : TestExecutedMetrics.values()) {
+				Long val = doc.getLong(metric.name());
+				if (val != null) {
+					metrics.put(metric.name()+"." + testCat, val);
+				}
+			}
+		}
 
 
 //		getLog().info("Found " + classCoverage.size() + " classCoverage docs for " + sessionId);
@@ -463,8 +517,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 		getLog().info("Test " + testClassName + "  covered " + prodClassesCovered + " prod classes and " + prodClassName
 				+ " with " + coverageRatio + " for sessionId= " + sessionId);
 
-		Metrics metrics = getMetrics(metricsByProdClass, prodClassName);
-		String testCat = Helper.classifyTest(testClassName);
+		
 		metrics.put("prodClassesCovered." + testCat, prodClassesCovered);
 		if ("evo".equals(testCat)) {
 			metrics.evoSessionId = sessionId;	
@@ -498,7 +551,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 	 * @return
 	 * @throws IOException
 	 */
-	protected double calculateQualityIndex(File tmetricsFile, String testCat, List<Document> methodCoverage, Metrics metrics) throws IOException {
+	protected double calculateQualityIndex(File tmetricsFile, String testCat, Collection<Document> methodCoverage, Metrics metrics) throws IOException {
 		File absoluteFile = tmetricsFile.getAbsoluteFile();
 		Path path = absoluteFile.getParentFile().toPath();
 		List<String> files = java.nio.file.Files.walk(path ).filter(p -> p.toFile().getName().endsWith("method.csv"))
