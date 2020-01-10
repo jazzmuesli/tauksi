@@ -4,12 +4,16 @@ echo "params:$*"
 ignoreChildProjects=true
 run_tests=true
 evosuite=false
-usage() { echo "Usage: $0 [-c -r -e]" 1>&2; exit 1; }
+add_deps=true
+usage() { echo "Usage: $0 [-c -r -e -a]" 1>&2; exit 1; }
 
-while getopts "cre" o; do
+while getopts "crea" o; do
     case "${o}" in
         c)
             ignoreChildProjects=false
+            ;;
+        a)
+            add_deps=false
             ;;
         r)
             run_tests=false
@@ -23,10 +27,13 @@ while getopts "cre" o; do
     esac
 done
 
-echo "run_tests:$run_tests, evo: $evosuite, ignoreChildProjects: $ignoreChildProjects"
+echo "run_tests:$run_tests, evo: $evosuite, ignoreChildProjects: $ignoreChildProjects, add_deps: $add_deps"
 export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/; export PATH=$JAVA_HOME/bin:$PATH
-mvn -Drat.skip=true -Ddependencies="org.evosuite:evosuite-standalone-runtime:LATEST:test" -Doverwrite=true org.pavelreich.saaremaa:plugin:add-dependency
-mvn -Drat.skip=true -Ddependencies="junit:junit:4.12:compile" -Doverwrite=true org.pavelreich.saaremaa:plugin:add-dependency
+if [ "$add_deps" = "true" ];
+then
+	mvn -Drat.skip=true -Ddependencies="org.evosuite:evosuite-standalone-runtime:LATEST:test" -Doverwrite=true org.pavelreich.saaremaa:plugin:add-dependency
+	mvn -Drat.skip=true -Ddependencies="junit:junit:4.12:compile" -Doverwrite=true org.pavelreich.saaremaa:plugin:add-dependency
+fi
 mvn -Drat.skip=true test-compile || exit 1
 mvn -Drat.skip=true org.pavelreich.saaremaa:plugin:metrics
 mvn -Drat.skip=true org.pavelreich.saaremaa:plugin:analyse-testcases
