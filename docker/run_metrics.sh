@@ -35,22 +35,19 @@ if [ "$evosuite" = "true" ];
 then
 	mvn -Drat.skip=true -Dsandbox_mode=OFF -Duse_separate_classloader=false -DmemoryInMB=4000 -Dcores=6 -DtimeInMinutesPerClass=2 org.evosuite.plugins:evosuite-maven-plugin:LATEST:generate
 	mvn -Drat.skip=true -Dsandbox_mode=OFF -Duse_separate_classloader=false org.evosuite.plugins:evosuite-maven-plugin:LATEST:export
+	mvn -Drat.skip=true test-compile || exit 1
 	mvn -Drat.skip=true org.pavelreich.saaremaa:plugin:metrics
 fi
 grep -lRi org.evosuite.runtime.sandbox.Sandbox.SandboxMode.RECOMMENDED . | xargs sed -i 's/org.evosuite.runtime.sandbox.Sandbox.SandboxMode.RECOMMENDED/org.evosuite.runtime.sandbox.Sandbox.SandboxMode.OFF/g'
 grep -lRi 'separateClassLoader = true' . | xargs sed -i 's/separateClassLoader = true/separateClassLoader = false/g'
-mvn -Drat.skip=true test-compile || exit 1
-#mvn -Dtest=org.jfree.data.xy.YIntervalSeries_ESTest -Drat.skip=true  -Dmaven.compiler.source=1.8 -Dmaven.compiler.target=1.8 -fae -Dmaven.test.failure.ignore=true org.jacoco:jacoco-maven-plugin:0.8.5:prepare-agent test
-mvn -Drat.skip=true -Dorg.apache.tools.ant.taskdefs.Mkdir_ESTest -Dmaven.compiler.source=1.8 -Dmaven.compiler.target=1.8 -fae -Dmaven.test.failure.ignore=true org.jacoco:jacoco-maven-plugin:LATEST:prepare-agent test
 mvn -Drat.skip=true com.google.testability-explorer:testability-mvn-plugin:testability
 mvn -Drat.skip=true org.pavelreich.saaremaa:plugin:parse-testability
 if [ "$run_tests" = "true" ];
 then
-	mvn -Drat.skip=true -DseqTestMethods=false -DshuffleTests=true -DinterceptorEnabled=false -Dtimeout=165 org.pavelreich.saaremaa:plugin:ctest
+	mvn -Drat.skip=true -DtestExtractor=MetricsTestExtractor -DpoolSize=5 org.pavelreich.saaremaa:plugin:ctest
 else
 	echo "Not running tests"
 fi
-#mvn -Dsandbox_mode=OFF
 mvn -Drat.skip=true org.pavelreich.saaremaa:plugin:analyse-testcases
 mvn -Drat.skip=true -DignoreChildProjects=$ignoreChildProjects org.pavelreich.saaremaa:plugin:combine-metrics
 
