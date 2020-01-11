@@ -51,6 +51,7 @@ mvn -Drat.skip=true com.google.testability-explorer:testability-mvn-plugin:testa
 mvn -Drat.skip=true org.pavelreich.saaremaa:plugin:parse-testability
 if [ "$run_tests" = "true" ];
 then
+	mvn -Drat.skip=true test-compile || exit 1
 	mvn -Drat.skip=true -DtestExtractor=MetricsTestExtractor -DpoolSize=5 org.pavelreich.saaremaa:plugin:ctest
 else
 	echo "Not running tests"
