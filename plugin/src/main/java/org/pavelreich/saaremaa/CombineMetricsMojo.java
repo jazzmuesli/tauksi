@@ -231,14 +231,10 @@ public class CombineMetricsMojo extends AbstractMojo {
 		String className = methodEntry.getKey();
 		Set<String> fields = fieldsByClass.getOrDefault(className, Collections.emptyList()).stream()
 				.map(x -> x.get("variable").toLowerCase()).collect(Collectors.toSet());
-		List<String> methods = methodEntry.getValue().stream().map(x -> x.get("method")).collect(Collectors.toList());
-		List<Optional<String>> setters = getMethods(methods, "^set.*", "(set)");
-		List<Optional<String>> getters = getMethods(methods, "^(get|is).*", "(get|is)");
-		Collection<String> dataMethods = IntStream.range(0, methods.size()).mapToObj(i -> {
-			boolean isSetter = setters.get(i).isPresent() && fields.contains(setters.get(i).get());
-			boolean isGetter = getters.get(i).isPresent() && fields.contains(getters.get(i).get());
-			return (isSetter || isGetter) ? methods.get(i) : null;
-		}).filter(p -> p != null).collect(Collectors.toSet());
+		List<String> methods = methodEntry.getValue().stream().filter(p->"false".equals(p.get("constructor"))).map(x -> x.get("method")).collect(Collectors.toList());
+		List<Optional<String>> setters = Helper.getMethods(methods, "^set.*", "(set)");
+		List<Optional<String>> getters = Helper.getMethods(methods, "^(get|is).*", "(get|is)");
+		Collection<String> dataMethods = Helper.calculateDataMethods(fields, methods, setters, getters);
 		String simpleClassName = className.replaceAll(".*?\\.([^\\.]+)$", "$1");
 		List<CSVRecord> constructors = methodEntry.getValue().stream().filter(p->simpleClassName.equals(p.get("method").replaceAll("(.*?)/.*", "$1"))).collect(Collectors.toList());
 		if (!constructors.isEmpty()) {
@@ -249,6 +245,12 @@ public class CombineMetricsMojo extends AbstractMojo {
 			
 		}
 		m.put("prod.dataMethods", Long.valueOf(dataMethods.size()));
+		long dataMethodsRatio = 0;
+		if (!methods.isEmpty() && !dataMethods.isEmpty()) {
+			dataMethodsRatio = Math.round(100*Double.valueOf(dataMethods.size()/Double.valueOf(methods.size())));
+		}
+		
+		m.put("prod.dataMethodsRatio", dataMethodsRatio);
 		m.put("prod.methods", Long.valueOf(methods.size()));
 		m.put("prod.setters", Long.valueOf(setters.stream().filter(p->p.isPresent()).count()));
 		m.put("prod.getters", Long.valueOf(getters.stream().filter(p->p.isPresent()).count()));
@@ -256,14 +258,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 		return new Pair<>(methods.size(), nonDataMethods.size());
 	}
 
-	protected static List<Optional<String>> getMethods(List<String> methods, String startPrefix, String prefix) {
-		List<Optional<String>> setters = methods.stream()
-				.map(p -> p.matches(startPrefix)
-						? Optional.of(p.toLowerCase().replaceAll("^" + prefix + "(.*?)\\/.*", "$2").toLowerCase())
-						: Optional.<String>empty())
-				.collect(Collectors.toList());
-		return setters;
-	}
+
 	
 	private Map<String, Long> toCKMetrics(String suffix, CSVRecord r) {
 		return Arrays.asList("cbo", "wmc", "rfc", "loc", "lcom","dit").stream()

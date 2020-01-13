@@ -3,8 +3,13 @@ package org.pavelreich.saaremaa;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -65,5 +70,32 @@ public class Helper {
 		}
 		return parser;
 	}
-	
+
+	protected static Collection<String> calculateDataMethods(
+			final Set<String> fields, 
+			final List<String> methods,
+			final List<Optional<String>> setters, 
+			final List<Optional<String>> getters) {
+		Collection<String> dataMethods = IntStream.range(0, methods.size()).mapToObj(i -> {
+			String method = methods.get(i);
+			boolean isSetter = setters.get(i).isPresent() && fields.contains(setters.get(i).get());
+			boolean isGetter = getters.get(i).isPresent() && fields.contains(getters.get(i).get());
+			String methodName = method.replaceAll("(.*?)\\/.*", "$1");
+			boolean isSpecialMethod = method != null && Arrays.asList("hashCode","equals","toString").contains(methodName);
+			return (isSetter || isGetter || isSpecialMethod) ? method : null;
+		}).filter(p -> p != null).collect(Collectors.toSet());
+		return dataMethods;
+	}
+
+	protected static List<Optional<String>> getMethods(List<String> methods, String startPrefix, String prefix) {
+		List<Optional<String>> setters = methods.stream()
+				.map(p -> p.matches(startPrefix)
+						? extractName(prefix, p)
+						: Optional.<String>empty())
+				.collect(Collectors.toList());
+		return setters;
+	}
+	static Optional<String> extractName(String prefix, String p) {
+		return Optional.of(p.toLowerCase().replaceAll("^" + prefix + "(.*?)\\/.*", "$2").toLowerCase());
+	}
 }
