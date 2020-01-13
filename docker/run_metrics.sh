@@ -42,7 +42,6 @@ if [ "$evosuite" = "true" ];
 then
 	mvn -Drat.skip=true -Dsandbox_mode=OFF -Duse_separate_classloader=false -DmemoryInMB=4000 -Dcores=6 -DtimeInMinutesPerClass=2 org.evosuite.plugins:evosuite-maven-plugin:LATEST:generate
 	mvn -Drat.skip=true -Dsandbox_mode=OFF -Duse_separate_classloader=false org.evosuite.plugins:evosuite-maven-plugin:LATEST:export
-	mvn -Drat.skip=true test-compile || exit 1
 	mvn -Drat.skip=true org.pavelreich.saaremaa:plugin:metrics
 fi
 grep -lRi org.evosuite.runtime.sandbox.Sandbox.SandboxMode.RECOMMENDED . | xargs sed -i 's/org.evosuite.runtime.sandbox.Sandbox.SandboxMode.RECOMMENDED/org.evosuite.runtime.sandbox.Sandbox.SandboxMode.OFF/g'
