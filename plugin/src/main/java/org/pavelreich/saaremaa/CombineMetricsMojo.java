@@ -2,7 +2,6 @@ package org.pavelreich.saaremaa;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,15 +15,10 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BinaryOperator;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
-import javax.print.Doc;
-
-import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.lang.builder.EqualsBuilder;
@@ -153,7 +147,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 	}
 
 	private String getSuffix(String testClassName) {
-		return Helper.classifyTest(testClassName);
+		return "." + Helper.classifyTest(testClassName);
 	}
 
 	private List<Pair<String, String>> readTMetricPairs(String fname, String field) {
