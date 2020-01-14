@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -34,6 +33,7 @@ public class Helper {
 	static String getProdClassName(String testClassName) {
 		String prodClassName = testClassName
 				.replaceAll("_ESTest$", "")
+				.replaceAll("EvoSuiteTest$", "")
 				.replaceAll("UnitTests$", "")
 				.replaceAll("UnitTest$", "")
 				.replaceAll("Test$", "")
@@ -44,7 +44,7 @@ public class Helper {
 	}
 
 	static String classifyTest(String tcn) {
-		if (tcn.contains("ESTest")) {
+		if (tcn.contains("ESTest") || tcn.contains("EvoSuiteTest")) {
 			return "evo";
 		} else if (isTest(tcn)) {
 			return "test";
