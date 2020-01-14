@@ -44,6 +44,7 @@ import org.bson.conversions.Bson;
 import org.pavelreich.saaremaa.ForkableTestExecutor.TestExecutedMetrics;
 import org.pavelreich.saaremaa.mongo.MongoDBClient;
 
+import com.github.mauricioaniche.ck.plugin.CKMetricsMojo;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 
@@ -273,16 +274,6 @@ public class CombineMetricsMojo extends AbstractMojo {
 				return;
 			}
 			getLog().info("modules: " + project.getModules());
-//			getLog().info("model: " + project.getModel());
-//			getLog().info("projectReferences: " + project.getProjectReferences());
-//			for (String module : project.getModules()) {
-//				Model childModel = new Model();
-//				childModel.addModule(module);
-//				MavenProject childProject = new MavenProject(childModel);
-//				getLog().info("childProject: " + childProject);
-//				getLog().info("childProject.src: " + childProject.getCompileSourceRoots());
-//				getLog().info("childProject.src.test: " + childProject.getTestCompileSourceRoots());
-//			}
 			Map<String, Metrics> metricsByProdClass = new HashMap<String, Metrics>();
 			addTMetrics(project.getBasedir().getAbsolutePath(), metricsByProdClass);
 			addTNOO(metricsByProdClass);
@@ -348,7 +339,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 	protected void addTestCKmetrics(Map<String, Metrics> metricsByProdClass) throws IOException {
 		List<String> files = new ArrayList<String>();
 		if (Boolean.valueOf(usePomDirectories)) {
-			for (String dir : project.getTestCompileSourceRoots()) {
+			for (String dir : CKMetricsMojo.extractDirs(project.getTestCompileSourceRoots())) {
 				files.addAll(findFiles(dir, p -> p.getName().equals("class.csv")));
 			}
 		} else {
@@ -653,7 +644,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 		
 	}
 	protected void addTNOO(Map<String, Metrics> metricsByProdClass) {
-		project.getTestCompileSourceRoots().forEach(dirName -> {
+		CKMetricsMojo.extractDirs(project.getTestCompileSourceRoots()).forEach(dirName -> {
 			List<Pair<String, String>> testCases = readTMetricPairs(dirName + File.separator + "testcases.csv",
 					"testCaseName");
 			testCases.stream().filter(p -> !p.getSecond().equals("TOTAL")).forEach(p -> {

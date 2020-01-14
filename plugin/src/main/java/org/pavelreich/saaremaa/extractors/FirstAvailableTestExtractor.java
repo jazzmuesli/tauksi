@@ -1,4 +1,4 @@
-package org.pavelreich.saaremaa;
+package org.pavelreich.saaremaa.extractors;
 
 import java.util.Map;
 import java.util.Set;

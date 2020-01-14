@@ -28,6 +28,8 @@ import org.apache.maven.project.MavenProject;
 import org.apache.maven.repository.RepositorySystem;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 
+import com.github.mauricioaniche.ck.plugin.CKMetricsMojo;
+
 import core.Architecture;
 import dependencies.Dependency;
 
@@ -71,7 +73,7 @@ public class JavaDepExtractorMojo extends AbstractMojo {
 			List<String> sourcepath = new ArrayList(project.getCompileSourceRoots());
 			getLog().info("compileSourceRoots: " + convertListToString(project.getCompileSourceRoots()));
 			getLog().info("testCompileSourceRoots: " + convertListToString(project.getTestCompileSourceRoots()));
-			sourcepath.addAll(project.getTestCompileSourceRoots());
+			sourcepath.addAll(CKMetricsMojo.extractDirs(project.getTestCompileSourceRoots()));
 			getLog().info("sourcepath: " + convertListToString(sourcepath));
 			List<String> sourceFiles = sourcepath.stream().map(srcDir -> getSourceFiles(srcDir)).flatMap(List::stream)
 					.collect(Collectors.toList());

@@ -24,7 +24,15 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.repository.RepositorySystem;
 import org.bson.Document;
+import org.pavelreich.saaremaa.extractors.FirstAvailableTestExtractor;
+import org.pavelreich.saaremaa.extractors.MetricsTestExtractor;
+import org.pavelreich.saaremaa.extractors.SingleClassExtractor;
+import org.pavelreich.saaremaa.extractors.SpoonTestExtractor;
+import org.pavelreich.saaremaa.extractors.SurefireTestExtractor;
+import org.pavelreich.saaremaa.extractors.TestExtractor;
 import org.pavelreich.saaremaa.mongo.MongoDBClient;
+
+import com.github.mauricioaniche.ck.plugin.CKMetricsMojo;
 
 import me.tongfei.progressbar.ProgressBar;
 
@@ -111,7 +119,7 @@ public class CoverageTestMojo extends AbstractMojo {
     	WorkerPool pool = new WorkerPool(nThreads);
 		ForkableTestLauncher launcher = new ForkableTestLauncher(id, db, logger, jagentPath, jacocoPath,
 				new File(targetClasses));
-		for (String dirName : project.getTestCompileSourceRoots()) {
+		for (String dirName : CKMetricsMojo.extractDirs(project.getTestCompileSourceRoots())) {
         	try {
         		// process test directory
         		getLog().info("Processing id=" + id + ", dir="  + dirName);

@@ -33,6 +33,8 @@ import org.pavelreich.saaremaa.testdepan.ITestClass;
 import org.pavelreich.saaremaa.testdepan.TestFileProcessor;
 import org.slf4j.Logger;
 
+import com.github.mauricioaniche.ck.plugin.CKMetricsMojo;
+
 
 /**
  * Goal which touches a timestamp file.
@@ -71,7 +73,7 @@ public class CodeCoverageAnalyseMojo
 		LinkedHashSet<String> classpath = DependencyHelper.prepareClasspath(project, localRepository, repositorySystem, pluginArtifactMap, getLog());
 		Logger logger = new MavenLoggerAsSLF4jLoggerAdaptor(getLog());
     	List<String> junitClassNames = new ArrayList();
-    	for(String dirName: project.getTestCompileSourceRoots()) {
+    	for(String dirName: CKMetricsMojo.extractDirs(project.getTestCompileSourceRoots())) {
         	try {
         		// process test directory
         		getLog().info("Processing "  + dirName);

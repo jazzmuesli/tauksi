@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -51,7 +52,7 @@ public class Helper {
 		return null;
 	}
 	
-	static boolean isTest(String tcn) {
+	public static boolean isTest(String tcn) {
 		return tcn.contains(".Test") || 
 				tcn.endsWith("Test") || 
 				tcn.endsWith("UnitTests") ||
@@ -61,7 +62,7 @@ public class Helper {
 	}
 
   
-	static CSVParser getParser(String fname, String field) throws IOException {
+	public static CSVParser getParser(String fname, String field) throws IOException {
 		CSVParser parser = CSVParser.parse(new File(fname), Charset.defaultCharset(),
 				CSVFormat.DEFAULT.withFirstRecordAsHeader());
 		if (!parser.getHeaderMap().containsKey(field)) {

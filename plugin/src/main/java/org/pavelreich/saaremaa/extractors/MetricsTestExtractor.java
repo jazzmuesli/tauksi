@@ -1,4 +1,4 @@
-package org.pavelreich.saaremaa;
+package org.pavelreich.saaremaa.extractors;
 
 import java.io.File;
 import java.io.IOException;
@@ -8,6 +8,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.csv.CSVParser;
+import org.pavelreich.saaremaa.Helper;
+import org.pavelreich.saaremaa.MavenLoggerAsSLF4jLoggerAdaptor;
 
 public class MetricsTestExtractor implements TestExtractor{
 

@@ -13,7 +13,11 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
+import org.pavelreich.saaremaa.extractors.SpoonTestExtractor;
+import org.pavelreich.saaremaa.extractors.SurefireTestExtractor;
 import org.slf4j.Logger;
+
+import com.github.mauricioaniche.ck.plugin.CKMetricsMojo;
 
 @Mojo(name = "analyse-testcases", defaultPhase = LifecyclePhase.PROCESS_SOURCES, requiresDependencyResolution = ResolutionScope.NONE)
 public class TestCaseReporterMojo extends AbstractMojo {
@@ -31,7 +35,7 @@ public class TestCaseReporterMojo extends AbstractMojo {
 			Logger logger = new MavenLoggerAsSLF4jLoggerAdaptor(getLog());
 			CombinedTestExtractor extractor = new CombinedTestExtractor(new SurefireTestExtractor(logger),
 					new SpoonTestExtractor(logger));
-			for (String dirName : project.getTestCompileSourceRoots()) {
+			for (String dirName : CKMetricsMojo.extractDirs(project.getTestCompileSourceRoots())) {
 				getLog().info("Processing dir=" + dirName);
 				if (!new File(dirName).exists()) {
 					continue;

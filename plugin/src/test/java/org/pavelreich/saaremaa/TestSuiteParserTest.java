@@ -12,6 +12,8 @@ import java.util.stream.Stream;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.pavelreich.saaremaa.extractors.SpoonTestExtractor;
+import org.pavelreich.saaremaa.extractors.SurefireTestExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
