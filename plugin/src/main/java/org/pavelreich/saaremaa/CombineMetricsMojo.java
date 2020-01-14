@@ -153,8 +153,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 	}
 
 	private String getSuffix(String testClassName) {
-		String suffix = testClassName.endsWith("_ESTest") ? ".evo" : ".test";
-		return suffix;
+		return Helper.classifyTest(testClassName);
 	}
 
 	private List<Pair<String, String>> readTMetricPairs(String fname, String field) {

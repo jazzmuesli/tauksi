@@ -42,6 +42,12 @@ public class HelperTest {
 	public void testMethod() {
 		assertEquals("name", Helper.extractName("(set)", "setName/1").get());
 	}
+
+	@Test
+	public void testCat() {
+		assertEquals("evo", Helper.classifyTest("com.google.earth.kml._2.PointTypeEvoSuiteTest"));
+	}
+
 	
 	@Test
 	public void testMethods() {
