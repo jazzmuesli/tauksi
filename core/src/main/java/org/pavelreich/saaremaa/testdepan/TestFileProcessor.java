@@ -28,7 +28,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.pavelreich.saaremaa.CSVReporter;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -455,9 +454,9 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 
 		int lineCount() {
 			try {
-			CtBlock body = this.method.getBody();
-			int loc = body.toString().split("\n").length;
-			return loc;
+				CtBlock body = this.method.getBody();
+				int loc = body.toString().split("\n").length;
+				return loc;
 			} catch (Exception e) {
 				return 0;
 			}

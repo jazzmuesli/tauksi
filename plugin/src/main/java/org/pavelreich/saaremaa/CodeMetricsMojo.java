@@ -14,6 +14,7 @@ import org.apache.commons.csv.CSVRecord;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -39,41 +40,57 @@ public class CodeMetricsMojo extends AbstractMojo {
 	public CodeMetricsMojo() {
 		super();
 		db = new MongoDBClient(getClass().getSimpleName());
-		mojo = new InternalMojo();
+		mojo = new InternalMojo(db, project);
 	}
 
 
 
-	class InternalMojo extends CKMetricsMojo {
+	static class InternalMojo extends CKMetricsMojo {
+		private MongoDBClient db;
+
+		public InternalMojo(MongoDBClient db, MavenProject project) {
+			this.db = db;
+			this.project = project;
+		}
+
 		@Override
 		protected MetricsWriter createMetricsWriter(String dirName) {
 			getLog().info("Analysing dirName=" + dirName);
 			MetricsWriter csvWriter = super.createMetricsWriter(dirName);
 			if (csvWriter instanceof MetricsCSVWriter) {
-				return new MongoMetricsWriter(dirName, (MetricsCSVWriter) csvWriter);
+				return new MongoMetricsWriter(db, project, getLog(), dirName, (MetricsCSVWriter) csvWriter);
 			} else {
 				return csvWriter;
 			}
 		}
-		
+
 		@Override
 		public void execute() throws MojoExecutionException {
-			this.project = CodeMetricsMojo.this.project;
 			super.execute();
 		}
-		
+
 	}
-	
-	class MongoMetricsWriter implements MetricsWriter {
+
+	static class MongoMetricsWriter implements MetricsWriter {
 
 		private MetricsCSVWriter csvWriter;
 		private String dirName;
+		private MongoDBClient db;
+		private MavenProject project;
+		private Log log;
 
-		public MongoMetricsWriter(String dirName, MetricsCSVWriter csvWriter) {
+		public MongoMetricsWriter(MongoDBClient db, MavenProject project, Log log, String dirName, MetricsCSVWriter csvWriter) {
+			this.db = db;
+			this.project=project;
+			this.log=log;
 			this.csvWriter = csvWriter;
 			this.dirName = dirName;
 		}
 
+		public Log getLog() {
+			return log;
+		}
+		
 		@Override
 		public void notify(CKClassResult result) {
 			csvWriter.notify(result);
