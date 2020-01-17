@@ -154,7 +154,13 @@ public class CodeMetricsMojo extends AbstractMojo {
 
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
-		mojo.execute();
+		try {
+			mojo.project = project;
+			mojo.execute();
+		} catch (Exception e) {
+			e.printStackTrace();
+			getLog().error(e.getMessage(), e);
+		}
 	}
 
 
