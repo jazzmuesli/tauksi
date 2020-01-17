@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -40,15 +41,17 @@ public class CodeMetricsMojo extends AbstractMojo {
 	public CodeMetricsMojo() {
 		super();
 		db = new MongoDBClient(getClass().getSimpleName());
-		mojo = new InternalMojo(db, project);
+		mojo = new InternalMojo(Optional.empty(), db, project);
 	}
 
 
 
 	static class InternalMojo extends CKMetricsMojo {
 		private MongoDBClient db;
+		protected Optional<String> prefix;
 
-		public InternalMojo(MongoDBClient db, MavenProject project) {
+		public InternalMojo(Optional<String> prefix, MongoDBClient db, MavenProject project) {
+			this.prefix = prefix;
 			this.db = db;
 			this.project = project;
 		}
@@ -58,10 +61,14 @@ public class CodeMetricsMojo extends AbstractMojo {
 			getLog().info("Analysing dirName=" + dirName);
 			MetricsWriter csvWriter = super.createMetricsWriter(dirName);
 			if (csvWriter instanceof MetricsCSVWriter) {
-				return new MongoMetricsWriter(db, project, getLog(), dirName, (MetricsCSVWriter) csvWriter);
+				return createMongoMetricsWriter(dirName, (MetricsCSVWriter) csvWriter);
 			} else {
 				return csvWriter;
 			}
+		}
+
+		protected MongoMetricsWriter createMongoMetricsWriter(String dirName, MetricsCSVWriter csvWriter) {
+			return new MongoMetricsWriter(prefix, db, project, getLog(), dirName, csvWriter);
 		}
 
 		@Override
@@ -78,11 +85,14 @@ public class CodeMetricsMojo extends AbstractMojo {
 		private MongoDBClient db;
 		private MavenProject project;
 		private Log log;
+		private Optional<String> prefix;
 
-		public MongoMetricsWriter(MongoDBClient db, MavenProject project, Log log, String dirName, MetricsCSVWriter csvWriter) {
+		public MongoMetricsWriter(Optional<String> prefix, MongoDBClient db, MavenProject project, Log log, String dirName,
+				MetricsCSVWriter csvWriter) {
+			this.prefix = prefix;
 			this.db = db;
-			this.project=project;
-			this.log=log;
+			this.project = project;
+			this.log = log;
 			this.csvWriter = csvWriter;
 			this.dirName = dirName;
 		}
@@ -129,8 +139,11 @@ public class CodeMetricsMojo extends AbstractMojo {
 		}
 		
 
-		private Document toDocument(String dirName, Set<String> cols, CSVRecord record) {
+		protected Document toDocument(String dirName, Set<String> cols, CSVRecord record) {
 			Document doc = new Document().append("project", project.getArtifact().getId()).append("dirName", dirName);
+			if (prefix.isPresent()) {
+				doc = doc.append("prefix", prefix.get());
+			}
 			for (String col : cols) {
 				doc = doc.append(col, record.get(col));
 			}
