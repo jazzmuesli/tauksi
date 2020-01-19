@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -12,7 +13,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+
 
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.lang3.tuple.Pair;
@@ -42,6 +45,11 @@ public class HistoryCodeMetricsMojo extends AbstractMojo {
 
 	@Parameter(defaultValue = "${project}", readonly = true, required = true)
 	MavenProject project;
+	@Parameter( property = "classesOnly", defaultValue = "false")
+	private String classesOnly;
+	@Parameter(defaultValue = "${project.build.directory}", property = "outputDir", required = true)
+	private File outputDirectory;
+
 	private MongoDBClient db;
 
 	public HistoryCodeMetricsMojo() {
@@ -73,8 +81,15 @@ public class HistoryCodeMetricsMojo extends AbstractMojo {
 			getLog().info("using runId=" + runId);
 			getLog().info("Found " + files.size() + " files, first: " + files.stream().findFirst());
 			CSVParser gitParser = Helper.getParser(dirName + "git-history.csv", "commit");
+			Function<String, Boolean> isFilenameRelevant;
+			if (Boolean.valueOf(classesOnly)) {
+				isFilenameRelevant = (p) -> files.contains(p);
+			} else {
+				isFilenameRelevant = (p) -> p.endsWith(".java");
+			}
+			 
 			Collection<Pair<String,String>> commits = gitParser.getRecords().stream()
-					.filter(p -> files.contains(p.get("newFilename"))).map(x -> 
+					.filter(p -> isFilenameRelevant.apply(p.get("newFilename"))).map(x -> 
 					Pair.of(x.get("commit"), x.get("timestamp")))
 					.collect(Collectors.toCollection(LinkedHashSet::new));
 			getLog().info("Found " + commits.size() + " commits");
@@ -97,6 +112,15 @@ public class HistoryCodeMetricsMojo extends AbstractMojo {
 				};
 				mojo.execute();
 			}
+			Bson query = Filters.and(Filters.eq("runId",runId), Filters.exists("runId"), Filters.exists("prefix"));
+			getLog().info("Loading " + query);
+			List<Document> docs = db.find("classMetrics", query);
+			CSVReporter reporter = new CSVReporter(outputDirectory.getAbsolutePath()+File.separator+"commits.csv", "class","commit","timestamp","loc");
+			getLog().info("Found " + docs.size() + " Documents");
+			for (Document doc : docs) {
+				reporter.write(doc.getString("class"), doc.getString("commit"), doc.getString("commitTimestamp"), doc.getString("loc"));
+			}
+			reporter.close();
 		} catch (Exception e) {
 			getLog().error(e.getMessage(), e);
 		}
@@ -116,18 +140,26 @@ public class HistoryCodeMetricsMojo extends AbstractMojo {
 	public static void main(String[] args) throws IOException {
 		Logger LOG = LoggerFactory.getLogger(HistoryCodeMetricsMojo.class);
 		MongoDBClient mdb = new MongoDBClient("main");
-		String dirName = "/Users/preich/Documents/git/jfreechart/";
-		Bson query = Filters.and(Filters.eq("dirName",dirName+"src/main/java"), Filters.exists("runId"), Filters.exists("prefix"));
+		String runId = "ae4737e3-d93a-4551-8c14-1e1f7d530f07";//jfreechart
+		runId="53823490-7102-434a-b4c3-c1fcc3a76e8b";//commons-math
+//		runId="e582dd29-6c37-4439-b2eb-12fe1819fde8";//ck
+//		runId="535b72d3-d213-4fe7-91f9-81ae6a665d7d";//ant
+//		runId="636ff432-c70f-4051-b543-d90fc3291806";//commons-collections
+		Bson query = Filters.and(Filters.eq("runId",runId), Filters.exists("runId"), Filters.exists("prefix"));
+		LOG.info("Loading " + query);
 		List<Document> docs = mdb.find("classMetrics", query);
-		LOG.info("Found " + docs.size());
-		
+		CSVReporter reporter = new CSVReporter("/tmp/commits.csv", "class","commit","timestamp","loc");
+		LOG.info("Found " + docs.size() + " Documents");
+		for (Document doc : docs) {
+			reporter.write(doc.getString("class"), doc.getString("commit"), doc.getString("commitTimestamp"), doc.getString("loc"));
+		}
 		Map<String, List<Document>> docsByClass = docs.stream().collect(Collectors.groupingBy(d->d.getString("class")));
 		Map<String, Set<String>> locByClass = docs.stream().collect(Collectors.groupingBy(d->d.getString("class"),
-				Collectors.mapping(e->e.getString("loc"), Collectors.toCollection(LinkedHashSet::new))));
+				Collectors.mapping(e->e.getString(metric), Collectors.toCollection(LinkedHashSet::new))));
 		LOG.info("Found " + locByClass.size());
 		Map<String, Integer> locsByClass = locByClass.entrySet().stream().collect(Collectors.toMap(k->k.getKey(),  v->v.getValue().size()));
 		Map<String, Integer> sortedLocsByClass = locsByClass.entrySet().stream()
-                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder())).limit(10)
+                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder())).limit(15)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
                         (oldValue, newValue) -> oldValue, LinkedHashMap::new));
 		sortedLocsByClass.entrySet().forEach(x->{
@@ -135,9 +167,16 @@ public class HistoryCodeMetricsMojo extends AbstractMojo {
 			Integer locs = x.getValue();
 			LOG.info("class: " +className + ", locs: " + locs+"=" + locByClass.getOrDefault(className, Collections.emptySet()));
 			List<Document> relDocs = docsByClass.getOrDefault(className, Collections.emptyList());
-			relDocs.forEach(relDoc -> LOG.info("commit: "+ relDoc.getString("prefix") + ", timestamp: "+ relDoc.getString("commitTimestamp")));;
+			Map<String, String> xs = relDocs.stream().collect(Collectors.toMap(d->d.getString(metric), relDoc -> getDoc(relDoc),
+					(oldValue, newValue) -> oldValue, LinkedHashMap::new));
+			xs.entrySet().forEach(s -> LOG.info(s.getValue()));;
 		});
 
+	}
+	static String metric = "loc";
+
+	protected static String getDoc(Document relDoc) {
+		return "commit: "+ relDoc.getString("prefix") + ", " + metric + ": " + relDoc.getString(metric) + " timestamp: "+ new Date(1000L*Long.valueOf(relDoc.getString("commitTimestamp")));
 	}
 
 }
