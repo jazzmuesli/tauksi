@@ -9,6 +9,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -51,6 +52,7 @@ import spoon.reflect.reference.CtTypeReference;
 import spoon.reflect.visitor.Filter;
 
 /**
+ * TODO: refactor all.
  * Analyse test classes, extract methods with annotations extract fields with
  * types and annotations.
  *
@@ -152,6 +154,8 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 		private Set<String> annotations = new HashSet<>();
 		private List<MyField> fields = new ArrayList<>();
 		private Map<String, Object> annotationsMap;
+		private List<String> superClasses;
+		private List<String> interfaces;
 
 		public String getClassName() {
 			return ctClass.getQualifiedName();
@@ -163,6 +167,8 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 				this.annotationsMap = ctClass.getAnnotations().stream().filter(p -> p.getValues().containsKey("value"))
 						.collect(Collectors.toMap(e -> e.getAnnotationType().getQualifiedName(),
 								e -> e.getValues().get("value").toString()));
+				this.superClasses = getSuperclasses(ctClass);
+				this.interfaces = getInterfaces(ctClass);
 			} catch (Exception e) {
 				//TODO: use junit5-api
 //				LOG.error("Error occured for annotations of class:" + ctClass + ", error: " + e.getMessage(), e);
@@ -187,6 +193,8 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 			map.put("simpleName", ctClass.getQualifiedName());
 			map.put("annotations", annotations);
 			map.put("annotationsMap", annotationsMap);
+			map.put("superClasses", superClasses);
+			map.put("interfaces", interfaces);
 			map.put("testMethods", getTestMethods().stream().map(x -> x.toJSON()).collect(Collectors.toList()));
 			map.put("setupMethods", getSetupMethods().stream().map(x -> x.toJSON()).collect(Collectors.toList()));
 			Collection<ObjectCreationOccurence> mockFields = objectsCreated.get(new ObjectCreator(ctClass));
@@ -585,6 +593,28 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}
 		
+	}
+
+	private static List<String> getSuperclasses(CtClass klasse) {
+		List<String> ret = new ArrayList<>();
+		CtTypeReference refType = klasse.getReference();
+		while(refType != null){
+			refType = refType.getSuperclass();
+			if (refType != null) {
+				ret.add(refType.getQualifiedName());				
+			}
+		}
+		return ret;
+	}
+	private static List<String> getInterfaces(CtClass klasse) {
+		CtTypeReference refType = klasse.getReference();
+		if (refType != null) {
+			Set<CtTypeReference<?>> set = refType.getSuperInterfaces();
+			return set.stream().map(x->x.getQualifiedName()).collect(Collectors.toList());
+
+		} else {
+			return Collections.emptyList();
+		}
 	}
 
 }

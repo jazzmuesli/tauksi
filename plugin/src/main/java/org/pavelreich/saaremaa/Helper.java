@@ -30,7 +30,7 @@ public class Helper {
 		}
 	}
 	
-	static String getProdClassName(String testClassName) {
+	public static String getProdClassName(String testClassName) {
 		String prodClassName = testClassName
 				.replaceAll("_ESTest$", "")
 				.replaceAll("EvoSuiteTest$", "")
@@ -43,7 +43,7 @@ public class Helper {
 		return prodClassName;
 	}
 
-	static String classifyTest(String tcn) {
+	public static String classifyTest(String tcn) {
 		if (tcn.contains("ESTest") || tcn.contains("EvoSuiteTest")) {
 			return "evo";
 		} else if (isTest(tcn)) {
@@ -61,12 +61,15 @@ public class Helper {
 				tcn.endsWith("Tests") ;
 	}
 
-  
 	public static CSVParser getParser(String fname, String field) throws IOException {
-		CSVParser parser = CSVParser.parse(new File(fname), Charset.defaultCharset(),
+		return getParser(new File(fname), field);
+	}
+	
+	public static CSVParser getParser(File file, String field) throws IOException {
+		CSVParser parser = CSVParser.parse(file, Charset.defaultCharset(),
 				CSVFormat.DEFAULT.withFirstRecordAsHeader());
 		if (!parser.getHeaderMap().containsKey(field)) {
-			parser = CSVParser.parse(new File(fname), Charset.defaultCharset(),
+			parser = CSVParser.parse(file, Charset.defaultCharset(),
 					CSVFormat.DEFAULT.withDelimiter(';').withFirstRecordAsHeader());
 		}
 		return parser;
@@ -81,11 +84,15 @@ public class Helper {
 			String method = methods.get(i);
 			boolean isSetter = setters.get(i).isPresent() && fields.contains(setters.get(i).get());
 			boolean isGetter = getters.get(i).isPresent() && fields.contains(getters.get(i).get());
-			String methodName = method.replaceAll("(.*?)\\/.*", "$1");
-			boolean isSpecialMethod = method != null && Arrays.asList("hashCode","equals","toString").contains(methodName);
+			boolean isSpecialMethod = method != null && Arrays.asList("hashCode","equals","toString").contains(getSimpleMethodName(method));
 			return (isSetter || isGetter || isSpecialMethod) ? method : null;
 		}).filter(p -> p != null).collect(Collectors.toSet());
 		return dataMethods;
+	}
+
+	public static String getSimpleMethodName(String method) {
+		String methodName = method.replaceAll("(.*?)\\/.*", "$1");
+		return methodName;
 	}
 
 	protected static List<Optional<String>> getMethods(List<String> methods, String startPrefix, String prefix) {

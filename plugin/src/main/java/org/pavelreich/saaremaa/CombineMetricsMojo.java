@@ -8,7 +8,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -36,6 +35,9 @@ import org.apache.maven.project.MavenProject;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.pavelreich.saaremaa.ForkableTestExecutor.TestExecutedMetrics;
+import org.pavelreich.saaremaa.combiner.Metrics;
+import org.pavelreich.saaremaa.combiner.MetricsManager;
+import org.pavelreich.saaremaa.combiner.TestanResultParser;
 import org.pavelreich.saaremaa.mongo.MongoDBClient;
 
 import com.github.mauricioaniche.ck.plugin.CKMetricsMojo;
@@ -64,71 +66,12 @@ public class CombineMetricsMojo extends AbstractMojo {
 		db = new MongoDBClient(getClass().getSimpleName());
 	}
 
-	static class Metrics {
-		static Set<String> fields = new LinkedHashSet<>();
-		private String prodClassName;
 
-		Map<String, Long> longMetrics = new HashMap<String, Long>();
-		String testSessionId = "";
-		String evoSessionId = "";
 
-		Metrics(String prodClassName) {
-			this.prodClassName = prodClassName;
-		}
-
-		public void incrementMetric(String metricName) {
-			fields.add(metricName);
-			longMetrics.putIfAbsent(metricName, 0L);
-			longMetrics.put(metricName, longMetrics.get(metricName) + 1);
-		}
-
-		void merge(Map<String, Long> m) {
-			fields.addAll(m.keySet());
-			longMetrics.putAll(m);
-		}
-
-		void put(String metricName, Long n) {
-			fields.add(metricName);
-			longMetrics.put(metricName, n);
-		}
-
-		@Override
-		public String toString() {
-			return ToStringBuilder.reflectionToString(this);
-		}
-
-		public static String[] getFields() {
-			List<String> vals = new ArrayList();
-			vals.add("prodClassName");
-			vals.add("testSessionId");
-			vals.add("evoSessionId");
-			vals.addAll(fields);
-			return vals.toArray(new String[0]);
-		}
-
-		public String[] getValues() {
-			List<String> vals = new ArrayList();
-			vals.add(prodClassName);
-			vals.add(testSessionId);
-			vals.add(evoSessionId);
-			vals.addAll(fields.stream().map(f -> longMetrics.containsKey(f) ? String.valueOf(longMetrics.get(f)) : "")
-					.collect(Collectors.toList()));
-			return vals.toArray(new String[0]);
-		}
-
-		public Document toDocument() {
-			Document doc = new Document("prodClassName", prodClassName);
-			longMetrics.entrySet().forEach(e -> doc.append(e.getKey().replace('.', '_'), e.getValue()));
-			return doc;
-		}
-
-	}
-
-	protected void populateCK(Map<String, Metrics> metricsByProdClass, Entry<String, Map<String, Long>> p) {
+	protected void populateCK(MetricsManager metricsManager, Entry<String, Map<String, Long>> p) {
 		String testClassName = p.getKey();
 		String prodClassName = Helper.getProdClassName(testClassName);
-		metricsByProdClass.putIfAbsent(prodClassName, new Metrics(prodClassName));
-		Metrics m = metricsByProdClass.get(prodClassName);
+		Metrics m = metricsManager.provideMetrics(prodClassName);
 		Map<String, Long> value = p.getValue();
 		if (!testClassName.equals(prodClassName)) {
 			String suffix = getSuffix(testClassName);
@@ -139,11 +82,11 @@ public class CombineMetricsMojo extends AbstractMojo {
 		m.merge(value);
 	}
 
-	private void populateTMetrics(Pair<String, String> p, Map<String, Metrics> metricsByProdClass) {
+	private void populateTMetrics(Pair<String, String> p, MetricsManager metricsManager) {
 		String prodClassName = Helper.getProdClassName(p.getFirst());
-		metricsByProdClass.putIfAbsent(prodClassName, new Metrics(prodClassName));
+		Metrics metrics = metricsManager.provideMetrics(prodClassName);
 		String metricName = p.getSecond() + getSuffix(p.getFirst());
-		metricsByProdClass.get(prodClassName).incrementMetric(metricName);
+		metrics.incrementMetric(metricName);
 	}
 
 	private String getSuffix(String testClassName) {
@@ -190,20 +133,14 @@ public class CombineMetricsMojo extends AbstractMojo {
 	public static void main(String[] args) {
 		CombineMetricsMojo mojo = new CombineMetricsMojo();
 		try {
-			List<String> files = mojo.findFiles("/Users/preich/Documents/github/jfreechart", 
-					p->p.getName().contains("field.csv")).stream().map(x->x.replaceAll("field.csv","")).
-					collect(Collectors.toList());
-			for (String dir : files) {
-				mojo.printNonDataMethods(dir);				
-			}
-//			String dir = "/Users/preich/Documents/github/jfreechart/src/main/java/";
-			
-		} catch (IOException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
 	}
+
+
 
 	protected void printNonDataMethods(String dir) throws IOException {
 		CSVParser fieldsParser = Helper.getParser(dir + "field.csv", "class");
@@ -255,7 +192,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 
 	
 	private Map<String, Long> toCKMetrics(String suffix, CSVRecord r) {
-		return Arrays.asList("cbo", "wmc", "rfc", "loc", "lcom","dit").stream()
+		return Arrays.asList("cbo", "wmc", "rfc", "loc", "lcom","dit", "anonymousClassesQty","subClassesQty","lambdasQty","totalFields","totalMethods").stream()
 				.collect(Collectors.toMap(k -> k + suffix, k -> Long.valueOf(r.get(k))));
 	}
 
@@ -268,11 +205,21 @@ public class CombineMetricsMojo extends AbstractMojo {
 			}
 			getLog().info("modules: " + project.getModules());
 			Map<String, Metrics> metricsByProdClass = new HashMap<String, Metrics>();
-			addTMetrics(project.getBasedir().getAbsolutePath(), metricsByProdClass);
-			addTNOO(metricsByProdClass);
-			addProdCKmetrics(metricsByProdClass);
-			addTestCKmetrics(metricsByProdClass);
-			addTestability(metricsByProdClass);
+			MetricsManager metricsManager = new MetricsManager(metricsByProdClass);
+
+			addTMetrics(project.getBasedir().getAbsolutePath(), metricsManager);
+			addTNOO(metricsManager);
+			addProdCKmetrics(metricsManager);
+			addTestCKmetrics(metricsManager);
+			addTestability(metricsManager);
+			MavenLoggerAsSLF4jLoggerAdaptor logger = new MavenLoggerAsSLF4jLoggerAdaptor(getLog());
+			TestanResultParser testanResultParser = new TestanResultParser(logger);
+			for (String dirName : CKMetricsMojo.extractDirs(project.getTestCompileSourceRoots())) {
+				File dir = new File(dirName);
+				if (dir.isDirectory()) {
+					testanResultParser.addMetrics(dir, metricsManager);	
+				}
+			}
 
 			String directory = project.getBuild().getDirectory();
 			new File(directory).mkdirs();
@@ -310,7 +257,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 
 	}
 
-	private void addTestability(Map<String, Metrics> metricsByProdClass) throws IOException {
+	private void addTestability(MetricsManager metricsManager) throws IOException {
 		List<String> files = findFiles(project.getBasedir().getAbsolutePath(),
 				p -> p.getName().equals("testability.csv"));
 		files.forEach(fileName -> {
@@ -318,7 +265,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 				CSVParser parser = Helper.getParser(fileName, "className");
 				parser.getRecords().forEach(record -> {
 					String prodClassName = record.get("className");
-					Metrics metrics = getMetrics(metricsByProdClass, prodClassName);
+					Metrics metrics = metricsManager.provideMetrics(prodClassName);
 					Long cost = Long.valueOf(record.get("cost"));
 					metrics.put("testabilityCost", cost);
 				});
@@ -329,7 +276,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 
 	}
 
-	protected void addTestCKmetrics(Map<String, Metrics> metricsByProdClass) throws IOException {
+	protected void addTestCKmetrics(MetricsManager metricsManager) throws IOException {
 		List<String> files = new ArrayList<String>();
 		if (Boolean.valueOf(usePomDirectories)) {
 			for (String dir : CKMetricsMojo.extractDirs(project.getTestCompileSourceRoots())) {
@@ -343,11 +290,11 @@ public class CombineMetricsMojo extends AbstractMojo {
 					".test");
 			allTestCKMetrics.entrySet().stream().filter(f -> Helper.isTest(f.getKey()) && !f.getKey().contains("ESTest_scaffolding")).// ignore
 																											// evosuite
-			forEach(p -> populateCK(metricsByProdClass, p));
+			forEach(p -> populateCK(metricsManager, p));
 		});
 	}
 
-	protected void addProdCKmetrics(Map<String, Metrics> metricsByProdClass) throws IOException {
+	protected void addProdCKmetrics( MetricsManager metricsManager) throws IOException {
 		List<String> files = new ArrayList<String>();
 		if (Boolean.valueOf(usePomDirectories)) {
 			for (String dir : project.getCompileSourceRoots()) {
@@ -360,7 +307,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 		files.forEach(file -> {
 			Map<String, Map<String, Long>> prodCKMetrics = readCKMetricPairs(file, ".prod");
 			prodCKMetrics.entrySet().stream().filter(p-> !Helper.isTest(p.getKey())).
-			forEach(p -> populateCK(metricsByProdClass, p));
+			forEach(p -> populateCK(metricsManager, p));
 			
 			try {
 				CSVParser fieldsParser = Helper.getParser(file.replaceAll("class.csv", "field.csv"), "class");
@@ -370,7 +317,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 				Map<String, List<CSVRecord>> methodsByClass = methodsParser.getRecords().stream()
 						.collect(Collectors.groupingBy(x -> x.get("class")));
 				methodsByClass.entrySet().forEach(methodEntry -> 
-				calculateNonDataMethodsCount(fieldsByClass, methodEntry, metricsByProdClass.computeIfAbsent(methodEntry.getKey(), (cn) -> new Metrics(cn)))
+					calculateNonDataMethodsCount(fieldsByClass, methodEntry, metricsManager.provideMetrics(methodEntry.getKey()))
 				);
 			} catch (IOException e) {
 				getLog().error(e.getMessage(), e);
@@ -387,7 +334,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 		
 	}
 
-	protected void addTMetrics(String dir, Map<String, Metrics> metricsByProdClass) throws IOException {
+	protected void addTMetrics(String dir, MetricsManager metricsManager) throws IOException {
 		List<String> files = findFiles(dir, (p) -> p.getName().endsWith("-tmetrics.csv"));
 
 		List<Pair<String, String>> pairs = new ArrayList();
@@ -397,12 +344,12 @@ public class CombineMetricsMojo extends AbstractMojo {
 		Map<ClassMethodKey, CSVRecord> methodMetrics = new HashMap();
 		paths.forEach(path -> methodMetrics.putAll(loadMethodMetrics(path)));
 		for (String file : ProgressBar.wrap(files, "coverageMetrics")) {
-			addCoverageMetrics(methodMetrics, file, metricsByProdClass);
+			addCoverageMetrics(methodMetrics, file, metricsManager);
 		}
 
 
 		getLog().info("Generated " + pairs.size() + " from " + files.size() + " files");
-		pairs.forEach(p -> populateTMetrics(p, metricsByProdClass));
+		pairs.forEach(p -> populateTMetrics(p, metricsManager));
 	}
 
 	protected List<String> findFiles(String dir, Predicate<File> predicate) throws IOException {
@@ -454,7 +401,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 	private final DocumentManager testsExecutedManager = new DocumentManager(ForkableTestExecutor.TESTS_EXECUTED_COL_NAME);
 	private final DocumentManager classCoverageManager = new DocumentManager(ForkableTestLauncher.CLASS_COVERAGE_COL_NAME);
 	private final DocumentManager methodCoverageManager = new DocumentManager(ForkableTestLauncher.METHOD_COVERAGE_COL_NAME);
-	private void addCoverageMetrics(Map<ClassMethodKey, CSVRecord> methodMetrics, String file, Map<String, Metrics> metricsByProdClass) {
+	private void addCoverageMetrics(Map<ClassMethodKey, CSVRecord> methodMetrics, String file, MetricsManager metricsManager) {
 		File f = new File(file);
 		String sessionId = f.getName().replaceAll("-tmetrics.csv", "");
 //		getLog().info("Processing sessionId=" + sessionId);
@@ -474,7 +421,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 		String prodClassName = Helper.getProdClassName(testClassName);
 		Collection<Document> classCoverage = classCoverageManager.findDocumentsBySessionId(sessionId);
 		Collection<Document> methodCoverage = methodCoverageManager.findDocumentsBySessionId(sessionId);
-		Metrics metrics = getMetrics(metricsByProdClass, prodClassName);
+		Metrics metrics = metricsManager.provideMetrics(prodClassName);
 
 		String testCat = Helper.classifyTest(testClassName);
 		
@@ -520,12 +467,6 @@ public class CombineMetricsMojo extends AbstractMojo {
 			getLog().error(e.getMessage(), e);
 		}
 
-	}
-
-	protected Metrics getMetrics(Map<String, Metrics> metricsByProdClass, String prodClassName) {
-		metricsByProdClass.putIfAbsent(prodClassName, new Metrics(prodClassName));
-		Metrics metrics = metricsByProdClass.get(prodClassName);
-		return metrics;
 	}
 
 	/**
@@ -636,14 +577,13 @@ public class CombineMetricsMojo extends AbstractMojo {
 		
 		
 	}
-	protected void addTNOO(Map<String, Metrics> metricsByProdClass) {
+	protected void addTNOO(MetricsManager metricsManager) {
 		CKMetricsMojo.extractDirs(project.getTestCompileSourceRoots()).forEach(dirName -> {
 			List<Pair<String, String>> testCases = readTMetricPairs(dirName + File.separator + "testcases.csv",
 					"testCaseName");
 			testCases.stream().filter(p -> !p.getSecond().equals("TOTAL")).forEach(p -> {
 				String prodClassName = Helper.getProdClassName(p.getFirst());
-				metricsByProdClass.putIfAbsent(prodClassName, new Metrics(prodClassName));
-				Metrics m = metricsByProdClass.get(prodClassName);
+				Metrics m = metricsManager.provideMetrics(prodClassName);
 				String metricName = "TNOO" + getSuffix(p.getFirst());
 				m.incrementMetric(metricName);
 			});
