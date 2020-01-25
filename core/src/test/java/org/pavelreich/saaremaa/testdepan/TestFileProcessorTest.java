@@ -48,6 +48,32 @@ public class TestFileProcessorTest {
 	}
 	
 	@Test
+	public void testLOC() throws FileNotFoundException {
+		TestFileProcessor processor = TestFileProcessor.run(LOG,"./src/test/java/org/pavelreich/saaremaa/testdepan/TestFileProcessorTest.java", null);
+		LOG.info("processor: " + processor);
+		List<ITestClass> classes = processor.getElements();
+		assertEquals(1, classes.size());
+//		Map map = new HashMap();
+		/**
+		 * test
+		 * banana
+		 * apple
+		 * pineapple
+		 */
+		ITestClass myClass = classes.get(0);
+		assertEquals(getClass().getName(), myClass.getClassName());
+		List<ITestMethod> methods = myClass.getTestMethods();
+		for (ITestMethod method : methods) {
+			if (method.getName().equals("testLOC")) {
+				LOG.info("method: "+ method);		
+				assertEquals(15,method.lineCount());
+			}
+			
+		}
+
+	}
+	
+	@Test
 	public void testJunit3Parsing() throws FileNotFoundException {
 		TestFileProcessor processor = TestFileProcessor.run(LOG,"./src/test/java/org/pavelreich/saaremaa/testdepan/TestFileProcessorTest.java", null);
 		LOG.info("processor: " + processor);

@@ -19,4 +19,6 @@ public interface ITestMethod extends IJSONable {
 	
 	String toCSV();
 
+	int lineCount();
+
 }

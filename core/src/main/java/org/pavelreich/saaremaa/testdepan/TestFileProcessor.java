@@ -1,9 +1,11 @@
 package org.pavelreich.saaremaa.testdepan;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -30,6 +32,7 @@ import org.junit.BeforeClass;
 import org.pavelreich.saaremaa.CSVReporter;
 import org.slf4j.Logger;
 
+import com.github.mauricioaniche.ck.util.SourceCodeLineCounter;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -460,10 +463,12 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 			return simpleName.contains("void");
 		}
 
-		int lineCount() {
+		@Override
+		public int lineCount() {
 			try {
 				CtBlock body = this.method.getBody();
-				int loc = body.toString().split("\n").length;
+				BufferedReader reader = new BufferedReader(new StringReader(body.toString()));
+				int loc = SourceCodeLineCounter.getNumberOfLines(reader);
 				return loc;
 			} catch (Exception e) {
 				return 0;
