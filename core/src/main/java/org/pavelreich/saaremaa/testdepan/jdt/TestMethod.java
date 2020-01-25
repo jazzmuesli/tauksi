@@ -67,4 +67,10 @@ public class TestMethod implements ITestMethod{
 		return null;
 	}
 
+	@Override
+	public int lineCount() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
 }
