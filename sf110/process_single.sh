@@ -16,7 +16,7 @@ cd /sf110/$i || exit 1
     fi
 	if [ -f target/testcases.ok ];
 	then
-		echo "ck already present $i"
+		echo "testcases already present $i"
     else
                 mvn -o org.pavelreich.saaremaa:plugin:analyse-testcases && touch target/testcases.ok
     fi
