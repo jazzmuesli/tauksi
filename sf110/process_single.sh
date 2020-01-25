@@ -1,6 +1,6 @@
 #!/bin/sh
 
-$i=$1
+i=$1
 cd /sf110/$i || exit 1
 	if [ -f target/ck.ok ];
 	then
