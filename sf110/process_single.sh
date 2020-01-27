@@ -26,10 +26,10 @@ i=$1
     else
         mvn -o com.google.testability-explorer:testability-mvn-plugin:testability org.pavelreich.saaremaa:plugin:parse-testability
     fi
-	if [ -f target/metrics.csv ];
+	if [ -f target/metrics.ok ];
 	then
 		echo "metrics already present $i"
 	else
-		mvn -o org.pavelreich.saaremaa:plugin:combine-metrics
+		mvn -o org.pavelreich.saaremaa:plugin:combine-metrics && touch target/metrics.ok
 	fi
 echo "DONE $i"
