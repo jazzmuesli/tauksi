@@ -3,11 +3,7 @@ package org.pavelreich.saaremaa.combiner;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -37,7 +33,7 @@ public class TestanResultParser {
 		String json = Files.readAllLines(resultJsonFname.toPath()).stream().collect(Collectors.joining());
 		Gson g = new Gson();
 		CSVParser classParser = Helper.getParser(classFname, "class");
-		Map<String, Object> testClassMetrics = classParser.getRecords().stream().collect(Collectors.toMap(k->k.get("class"), v->v));
+		Map<String, CSVRecord> testClassMetrics = classParser.getRecords().stream().collect(Collectors.toMap(k->k.get("class"), v->v));
 		CSVParser methodParser = Helper.getParser(methodFname, "class");
 		Map<String, List<Map<String, String>>> testMethodMetrics = methodParser.getRecords().stream().map(x->x.toMap()).collect(Collectors.groupingBy(k->k.get("class")));
 		List<Map> testClasses = g.fromJson(json, List.class);
@@ -65,12 +61,19 @@ public class TestanResultParser {
 			Map<String,String> anMap = (Map) testClass.getOrDefault("annotationsMap", Map.class);
 			
 			ret.put("runWith."+testCat, anMap.entrySet().stream().filter(p->p.getKey().contains("RunWith")).map(x->x.getValue()).collect(Collectors.joining("|")));
-			int testConLOC = methodMetrics.stream().filter(p->Boolean.valueOf(p.getOrDefault("constructor", "false"))).mapToInt(x->Integer.valueOf(x.getOrDefault("loc", "0"))).sum();
-			ret.put("testConstructors."+testCat, testConLOC);
-			Set<String> exclMethods = Stream.concat(setupMethods.stream(), testMethods.stream()).map(x->String.valueOf(x.getOrDefault("simpleName", null))).collect(Collectors.toSet());
-			List<Map<String, String>> normalMethods = methodMetrics.stream().filter(p->!exclMethods.contains(Helper.getSimpleMethodName(p.get("method")))).collect(Collectors.toList());
-			ret.put("normalMethods."+testCat, normalMethods.size());
-			ret.put("normalMethods.loc."+testCat, normalMethods.stream().mapToInt(x->Integer.valueOf(x.get("loc"))).sum());
+			if (methodMetrics != null) {
+				int testConLOC = methodMetrics.stream().filter(p->Boolean.valueOf(p.getOrDefault("constructor", "false"))).mapToInt(x->Integer.valueOf(x.getOrDefault("loc", "0"))).sum();
+				ret.put("testConstructors."+testCat, testConLOC);
+				Set<String> exclMethods = Stream.concat(setupMethods.stream(), testMethods.stream()).map(x->String.valueOf(x.getOrDefault("simpleName", null))).collect(Collectors.toSet());
+				List<Map<String, String>> normalMethods = methodMetrics.stream().filter(p->!exclMethods.contains(Helper.getSimpleMethodName(p.get("method")))).collect(Collectors.toList());
+				ret.put("normalMethods."+testCat, normalMethods.size());
+				ret.put("normalMethods.loc."+testCat, normalMethods.stream().mapToInt(x->Integer.valueOf(x.get("loc"))).sum());
+			}
+			IntSummaryStatistics innerClassMetricsLOC = testClassMetrics.entrySet().stream().
+					filter(p -> p.getKey().startsWith(tcn + "$")).
+					mapToInt(x -> Integer.valueOf(x.getValue().get("loc"))).summaryStatistics();
+			ret.put("innerClasses." + testCat, innerClassMetricsLOC.getCount());
+			ret.put("innerClasses.loc." + testCat, innerClassMetricsLOC.getSum());
 		}
 	}
 
