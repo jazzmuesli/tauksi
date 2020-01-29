@@ -120,12 +120,14 @@ public class CombineMetricsMojo extends AbstractMojo {
 		CSVParser parser;
 		try {
 			parser = Helper.getParser(fname, "class");
-			Map<String, Map<String, Long>> ret = parser.getRecords().stream()
+			List<CSVRecord> records = parser.getRecords();
+			getLog().info("found " + records.size() + " in file " + fname);
+			Map<String, Map<String, Long>> ret = records.stream()
 					.filter(p-> "class".equals(p.get("type")))
 					.collect(Collectors.toMap(x -> x.get("class"), x -> toCKMetrics(suffix, x)));
 			return ret;
 		} catch (Exception e) {
-			getLog().error(e.getMessage(), e);
+			getLog().error("Failed to readCKMetricPairs from " + fname + " due to " + e.getMessage(), e);
 			return Collections.emptyMap();
 		}
 	}
@@ -310,17 +312,23 @@ public class CombineMetricsMojo extends AbstractMojo {
 			forEach(p -> populateCK(metricsManager, p));
 			
 			try {
-				CSVParser fieldsParser = Helper.getParser(file.replaceAll("class.csv", "field.csv"), "class");
-				Map<String, List<CSVRecord>> fieldsByClass = fieldsParser.getRecords().stream()
+				String fieldFname = file.replaceAll("class.csv", "field.csv");
+				CSVParser fieldsParser = Helper.getParser(fieldFname, "class");
+				List<CSVRecord> fieldRecors = fieldsParser.getRecords();
+				getLog().info("Read " + fieldRecors.size() + " from  " + fieldFname);
+				Map<String, List<CSVRecord>> fieldsByClass = fieldRecors.stream()
 						.collect(Collectors.groupingBy(x -> x.get("class")));
-				CSVParser methodsParser = Helper.getParser(file.replaceAll("class.csv", "method.csv"), "class");
-				Map<String, List<CSVRecord>> methodsByClass = methodsParser.getRecords().stream()
+				String methodFname = file.replaceAll("class.csv", "method.csv");
+				CSVParser methodsParser = Helper.getParser(methodFname, "class");
+				List<CSVRecord> methodRecords = methodsParser.getRecords();
+				getLog().info("Read " + methodRecords.size() + " from  " + methodFname);
+				Map<String, List<CSVRecord>> methodsByClass = methodRecords.stream()
 						.collect(Collectors.groupingBy(x -> x.get("class")));
 				methodsByClass.entrySet().forEach(methodEntry -> 
 					calculateNonDataMethodsCount(fieldsByClass, methodEntry, metricsManager.provideMetrics(methodEntry.getKey()))
 				);
-			} catch (IOException e) {
-				getLog().error(e.getMessage(), e);
+			} catch (Exception e) {
+				getLog().error("Failed to parse " + file + " due to " + e.getMessage(), e);
 			}
 
 		});
@@ -502,7 +510,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 	protected Map<ClassMethodKey, CSVRecord> loadMethodMetrics(Path path) {
 		List<String> files;
 		try {
-			files = java.nio.file.Files.walk(path ).filter(p -> p.toFile().getName().endsWith("method.csv"))
+			files = java.nio.file.Files.walk(path).filter(p -> p.toFile().getName().endsWith("method.csv"))
 					.map(f -> f.toFile().getAbsolutePath()).collect(Collectors.toList());
 			Map<ClassMethodKey, CSVRecord> methodMetrics = new HashMap<>();
 			for (String f : files) {
@@ -514,7 +522,7 @@ public class CombineMetricsMojo extends AbstractMojo {
 				methodMetrics.putAll(map);
 			}
 			return methodMetrics;
-		} catch (IOException e) {
+		} catch (Exception e) {
 			getLog().error(e.getMessage(), e);
 			return Collections.emptyMap();
 		}
