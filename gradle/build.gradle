@@ -31,7 +31,7 @@ sourceCompatibility = '1.8'
 gradlePlugin {
     plugins {
         tauksiGradlePlugin {
-            id = 'CombineGradlePlugin'
+            id = 'CombineMetricsGradlePlugin'
             implementationClass = 'org.pavelreich.saaremaa.tauksi.gradle.plugin.CombineMetricsPlugin'
         }
     }

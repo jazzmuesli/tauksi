@@ -32,6 +32,7 @@ RUN git clone --single-branch --branch java8 https://github.com/jazzmuesli/ck.gi
 RUN git clone --single-branch --branch java8 https://github.com/jazzmuesli/ck-mvn-plugin.git
 RUN git clone https://github.com/jazzmuesli/tauksi.git
 RUN git clone https://github.com/jazzmuesli/javadepextractor.git
+RUN git clone git@github.com:jazzmuesli/gradle-maven-plugin.git
 RUN cd /root/javadepextractor && mvn -DskipTests install
 RUN wget https://services.gradle.org/distributions/gradle-5.0-bin.zip -P /tmp
 RUN unzip -d /opt/gradle /tmp/gradle-*.zip
@@ -39,6 +40,7 @@ ENV export GRADLE_HOME=/opt/gradle/gradle-5.0
 ENV export PATH=/opt/gradle/gradle-5.0/bin:${PATH}
 
 RUN cd /root/RefactoringMiner && git checkout upgrade-jdt-318 && /opt/gradle/gradle-5.0/bin/gradle install
+RUN cd /root/gradle-maven-plugin && git pull && mvn -DskipTests clean install
 RUN cd /root/ck && git pull && mvn -DskipTests clean install
 RUN cd /root/ck-mvn-plugin && git pull && mvn -DskipTests clean install
 RUN cd /root/tauksi && git pull && mvn -DskipTests clean install
