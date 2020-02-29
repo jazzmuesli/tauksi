@@ -39,9 +39,7 @@
 		<module>ctester</module>
 		<module>mongo</module>
 		<module>csv</module>
-		<!-- TODO: debug it
 		<module>gradle</module>
-		 -->
 	</modules>
 	<dependencies>
 

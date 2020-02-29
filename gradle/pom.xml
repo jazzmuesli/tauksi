@@ -36,6 +36,7 @@
 				<artifactId>gradle-maven-plugin</artifactId>
 				<version>1.0.8</version>
 				<configuration>
+					<gradleVersion>5.6.1</gradleVersion>
 					<tasks>
 						<!-- this would effectively call "gradle doSomething" -->
 						<task>install</task>
