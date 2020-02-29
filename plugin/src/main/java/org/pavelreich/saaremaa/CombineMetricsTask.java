@@ -15,7 +15,6 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.BinaryOperator;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.commons.csv.CSVParser;
@@ -24,7 +23,6 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.math3.util.Pair;
-import org.apache.maven.plugin.logging.Log;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.pavelreich.saaremaa.ForkableTestExecutor.TestExecutedMetrics;
@@ -54,11 +52,11 @@ public class CombineMetricsTask {
 	private String usePomDirectories;
 	private List<String> srcDirs;
 
-	public CombineMetricsTask(MongoDBClient db, Log logger, File basedir, String projectId, String targetDirectory,
-			List<String> testSrcDirs, String usePomDirectories, List<String> srcDirs) {
-		this(db, new MavenLoggerAsSLF4jLoggerAdaptor(logger), basedir, projectId, targetDirectory, testSrcDirs,
-				usePomDirectories, srcDirs);
-	}
+//	public CombineMetricsTask(MongoDBClient db, Log logger, File basedir, String projectId, String targetDirectory,
+//			List<String> testSrcDirs, String usePomDirectories, List<String> srcDirs) {
+//		this(db, new MavenLoggerAsSLF4jLoggerAdaptor(logger), basedir, projectId, targetDirectory, testSrcDirs,
+//				usePomDirectories, srcDirs);
+//	}
 
 	public CombineMetricsTask(MongoDBClient db, Logger logger, File basedir, String projectId, String targetDirectory,
 			List<String> testSrcDirs, String usePomDirectories, List<String> srcDirs) {
@@ -80,7 +78,7 @@ public class CombineMetricsTask {
 
 		File basedir = new File("/Users/preich/Documents/git/poi");
 		try {
-			List<String> sourceDirFiles = findFiles(basedir.toString(), p -> p.getName().equals("sourceDirs.csv"));
+			List<String> sourceDirFiles = Helper.findFiles(basedir.toString(), p -> p.getName().equals("sourceDirs.csv"));
 			List<String> srcDirs = new ArrayList();
 			List<String> testSrcDirs = new ArrayList();
 			for (String f : sourceDirFiles) {
@@ -248,7 +246,7 @@ public class CombineMetricsTask {
 //				.collect(Collectors.toMap(k -> k + suffix, k -> Long.valueOf(r.get(k))));
 	}
 
-	protected void execute() {
+	public void execute() {
 		try {
 
 			Map<String, Metrics> metricsByProdClass = new HashMap<String, Metrics>();
@@ -305,7 +303,7 @@ public class CombineMetricsTask {
 	}
 
 	private void addTestability(MetricsManager metricsManager) throws IOException {
-		List<String> files = findFiles(basedir.getAbsolutePath(), p -> p.getName().equals("testability.csv"));
+		List<String> files = Helper.findFiles(basedir.getAbsolutePath(), p -> p.getName().equals("testability.csv"));
 		files.forEach(fileName -> {
 			try {
 				CSVParser parser = Helper.getParser(fileName, "className");
@@ -326,10 +324,10 @@ public class CombineMetricsTask {
 		List<String> files = new ArrayList<String>();
 		if (Boolean.valueOf(usePomDirectories)) {
 			for (String dir : CKMetricsMojo.extractDirs(testSrcDirs)) {
-				files.addAll(findFiles(dir, p -> p.getName().equals("class.csv")));
+				files.addAll(Helper.findFiles(dir, p -> p.getName().equals("class.csv")));
 			}
 		} else {
-			files = findFiles(basedir.getAbsolutePath(), p -> p.getName().equals("class.csv"));
+			files = Helper.findFiles(basedir.getAbsolutePath(), p -> p.getName().equals("class.csv"));
 		}
 		files.forEach(fileName -> {
 			Map<String, Map<String, Long>> allTestCKMetrics = readCKMetricPairs(fileName, ".test");
@@ -344,10 +342,10 @@ public class CombineMetricsTask {
 		List<String> files = new ArrayList<String>();
 		if (Boolean.valueOf(usePomDirectories)) {
 			for (String dir : srcDirs) {
-				files.addAll(findFiles(dir, p -> p.getName().equals("class.csv")));
+				files.addAll(Helper.findFiles(dir, p -> p.getName().equals("class.csv")));
 			}
 		} else {
-			files = findFiles(basedir.getAbsolutePath(), p -> p.getName().equals("class.csv"));
+			files = Helper.findFiles(basedir.getAbsolutePath(), p -> p.getName().equals("class.csv"));
 		}
 
 		files.forEach(file -> {
@@ -385,7 +383,7 @@ public class CombineMetricsTask {
 	}
 
 	protected void addTMetrics(String dir, MetricsManager metricsManager) throws IOException {
-		List<String> files = findFiles(dir, (p) -> p.getName().endsWith("-tmetrics.csv"));
+		List<String> files = Helper.findFiles(dir, (p) -> p.getName().endsWith("-tmetrics.csv"));
 
 		List<Pair<String, String>> pairs = new ArrayList();
 		getLog().info("Found " + files.size() + " files in dir=" + dir);
@@ -402,12 +400,7 @@ public class CombineMetricsTask {
 		pairs.forEach(p -> populateTMetrics(p, metricsManager));
 	}
 
-	protected static List<String> findFiles(String dir, Predicate<File> predicate) throws IOException {
-		Path path = new File(dir).toPath();
-		List<String> files = java.nio.file.Files.walk(path).filter(p -> predicate.test(p.toFile()))
-				.map(f -> f.toFile().getAbsolutePath()).collect(Collectors.toList());
-		return files;
-	}
+
 
 	protected Map<String, Integer> sumLinesByClass(Collection<Document> ret, String linesName) {
 		Map<String, Integer> map = ret.stream().collect(Collectors.<Document, String, Integer>toMap(

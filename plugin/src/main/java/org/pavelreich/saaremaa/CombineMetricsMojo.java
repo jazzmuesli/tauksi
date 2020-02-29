@@ -58,7 +58,8 @@ public class CombineMetricsMojo extends AbstractMojo {
 		String targetDirectory = project.getBuild().getDirectory();
 		List<String> testSrcDirs = project.getTestCompileSourceRoots();
 
-		CombineMetricsTask task = new CombineMetricsTask(db, getLog(), basedir, projectId, targetDirectory, testSrcDirs, usePomDirectories, project.getCompileSourceRoots());
+		CombineMetricsTask task = new CombineMetricsTask(db, 
+				new MavenLoggerAsSLF4jLoggerAdaptor(getLog()), basedir, projectId, targetDirectory, testSrcDirs, usePomDirectories, project.getCompileSourceRoots());
 
 		task.execute();
 	}

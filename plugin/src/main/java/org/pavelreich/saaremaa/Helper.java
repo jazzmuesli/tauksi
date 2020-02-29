@@ -3,11 +3,13 @@ package org.pavelreich.saaremaa;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -29,7 +31,12 @@ public class Helper {
 			return head + ", " + (ls.size() - 4 + " more, ") + ls.get(ls.size() - 1);
 		}
 	}
-	
+	public static List<String> findFiles(String dir, Predicate<File> predicate) throws IOException {
+		Path path = new File(dir).toPath();
+		List<String> files = java.nio.file.Files.walk(path).filter(p -> predicate.test(p.toFile()))
+				.map(f -> f.toFile().getAbsolutePath()).collect(Collectors.toList());
+		return files;
+	}
 	public static String getProdClassName(String testClassName) {
 		String prodClassName = testClassName
 				.replaceAll("_ESTest$", "")
