@@ -51,7 +51,7 @@ public class HelperTest {
 	
 	@Test
 	public void testMethods() {
-		Set<String> fields = new HashSet(Arrays.asList("name","age"));
+		Set<String> fields = new HashSet<>(Arrays.asList("name","age"));
 		List<String> methods = Arrays.asList("setName/1","setAge/1","getAge/0","hashCode/0","calculateX");
 		List<Optional<String>> setters = Helper.getMethods(methods, "^(set).*", "(set)");
 		List<Optional<String>> getters = Helper.getMethods(methods, "^(get|is).*", "(get|is)");
