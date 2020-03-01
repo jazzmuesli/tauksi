@@ -20,7 +20,7 @@ repositories {
 dependencies {
     compile 'junit:junit:4.12'
     compile 'org.pavelreich.saaremaa:plugin:2.0-SNAPSHOT'
-    compile 'com.github.jazzmuesli:ck-mvn-plugin:1.1-SNAPSHOT'
+    //compile 'com.github.jazzmuesli:ck-mvn-plugin:1.1-SNAPSHOT'
     compile gradleApi()
 }
 

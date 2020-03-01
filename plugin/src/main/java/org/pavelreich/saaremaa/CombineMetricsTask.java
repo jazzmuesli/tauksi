@@ -33,7 +33,6 @@ import org.pavelreich.saaremaa.mongo.MongoDBClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.mauricioaniche.ck.plugin.CKMetricsMojo;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 
@@ -51,12 +50,6 @@ public class CombineMetricsTask {
 	List<String> testSrcDirs;
 	private String usePomDirectories;
 	private List<String> srcDirs;
-
-//	public CombineMetricsTask(MongoDBClient db, Log logger, File basedir, String projectId, String targetDirectory,
-//			List<String> testSrcDirs, String usePomDirectories, List<String> srcDirs) {
-//		this(db, new MavenLoggerAsSLF4jLoggerAdaptor(logger), basedir, projectId, targetDirectory, testSrcDirs,
-//				usePomDirectories, srcDirs);
-//	}
 
 	public CombineMetricsTask(MongoDBClient db, Logger logger, File basedir, String projectId, String targetDirectory,
 			List<String> testSrcDirs, String usePomDirectories, List<String> srcDirs) {
@@ -260,7 +253,7 @@ public class CombineMetricsTask {
 			// MavenLoggerAsSLF4jLoggerAdaptor logger = new
 			// MavenLoggerAsSLF4jLoggerAdaptor(getLog());
 			TestanResultParser testanResultParser = new TestanResultParser(logger);
-			for (String dirName : CKMetricsMojo.extractDirs(testSrcDirs)) {
+			for (String dirName : Helper.extractDirs(testSrcDirs)) {
 				File dir = new File(dirName);
 				if (dir.isDirectory()) {
 					testanResultParser.addMetrics(dir, metricsManager);
@@ -323,7 +316,7 @@ public class CombineMetricsTask {
 	protected void addTestCKmetrics(MetricsManager metricsManager) throws IOException {
 		List<String> files = new ArrayList<String>();
 		if (Boolean.valueOf(usePomDirectories)) {
-			for (String dir : CKMetricsMojo.extractDirs(testSrcDirs)) {
+			for (String dir : Helper.extractDirs(testSrcDirs)) {
 				files.addAll(Helper.findFiles(dir, p -> p.getName().equals("class.csv")));
 			}
 		} else {
@@ -636,7 +629,7 @@ public class CombineMetricsTask {
 	}
 
 	protected void addTNOO(MetricsManager metricsManager) {
-		CKMetricsMojo.extractDirs(testSrcDirs).forEach(dirName -> {
+		Helper.extractDirs(testSrcDirs).forEach(dirName -> {
 			List<Pair<String, String>> testCases = readTMetricPairs(dirName + File.separator + "testcases.csv",
 					"testCaseName");
 			testCases.stream().filter(p -> !p.getSecond().equals("TOTAL")).forEach(p -> {

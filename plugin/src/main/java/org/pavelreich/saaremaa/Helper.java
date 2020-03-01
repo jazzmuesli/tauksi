@@ -6,6 +6,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -112,5 +113,20 @@ public class Helper {
 	}
 	static Optional<String> extractName(String prefix, String p) {
 		return Optional.of(p.toLowerCase().replaceAll("^" + prefix + "(.*?)\\/.*", "$2").toLowerCase());
+	}
+	
+	/**
+	 * Extract comma or semicolon-separated list of directores
+	 * 
+	 * @param srcDirs
+	 * @return
+	 */
+	public static Collection<String> extractDirs(Collection<String> srcDirs ) {
+		Set<String> outDirs = new LinkedHashSet<String>();
+		for (String dir: srcDirs) {
+			Set<String> parsedDirs = Arrays.stream(dir.split("[,;]")).map(s->s.trim()).collect(Collectors.toSet());
+			outDirs.addAll(parsedDirs);
+		}
+		return outDirs;
 	}
 }
