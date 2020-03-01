@@ -71,7 +71,8 @@ public class CombineMetricsTask {
 
 		File basedir = new File("/Users/preich/Documents/git/poi");
 		try {
-			List<String> sourceDirFiles = Helper.findFiles(basedir.toString(), p -> p.getName().equals("sourceDirs.csv"));
+			List<String> sourceDirFiles = Helper.findFiles(basedir.toString(),
+					p -> p.getName().equals("sourceDirs.csv"));
 			List<String> srcDirs = new ArrayList();
 			List<String> testSrcDirs = new ArrayList();
 			for (String f : sourceDirFiles) {
@@ -250,8 +251,6 @@ public class CombineMetricsTask {
 			addProdCKmetrics(metricsManager);
 			addTestCKmetrics(metricsManager);
 			addTestability(metricsManager);
-			// MavenLoggerAsSLF4jLoggerAdaptor logger = new
-			// MavenLoggerAsSLF4jLoggerAdaptor(getLog());
 			TestanResultParser testanResultParser = new TestanResultParser(logger);
 			for (String dirName : Helper.extractDirs(testSrcDirs)) {
 				File dir = new File(dirName);
@@ -392,8 +391,6 @@ public class CombineMetricsTask {
 		getLog().info("Generated " + pairs.size() + " from " + files.size() + " files");
 		pairs.forEach(p -> populateTMetrics(p, metricsManager));
 	}
-
-
 
 	protected Map<String, Integer> sumLinesByClass(Collection<Document> ret, String linesName) {
 		Map<String, Integer> map = ret.stream().collect(Collectors.<Document, String, Integer>toMap(

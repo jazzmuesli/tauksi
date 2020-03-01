@@ -25,7 +25,7 @@ public class TestanResultParser {
 	private Logger logger;
 
 	public TestanResultParser(Logger logger) {
-		this.logger=logger;
+		this.logger = logger;
 	}
 
 	public void doStuff(MetricsManager metricsManager, 

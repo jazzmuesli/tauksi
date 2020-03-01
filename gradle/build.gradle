@@ -31,7 +31,11 @@ sourceCompatibility = '1.8'
 
 gradlePlugin {
     plugins {
-        tauksiGradlePlugin {
+        analyseTestcasesGradlePlugin {
+            id = 'AnalyseTestcasesGradlePlugin'
+            implementationClass = 'org.pavelreich.saaremaa.tauksi.gradle.plugin.AnalyseTestcasesPlugin'
+        }
+        combineMetricsGradlePlugin {
             id = 'CombineMetricsGradlePlugin'
             implementationClass = 'org.pavelreich.saaremaa.tauksi.gradle.plugin.CombineMetricsPlugin'
         }
