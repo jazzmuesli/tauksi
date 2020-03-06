@@ -39,42 +39,52 @@ public class TestanResultParser {
 		List<Map> testClasses = g.fromJson(json, List.class);
 		logger.info("In " + resultJsonFname + "  found  "+ testClasses.size() + " tests");
 		for (Map testClass : testClasses) {
-			String tcn = (String) testClass.get("simpleName");
-			String testCat = Helper.classifyTest(tcn);
-			String pcn = Helper.getProdClassName(tcn);
-			Metrics ret = metricsManager.provideMetrics(pcn);
-			CSVRecord classMetrics = (CSVRecord) testClassMetrics.get(tcn);
-			List<Map<String,String>> methodMetrics = testMethodMetrics.get(tcn);
-			ret.put("testClassName."+testCat, tcn);
-			Collection<Map<String,Object>> setupMethods = (Collection<Map<String, Object>>) testClass.getOrDefault("setupMethods", Collections.emptyList());
-			int setupLOC = getLOC(setupMethods);
-			ret.put("setupMethods." + testCat, setupMethods.size());
-			ret.put("setupMethods.loc."+testCat, setupLOC);
-			Collection<Map<String,Object>> testMethods = (Collection)testClass.getOrDefault("testMethods", Collections.emptyList());
-			ret.put("testMethods."+testCat, testMethods.size());
-			ret.put("testMethods.loc."+testCat, getLOC(testMethods));
-			ret.put("testAnnotations."+testCat, getDelimCollections(testClass, "annotations"));
-			ret.put("testInterfaces."+testCat, getDelimCollections(testClass, "interfaces"));
-			ret.put("testSuperClasses."+testCat, getDelimCollections(testClass, "superClasses"));
-			List mockFields= (List) testClass.getOrDefault("mockFields", List.class);
-			ret.put("mockFields."+testCat, mockFields.size());
-			Map<String,String> anMap = (Map) testClass.getOrDefault("annotationsMap", Map.class);
-			
-			ret.put("runWith."+testCat, anMap.entrySet().stream().filter(p->p.getKey().contains("RunWith")).map(x->x.getValue()).collect(Collectors.joining("|")));
-			if (methodMetrics != null) {
-				int testConLOC = methodMetrics.stream().filter(p->Boolean.valueOf(p.getOrDefault("constructor", "false"))).mapToInt(x->Integer.valueOf(x.getOrDefault("loc", "0"))).sum();
-				ret.put("testConstructors."+testCat, testConLOC);
-				Set<String> exclMethods = Stream.concat(setupMethods.stream(), testMethods.stream()).map(x->String.valueOf(x.getOrDefault("simpleName", null))).collect(Collectors.toSet());
-				List<Map<String, String>> normalMethods = methodMetrics.stream().filter(p->!exclMethods.contains(Helper.getSimpleMethodName(p.get("method")))).collect(Collectors.toList());
-				ret.put("normalMethods."+testCat, normalMethods.size());
-				ret.put("normalMethods.loc."+testCat, normalMethods.stream().mapToInt(x->Integer.valueOf(x.get("loc"))).sum());
+			try {
+				processClass(metricsManager, testClassMetrics, testMethodMetrics, testClass);				
+			} catch (Exception e) {
+				logger.error("Can't process " + testClass + " due to " + e.getMessage(), e);
 			}
-			IntSummaryStatistics innerClassMetricsLOC = testClassMetrics.entrySet().stream().
-					filter(p -> p.getKey().startsWith(tcn + "$")).
-					mapToInt(x -> Integer.valueOf(x.getValue().get("loc"))).summaryStatistics();
-			ret.put("innerClasses." + testCat, innerClassMetricsLOC.getCount());
-			ret.put("innerClasses.loc." + testCat, innerClassMetricsLOC.getSum());
+			
 		}
+	}
+
+	protected void processClass(MetricsManager metricsManager, Map<String, CSVRecord> testClassMetrics,
+			Map<String, List<Map<String, String>>> testMethodMetrics, Map testClass) {
+		String tcn = (String) testClass.get("simpleName");
+		String testCat = Helper.classifyTest(tcn);
+		String pcn = Helper.getProdClassName(tcn);
+		Metrics ret = metricsManager.provideMetrics(pcn);
+		CSVRecord classMetrics = (CSVRecord) testClassMetrics.get(tcn);
+		List<Map<String,String>> methodMetrics = testMethodMetrics.get(tcn);
+		ret.put("testClassName."+testCat, tcn);
+		Collection<Map<String,Object>> setupMethods = (Collection<Map<String, Object>>) testClass.getOrDefault("setupMethods", Collections.emptyList());
+		int setupLOC = getLOC(setupMethods);
+		ret.put("setupMethods." + testCat, setupMethods.size());
+		ret.put("setupMethods.loc."+testCat, setupLOC);
+		Collection<Map<String,Object>> testMethods = (Collection)testClass.getOrDefault("testMethods", Collections.emptyList());
+		ret.put("testMethods."+testCat, testMethods.size());
+		ret.put("testMethods.loc."+testCat, getLOC(testMethods));
+		ret.put("testAnnotations."+testCat, getDelimCollections(testClass, "annotations"));
+		ret.put("testInterfaces."+testCat, getDelimCollections(testClass, "interfaces"));
+		ret.put("testSuperClasses."+testCat, getDelimCollections(testClass, "superClasses"));
+		List mockFields= (List) testClass.getOrDefault("mockFields", List.class);
+		ret.put("mockFields."+testCat, mockFields.size());
+		Map<String,String> anMap = (Map) testClass.getOrDefault("annotationsMap", Map.class);
+		
+		ret.put("runWith."+testCat, anMap.entrySet().stream().filter(p->p.getKey().contains("RunWith")).map(x->x.getValue()).collect(Collectors.joining("|")));
+		if (methodMetrics != null) {
+			int testConLOC = methodMetrics.stream().filter(p->Boolean.valueOf(p.getOrDefault("constructor", "false"))).mapToInt(x->Integer.valueOf(x.getOrDefault("loc", "0"))).sum();
+			ret.put("testConstructors."+testCat, testConLOC);
+			Set<String> exclMethods = Stream.concat(setupMethods.stream(), testMethods.stream()).map(x->String.valueOf(x.getOrDefault("simpleName", null))).collect(Collectors.toSet());
+			List<Map<String, String>> normalMethods = methodMetrics.stream().filter(p->!exclMethods.contains(Helper.getSimpleMethodName(p.get("method")))).collect(Collectors.toList());
+			ret.put("normalMethods."+testCat, normalMethods.size());
+			ret.put("normalMethods.loc."+testCat, normalMethods.stream().mapToInt(x->Integer.valueOf(x.get("loc"))).sum());
+		}
+		IntSummaryStatistics innerClassMetricsLOC = testClassMetrics.entrySet().stream().
+				filter(p -> p.getKey().startsWith(tcn + "$")).
+				mapToInt(x -> Integer.valueOf(x.getValue().get("loc"))).summaryStatistics();
+		ret.put("innerClasses." + testCat, innerClassMetricsLOC.getCount());
+		ret.put("innerClasses.loc." + testCat, innerClassMetricsLOC.getSum());
 	}
 
 	protected String getDelimCollections(Map testClass, String name) {
