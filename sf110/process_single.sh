@@ -58,6 +58,13 @@ i=$name
     else
         mvn -o com.google.testability-explorer:testability-mvn-plugin:testability org.pavelreich.saaremaa:plugin:parse-testability
     fi
+
+    if [ -f target/ckjm.ok ];
+    then
+	    echo "ckjm already present $i"
+    else
+	    mvn com.github.jazzmuesli:ckjm-mvn-plugin:metrics && touch target/ckjm.ok
+    fi
 	if [ -f target/metrics.ok ];
 	then
 		echo "metrics already present $i"
