@@ -17,7 +17,7 @@
 		<jdt.version>3.18.0</jdt.version>
 		<spoon.version>7.4.0</spoon.version>
 		<junit.version>5.5.1</junit.version>
-		<ck.version>0.4.4-SNAPSHOT</ck.version>
+		<ck.version>0.6.3-SNAPSHOT</ck.version>
 		<jacoco.version>0.8.6-SNAPSHOT</jacoco.version> <!-- chain-class-visitors branch -->
 		<asm.version>7.2</asm.version>
 		
