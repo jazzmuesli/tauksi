@@ -65,7 +65,7 @@ public class CodeCoverageAnalyseMojo
 		LinkedHashSet<String> classpath = DependencyHelper.prepareClasspath(project, localRepository, repositorySystem, pluginArtifactMap, getLog());
 		Logger logger = new MavenLoggerAsSLF4jLoggerAdaptor(getLog());
     	List<String> junitClassNames = new ArrayList();
-    	for(String dirName: CKMetricsMojo.extractDirs(project.getTestCompileSourceRoots())) {
+    	for(String dirName: Helper.extractDirs(project.getTestCompileSourceRoots())) {
         	try {
         		// process test directory
         		getLog().info("Processing "  + dirName);

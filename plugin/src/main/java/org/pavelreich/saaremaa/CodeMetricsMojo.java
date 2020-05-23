@@ -66,6 +66,10 @@ public class CodeMetricsMojo extends AbstractMojo {
 				return csvWriter;
 			}
 		}
+		
+		public void setProject(MavenProject project) {
+			this.project = project;
+		}
 
 		protected MongoMetricsWriter createMongoMetricsWriter(String dirName, MetricsCSVWriter csvWriter) {
 			return new MongoMetricsWriter(prefix, db, project, getLog(), dirName, csvWriter);
@@ -155,7 +159,7 @@ public class CodeMetricsMojo extends AbstractMojo {
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		try {
-			mojo.project = project;
+			mojo.setProject(project);
 			mojo.execute();
 		} catch (Exception e) {
 			e.printStackTrace();

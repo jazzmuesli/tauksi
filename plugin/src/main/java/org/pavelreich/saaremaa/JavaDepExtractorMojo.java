@@ -73,7 +73,7 @@ public class JavaDepExtractorMojo extends AbstractMojo {
 			List<String> sourcepath = new ArrayList(project.getCompileSourceRoots());
 			getLog().info("compileSourceRoots: " + convertListToString(project.getCompileSourceRoots()));
 			getLog().info("testCompileSourceRoots: " + convertListToString(project.getTestCompileSourceRoots()));
-			sourcepath.addAll(CKMetricsMojo.extractDirs(project.getTestCompileSourceRoots()));
+			sourcepath.addAll(Helper.extractDirs(project.getTestCompileSourceRoots()));
 			getLog().info("sourcepath: " + convertListToString(sourcepath));
 			List<String> sourceFiles = sourcepath.stream().map(srcDir -> getSourceFiles(srcDir)).flatMap(List::stream)
 					.collect(Collectors.toList());
