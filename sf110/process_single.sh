@@ -1,6 +1,38 @@
 #!/bin/sh
 
-i=$1
+ignoreChildProjects=true
+run_tests=true
+evosuite=false
+add_deps=true
+name="unknown"
+usage() { echo "Usage: $0 [-c -r -e -a]" 1>&2; exit 1; }
+
+while getopts "crea" o; do
+    case "${o}" in
+        c)
+            ignoreChildProjects=false
+            ;;
+        a)
+            add_deps=false
+            ;;
+        r)
+            run_tests=false
+            ;;
+        e)
+            evosuite=true
+            ;;
+	n)
+	    name=shift
+	    ;;
+        *)
+            usage
+            ;;
+    esac
+done
+
+echo "run_tests:$run_tests, evo: $evosuite, ignoreChildProjects: $ignoreChildProjects, add_deps: $add_deps"
+
+i=$name
 
 	if [ -f target/ck.ok ];
 	then
@@ -30,6 +62,6 @@ i=$1
 	then
 		echo "metrics already present $i"
 	else
-		mvn -o org.pavelreich.saaremaa:plugin:combine-metrics && touch target/metrics.ok
+		mvn -DignoreChildProjects=$ignoreChildProjects -o org.pavelreich.saaremaa:plugin:combine-metrics && touch target/metrics.ok
 	fi
 echo "DONE $i"
