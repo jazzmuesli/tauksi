@@ -63,7 +63,7 @@ i=$name
     then
 	    echo "ckjm already present $i"
     else
-	    mvn com.github.jazzmuesli:ckjm-mvn-plugin:metrics && touch target/ckjm.ok
+	    mvn test-compile com.github.jazzmuesli:ckjm-mvn-plugin:metrics && touch target/ckjm.ok
     fi
 	if [ -f target/metrics.ok ];
 	then
