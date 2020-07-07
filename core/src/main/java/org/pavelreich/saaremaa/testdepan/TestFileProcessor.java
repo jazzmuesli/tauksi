@@ -32,7 +32,7 @@ import org.junit.BeforeClass;
 import org.pavelreich.saaremaa.CSVReporter;
 import org.slf4j.Logger;
 
-import com.github.mauricioaniche.ck.util.SourceCodeLineCounter;
+import com.github.mauricioaniche.ck.util.LOCCalculator;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -467,8 +467,7 @@ public class TestFileProcessor extends AbstractProcessor<CtClass> {
 		public int lineCount() {
 			try {
 				CtBlock body = this.method.getBody();
-				BufferedReader reader = new BufferedReader(new StringReader(body.toString()));
-				int loc = SourceCodeLineCounter.getNumberOfLines(reader);
+				int loc = LOCCalculator.calculate(body.toString());
 				return loc;
 			} catch (Exception e) {
 				return 0;
