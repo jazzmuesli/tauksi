@@ -1,0 +1,4 @@
+file,class,method,variable,usage
+/Users/preich/Documents/git/tauksi/plugin/src/test/java/org/pavelreich/saaremaa/TestSuiteParserTest.java,org.pavelreich.saaremaa.TestSuiteParserTest,testUsingSpoon/0,LOG,3
+/Users/preich/Documents/git/tauksi/plugin/src/test/java/org/pavelreich/saaremaa/TestSuiteParserTest.java,org.pavelreich.saaremaa.TestSuiteParserTest,testUsingSurefire/0,LOG,3
+/Users/preich/Documents/git/tauksi/plugin/src/test/java/org/pavelreich/saaremaa/MyMojoTest.java,org.pavelreich.saaremaa.MyMojoTest,testSomething/0,rule,2

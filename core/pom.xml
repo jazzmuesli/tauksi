@@ -82,9 +82,8 @@
 			<version>2.23.4</version>
 		</dependency>
 		<dependency>
-			<groupId>gr.spinellis</groupId>
-			<artifactId>ckjm</artifactId>
-			<version>1.9</version>
+			<groupId>gr.spinellis.ckjm</groupId>
+			<artifactId>ckjm_ext</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>com.github.mauricioaniche</groupId>

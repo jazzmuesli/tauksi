@@ -83,7 +83,7 @@ public class Helper {
 		return parser;
 	}
 
-	protected static Collection<String> calculateDataMethods(
+	public static Collection<String> calculateDataMethods(
 			final Set<String> fields, 
 			final List<String> methods,
 			final List<Optional<String>> setters, 
@@ -103,7 +103,7 @@ public class Helper {
 		return methodName;
 	}
 
-	protected static List<Optional<String>> getMethods(List<String> methods, String startPrefix, String prefix) {
+	public static List<Optional<String>> getMethods(List<String> methods, String startPrefix, String prefix) {
 		List<Optional<String>> setters = methods.stream()
 				.map(p -> p.matches(startPrefix)
 						? extractName(prefix, p)

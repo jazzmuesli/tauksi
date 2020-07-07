@@ -1,4 +1,4 @@
-package org.pavelreich.saaremaa;
+package org.pavelreich.saaremaa.combiner;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,10 +25,11 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.math3.util.Pair;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.pavelreich.saaremaa.CSVReporter;
+import org.pavelreich.saaremaa.ForkableTestExecutor;
+import org.pavelreich.saaremaa.ForkableTestLauncher;
+import org.pavelreich.saaremaa.Helper;
 import org.pavelreich.saaremaa.ForkableTestExecutor.TestExecutedMetrics;
-import org.pavelreich.saaremaa.combiner.Metrics;
-import org.pavelreich.saaremaa.combiner.MetricsManager;
-import org.pavelreich.saaremaa.combiner.TestanResultParser;
 import org.pavelreich.saaremaa.mongo.MongoDBClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,23 +45,23 @@ public class CombineMetricsTask {
 
 	private MongoDBClient db;
 	private Logger logger;
-	File basedir;
 	String projectId;
-	String targetDirectory;
-	List<String> testSrcDirs;
 	private String usePomDirectories;
-	private List<String> srcDirs;
+	private CKJMMetrics ckjmMetrics;
+	private ProjectDirs projectDirs;
 
-	public CombineMetricsTask(MongoDBClient db, Logger logger, File basedir, String projectId, String targetDirectory,
-			List<String> testSrcDirs, String usePomDirectories, List<String> srcDirs) {
+	public CombineMetricsTask(MongoDBClient db, 
+			Logger logger, 
+			ProjectDirs projDirs, 
+			String projectId, 
+			String usePomDirectories) {
 		this.db = db;
 		this.logger = logger;
-		this.basedir = basedir;
+		this.projectDirs = projDirs;
 		this.projectId = projectId;
-		this.targetDirectory = targetDirectory;
-		this.testSrcDirs = testSrcDirs;
 		this.usePomDirectories = usePomDirectories;
-		this.srcDirs = srcDirs;
+		this.ckjmMetrics = new CKJMMetrics(db,logger,projDirs,projectId,usePomDirectories);
+
 	}
 
 	public Logger getLog() {
@@ -92,8 +93,8 @@ public class CombineMetricsTask {
 			String targetDir = basedir + File.separator + "target";
 			new File(targetDir).mkdirs();
 			MongoDBClient db = new MongoDBClient(CombineMetricsTask.class.getSimpleName());
-			CombineMetricsTask task = new CombineMetricsTask(db, LOG, basedir, "root: " + basedir.getName(), targetDir,
-					testSrcDirs, "false", testSrcDirs);
+			ProjectDirs projDirs = new ProjectDirs(basedir, targetDir, srcDirs, testSrcDirs, targetDir, targetDir);
+			CombineMetricsTask task = new CombineMetricsTask(db, LOG, projDirs, "root: " + basedir.getName(),  "false");
 			task.execute();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -122,7 +123,7 @@ public class CombineMetricsTask {
 		metrics.incrementMetric(metricName);
 	}
 
-	private String getSuffix(String testClassName) {
+	static String getSuffix(String testClassName) {
 		return "." + Helper.classifyTest(testClassName);
 	}
 
@@ -178,6 +179,21 @@ public class CombineMetricsTask {
 				.forEach(e -> System.out.println(e));
 	}
 
+	protected void populateCKJM(MetricsManager metricsManager, Entry<String, Map<String, Long>> p) {
+		String testClassName = p.getKey();
+		String prodClassName = Helper.getProdClassName(testClassName);
+		Metrics m = metricsManager.provideMetrics(prodClassName);
+		Map<String, Long> value = p.getValue();
+		if (!testClassName.equals(prodClassName)) {
+			String suffix = getSuffix(testClassName);
+			value = value.entrySet().stream()
+					.collect(Collectors.toMap(e -> e.getKey().replaceAll(".test", "") + suffix, e -> e.getValue()));
+		}
+
+		m.merge(value);
+	}
+
+	
 	private static Pair<Integer, Integer> calculateNonDataMethodsCount(Map<String, List<CSVRecord>> fieldsByClass,
 			Entry<String, List<CSVRecord>> methodEntry, Metrics m) {
 		String className = methodEntry.getKey();
@@ -193,7 +209,7 @@ public class CombineMetricsTask {
 				.filter(p -> p.isConsistent() && simpleClassName.equals(p.get("method").replaceAll("(.*?)/.*", "$1")))
 				.collect(Collectors.toList());
 		if (!constructors.isEmpty()) {
-			OptionalInt maxConstructorArgs = constructors.stream().mapToInt(x -> Integer.valueOf(x.get("parameters")))
+			OptionalInt maxConstructorArgs = constructors.stream().mapToInt(x -> Integer.valueOf(x.get("parametersQty")))
 					.max();
 			if (maxConstructorArgs.isPresent()) {
 				m.put("prod.maxConstructorArgs", Long.valueOf(maxConstructorArgs.getAsInt()));
@@ -219,7 +235,7 @@ public class CombineMetricsTask {
 			"anonymousClassesQty", "subClassesQty", "lambdasQty", "totalFields", "totalMethods");
 
 	private Map<String, Long> toCKMetrics(String suffix, CSVRecord r) {
-		Map<String, Long> ret = new HashMap();
+		Map<String, Long> ret = new HashMap<String, Long>();
 		for (String metricName : CK_METRICS) {
 			if (r.isConsistent() && r.isSet(metricName)) {
 				String val = r.get(metricName);
@@ -246,21 +262,23 @@ public class CombineMetricsTask {
 			Map<String, Metrics> metricsByProdClass = new HashMap<String, Metrics>();
 			MetricsManager metricsManager = new MetricsManager(metricsByProdClass);
 
-			addTMetrics(basedir.getAbsolutePath(), metricsManager);
+			addTMetrics(projectDirs.basedir.getAbsolutePath(), metricsManager);
 			addTNOO(metricsManager);
 			addProdCKmetrics(metricsManager);
 			addTestCKmetrics(metricsManager);
+			ckjmMetrics.addProdCKJMmetrics(metricsManager);
+			ckjmMetrics.addTestCKJMmetrics(metricsManager);
 			addTestability(metricsManager);
 			TestanResultParser testanResultParser = new TestanResultParser(logger);
-			for (String dirName : Helper.extractDirs(testSrcDirs)) {
+			for (String dirName : Helper.extractDirs(projectDirs.testSrcDirs)) {
 				File dir = new File(dirName);
 				if (dir.isDirectory()) {
 					testanResultParser.addMetrics(dir, metricsManager);
 				}
 			}
 
-			new File(targetDirectory).mkdirs();
-			String fname = targetDirectory + File.separator + "metrics.csv";
+			new File(projectDirs.targetDirectory).mkdirs();
+			String fname = projectDirs.targetDirectory + File.separator + "metrics.csv";
 			List<Document> docs = new ArrayList<Document>();
 			metricsByProdClass.values().forEach(metrics -> {
 				if (metrics.longMetrics.containsKey(PROD_COVERED_LINES) && metrics.longMetrics.containsKey(LOC_PROD)) {
@@ -277,7 +295,7 @@ public class CombineMetricsTask {
 				}
 
 				Document doc = metrics.toDocument();
-				doc.append("project", projectId).append("basedir", basedir.toString());
+				doc.append("project", projectId).append("basedir", projectDirs.basedir.toString());
 				docs.add(doc);
 				reporter.write(metrics.getValues());
 			}
@@ -295,7 +313,7 @@ public class CombineMetricsTask {
 	}
 
 	private void addTestability(MetricsManager metricsManager) throws IOException {
-		List<String> files = Helper.findFiles(basedir.getAbsolutePath(), p -> p.getName().equals("testability.csv"));
+		List<String> files = Helper.findFiles(projectDirs.basedir.getAbsolutePath(), p -> p.getName().equals("testability.csv"));
 		files.forEach(fileName -> {
 			try {
 				CSVParser parser = Helper.getParser(fileName, "className");
@@ -315,11 +333,11 @@ public class CombineMetricsTask {
 	protected void addTestCKmetrics(MetricsManager metricsManager) throws IOException {
 		List<String> files = new ArrayList<String>();
 		if (Boolean.valueOf(usePomDirectories)) {
-			for (String dir : Helper.extractDirs(testSrcDirs)) {
+			for (String dir : Helper.extractDirs(projectDirs.testSrcDirs)) {
 				files.addAll(Helper.findFiles(dir, p -> p.getName().equals("class.csv")));
 			}
 		} else {
-			files = Helper.findFiles(basedir.getAbsolutePath(), p -> p.getName().equals("class.csv"));
+			files = Helper.findFiles(projectDirs.basedir.getAbsolutePath(), p -> p.getName().equals("class.csv"));
 		}
 		files.forEach(fileName -> {
 			Map<String, Map<String, Long>> allTestCKMetrics = readCKMetricPairs(fileName, ".test");
@@ -333,11 +351,11 @@ public class CombineMetricsTask {
 	protected void addProdCKmetrics(MetricsManager metricsManager) throws IOException {
 		List<String> files = new ArrayList<String>();
 		if (Boolean.valueOf(usePomDirectories)) {
-			for (String dir : srcDirs) {
+			for (String dir : projectDirs.srcDirs) {
 				files.addAll(Helper.findFiles(dir, p -> p.getName().equals("class.csv")));
 			}
 		} else {
-			files = Helper.findFiles(basedir.getAbsolutePath(), p -> p.getName().equals("class.csv"));
+			files = Helper.findFiles(projectDirs.basedir.getAbsolutePath(), p -> p.getName().equals("class.csv"));
 		}
 
 		files.forEach(file -> {
@@ -373,6 +391,8 @@ public class CombineMetricsTask {
 //				.forEach(e -> System.out.println(e));
 
 	}
+	
+
 
 	protected void addTMetrics(String dir, MetricsManager metricsManager) throws IOException {
 		List<String> files = Helper.findFiles(dir, (p) -> p.getName().endsWith("-tmetrics.csv"));
@@ -626,7 +646,7 @@ public class CombineMetricsTask {
 	}
 
 	protected void addTNOO(MetricsManager metricsManager) {
-		Helper.extractDirs(testSrcDirs).forEach(dirName -> {
+		Helper.extractDirs(projectDirs.testSrcDirs).forEach(dirName -> {
 			List<Pair<String, String>> testCases = readTMetricPairs(dirName + File.separator + "testcases.csv",
 					"testCaseName");
 			testCases.stream().filter(p -> !p.getSecond().equals("TOTAL")).forEach(p -> {

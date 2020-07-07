@@ -1,0 +1,17 @@
+testClassName;testMethodName;asserts;mocksInMethod;mocksInClass;methodStartLine;assertsStartLine;mocksStartLine;lineCount
+org.pavelreich.saaremaa.combiner.TestanResultParserTest;test;0;0;0;18;-1;-1;8
+org.pavelreich.saaremaa.HelperTest;testSuffix;2;0;0;34;37;-1;6
+org.pavelreich.saaremaa.HelperTest;testCat;1;0;0;47;48;-1;3
+org.pavelreich.saaremaa.HelperTest;testMethod;1;0;0;42;43;-1;3
+org.pavelreich.saaremaa.HelperTest;testCasePrefix;2;0;0;18;21;-1;6
+org.pavelreich.saaremaa.HelperTest;testMethods;3;0;0;53;63;-1;14
+org.pavelreich.saaremaa.HelperTest;testPrefix;2;0;0;26;29;-1;6
+org.pavelreich.saaremaa.MyMojoTest;testSomething;6;0;0;34;38;-1;13
+org.pavelreich.saaremaa.MyMojoTest;testSomethingWhichDoesNotNeedTheMojoAndProbablyShouldBeExtractedIntoANewClassOfItsOwn;1;1;0;57;60;59;4
+org.pavelreich.saaremaa.TestSuiteParserTest;testCombineMaps;2;0;0;49;58;-1;11
+org.pavelreich.saaremaa.TestSuiteParserTest;testUsingSurefire;2;0;0;36;43;-1;10
+org.pavelreich.saaremaa.TestSuiteParserTest;testUsingSpoon;2;0;0;25;31;-1;9
+org.pavelreich.saaremaa.TestabilityMojoTest;test;1;0;0;16;20;-1;7
+org.pavelreich.saaremaa.TestanParserTest;test;0;0;0;17;-1;-1;8
+org.pavelreich.saaremaa.WorkerPoolTest;testMultiple;0;0;0;17;-1;-1;3
+org.pavelreich.saaremaa.WorkerPoolTest;testSingleThreaded;0;0;0;12;-1;-1;3

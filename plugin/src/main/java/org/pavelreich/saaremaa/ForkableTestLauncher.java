@@ -25,9 +25,9 @@ import com.google.common.io.Files;
 
 public class ForkableTestLauncher {
 	
-	static final String TESTS_LAUNCHED_COL_NAME = "testsLaunched";
-	static final String METHOD_COVERAGE_COL_NAME = "methodCoverage";
-	static final String CLASS_COVERAGE_COL_NAME = "classCoverage";
+	public static final String TESTS_LAUNCHED_COL_NAME = "testsLaunched";
+	public static final String METHOD_COVERAGE_COL_NAME = "methodCoverage";
+	public static final String CLASS_COVERAGE_COL_NAME = "classCoverage";
 	private static final Logger CLOG = LoggerFactory.getLogger(ForkableTestLauncher.class);
 	private Logger LOG = CLOG;
 

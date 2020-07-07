@@ -1,0 +1,11 @@
+CLASS;AMC;CA;CAM;CBM;CBO;CE;DAM;DIT;IC;LCOM;LCOM3;LOC;MFA;MOA;NOC;NPM;RFC;WMC
+org.pavelreich.saaremaa.CombineMetricsTaskTest;45.0;0;1.0;0;16;16;0.0;1;0;1;2.0;92;0.0;0;0;2;25;2
+org.pavelreich.saaremaa.ParserTest;3.0;0;1.0;0;2;2;0.0;1;0;0;2.0;4;0.0;0;0;1;2;1
+org.pavelreich.saaremaa.TestSuiteParserTest;20.5;0;0.25;0;26;26;1.0;1;0;39;0.7777777777777778;216;0.0;0;0;4;43;10
+org.pavelreich.saaremaa.TestabilityMojoTest;10.0;0;1.0;0;7;7;0.0;1;0;1;2.0;22;0.0;0;0;2;8;2
+org.pavelreich.saaremaa.MyMojoTest$1;2.6666666666666665;1;0.6666666666666666;0;5;5;0.0;0;0;3;1.0;12;NaN;1;0;0;4;3
+org.pavelreich.saaremaa.TestanParserTest;14.25;0;0.5;0;23;23;0.0;1;0;6;2.0;61;0.0;0;0;2;27;4
+org.pavelreich.saaremaa.combiner.TestanResultParserTest;29.5;0;1.0;0;13;13;0.0;1;0;1;2.0;61;0.0;0;0;2;13;2
+org.pavelreich.saaremaa.MyMojoTest;19.333333333333332;1;1.0;0;12;12;0.0;1;0;1;0.5;62;0.0;0;0;3;13;3
+org.pavelreich.saaremaa.WorkerPoolTest;9.4;0;0.4;0;8;8;0.0;1;0;10;2.0;52;0.0;0;0;3;15;5
+org.pavelreich.saaremaa.HelperTest;21.142857142857142;0;1.0;0;14;14;0.0;1;0;21;2.0;155;0.0;0;0;7;32;7

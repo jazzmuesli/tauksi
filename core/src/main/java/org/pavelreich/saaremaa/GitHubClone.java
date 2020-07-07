@@ -13,8 +13,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Clone projects
- * 
- * 
+ * awk -F, '{print $2}' xdata.csv | grep https | sort | uniq | sed 's/"//g' > projects.url
+ * java -classpath /root/tauksi/jagent/target/jagent-2.0-SNAPSHOT-jar-with-dependencies.jar org.pavelreich.saaremaa.GitHubClone
  * @author preich
  *
  */

@@ -149,8 +149,8 @@ public class ClassMetricsGatherer {
 	public static void main(String[] args) throws IOException {
 		List<String> srcDirs = Files.walk(java.nio.file.Paths.get(".")).filter(p->p.toFile().getAbsolutePath().endsWith("src")).map(x->x.getParent().toFile().getAbsolutePath()).collect(Collectors.toList());
 		CSVReporter reporter = new CKMetricsCSVReporter();
-		srcDirs.parallelStream().forEach(dirName -> processDir(reporter, dirName));
-//		runCKJM(reporter);
+//		srcDirs.parallelStream().forEach(dirName -> processDir(reporter, dirName));
+		runCKJM(reporter);
 
 		reporter.close();
 	}
@@ -244,7 +244,7 @@ public class ClassMetricsGatherer {
 			}
 		};
 		try {
-			MetricsFilter.runMetrics(new String[] { f.getAbsolutePath() }, outputHandler);			
+			MetricsFilter.runMetrics(new String[] { f.getAbsolutePath() }, outputHandler, true);			
 		} catch (Exception e)  {
 			LOG.error("Failed to process " + fileName + " due to " + e.getMessage(), e);
 		}

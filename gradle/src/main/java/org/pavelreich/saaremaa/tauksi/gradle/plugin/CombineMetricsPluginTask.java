@@ -7,9 +7,10 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Project;
 import org.gradle.api.tasks.TaskAction;
-import org.pavelreich.saaremaa.CombineMetricsTask;
+import org.pavelreich.saaremaa.combiner.CombineMetricsTask;
 import org.pavelreich.saaremaa.Helper;
 import org.pavelreich.saaremaa.mongo.MongoDBClient;
+import org.pavelreich.saaremaa.combiner.ProjectDirs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,8 +39,8 @@ public class CombineMetricsPluginTask extends DefaultTask {
 			MongoDBClient db = new MongoDBClient(CombineMetricsPluginTask.class.getSimpleName());
 			String projectId = project.getGroup() + ":" + project.getName();
 			LOG.info("projectId: "+ projectId);
-			CombineMetricsTask task = new CombineMetricsTask(db, LOG, projectDir, projectId, targetDir, testSrcDirs,
-					"false", srcDirs);
+			ProjectDirs projDirs = new ProjectDirs(projectDir, targetDir, srcDirs, testSrcDirs,project.getBuildDir().getAbsolutePath(), project.getBuildDir().getAbsolutePath());
+			CombineMetricsTask task = new CombineMetricsTask(db, LOG, projDirs, projectId, "false");
 			task.execute();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
