@@ -8,7 +8,8 @@ RUN \
   apt-get -y upgrade && \
   apt-get install -y build-essential && \
   apt-get install -y openjdk-8-jdk-headless && \
-  apt-get install default-jre default-jdk maven -y && \
+  apt-get install -y maven && \
+#  apt-get install default-jre default-jdk maven -y && \
   apt-get install -y software-properties-common && \
   apt-get install -y byobu curl git htop man unzip vim wget zip && \
   apt-get install python3.6 python3-pip -y && \
