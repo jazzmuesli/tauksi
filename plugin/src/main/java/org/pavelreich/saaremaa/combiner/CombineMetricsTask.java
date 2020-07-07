@@ -618,7 +618,7 @@ public class CombineMetricsTask {
 
 		static ClassMethodKey fromMethodMetric(CSVRecord r) {
 			ClassMethodKey classMethod = new ClassMethodKey(r.get("class"), r.get("method").replaceAll("/.*", ""),
-					Integer.valueOf(r.get("startLine")) + 1);
+					Integer.valueOf(r.get("line")) + 1);
 			return classMethod;
 		}
 
