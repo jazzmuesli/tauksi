@@ -21,6 +21,7 @@
 		<jacoco.version>0.8.6-SNAPSHOT</jacoco.version> <!-- chain-class-visitors branch -->
 		<asm.version>7.2</asm.version>
 		
+		
 	</properties>
 	<!-- <repositories> <repository> <id>WSO2 Repository</id> <url>http://dist.wso2.org/maven2/</url> 
 		</repository> <repository> <id>Eclipse Releases Repository</id> <url>https://repo.eclipse.org/content/groups/releases/</url> 
@@ -165,9 +166,9 @@
 			</dependency>
 
 			<dependency>
-				<groupId>gr.spinellis</groupId>
-				<artifactId>ckjm</artifactId>
-				<version>1.9</version>
+				<groupId>gr.spinellis.ckjm</groupId>
+				<artifactId>ckjm_ext</artifactId>
+				<version>2.2.1-SNAPSHOT</version>
 			</dependency>
 			<dependency>
 				<groupId>ch.qos.logback</groupId>

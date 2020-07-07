@@ -1,5 +1,6 @@
 package org.pavelreich.saaremaa.mongo;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -52,14 +53,18 @@ public class MongoDBClient {
 		}
 	}
 	private MongoClient mongoClient;
-	MongoDatabase database;
+	private final MongoDatabase database;
 	private Semaphore semaphore;
 	private String name;
+	private boolean offline;
 
 	private static final Logger LOG = LoggerFactory.getLogger(MongoDBClient.class);
 	private static final int QUEUE_SIZE = 10;
 
 	public List<Document> find(String collectionName, Bson query) {
+		if (offline) {
+			return Collections.emptyList();
+		}
 		FindPublisher<Document> ret = database.getCollection(collectionName).find(query);
 		CountDownLatch findLatch = new CountDownLatch(1);
 		List<Document> found = new CopyOnWriteArrayList<Document>();
@@ -96,6 +101,10 @@ public class MongoDBClient {
 		
 	}
 	public void insertCollection(String name, List<Document> documents) {
+		if (offline) {
+			return ;
+		}
+
 		if (documents == null || documents.isEmpty()) {
 			return;
 		}
@@ -149,11 +158,21 @@ public class MongoDBClient {
 	}
 
 	public MongoDBClient(String name) {
+		this(name, false);
+	}
+	
+	public MongoDBClient(String name, boolean offline) {
 		java.util.logging.Logger mongoLogger = java.util.logging.Logger.getLogger("org.mongodb.driver");
 		mongoLogger.setLevel(java.util.logging.Level.SEVERE); // TODO: fix logging
-		this.mongoClient = MongoClients.create();
 		this.name = name;
-		this.database = mongoClient.getDatabase("db");
+		this.offline = offline;
+		if (!offline) {
+			this.mongoClient = MongoClients.create();
+			this.database = mongoClient.getDatabase("db");
+		} else {
+			this.mongoClient = null;
+			this.database = null;
+		}
 		this.semaphore = new Semaphore(QUEUE_SIZE);
 	}
 
@@ -162,11 +181,15 @@ public class MongoDBClient {
 	}
 
 	public void waitForOperationsToFinish(long maxTimeout) {
+		if (offline) {
+			return;
+		}
+
 		acquire(QUEUE_SIZE, "finish", maxTimeout);
 		semaphore.release(QUEUE_SIZE);
 	}
 
-	public void acquire(int permits, String reason, long maxTimeout) {
+	private void acquire(int permits, String reason, long maxTimeout) {
 		try {
 			long stime = System.currentTimeMillis();
 			while (!semaphore.tryAcquire(permits, 1000, TimeUnit.MILLISECONDS)) {
