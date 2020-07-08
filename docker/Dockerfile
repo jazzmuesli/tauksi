@@ -63,7 +63,7 @@ RUN cd /root/CKJM-extended && git pull && mvn -DskipTests clean install
 RUN cd /root/ckjm-mvn-plugin && git pull && mvn -DskipTests clean install
 RUN cd /root && git clone --single-branch --branch master https://github.com/jazzmuesli/evosuite.git
 RUN cd /root/evosuite && git pull && mvn -DskipTests clean install
-RUN cd /root/tauksi && git pull && mvn -DskipTests clean install
+#RUN cd /root/tauksi && git pull && mvn -DskipTests clean install
 RUN mkdir -p /data/db
 
 # Define default command.
