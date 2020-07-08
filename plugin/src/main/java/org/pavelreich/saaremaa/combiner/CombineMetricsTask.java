@@ -69,17 +69,18 @@ public class CombineMetricsTask {
 	}
 
 	public static void main(String[] args) {
+		Logger LOG = LoggerFactory.getLogger(CombineMetricsTask.class);
 
 		File basedir = new File("/Users/preich/Documents/git/poi");
 		try {
 			List<String> sourceDirFiles = Helper.findFiles(basedir.toString(),
 					p -> p.getName().equals("sourceDirs.csv"));
-			List<String> srcDirs = new ArrayList();
-			List<String> testSrcDirs = new ArrayList();
+			List<String> srcDirs = new ArrayList<>();
+			List<String> testSrcDirs = new ArrayList<>();
 			for (String f : sourceDirFiles) {
 				System.out.println("reading " + f);
-				CSVParser parser = Helper.getParser(new File(f), "processed");
-				parser.getRecords().stream().filter(p -> p.get("processed").equals("true")).forEach(entry -> {
+				List<CSVRecord> records = extractCSVRecords(LOG,f, "processed");
+				records.stream().filter(p -> p.get("processed").equals("true")).forEach(entry -> {
 					if (entry.get("sourceSetName").contains("test")) {
 						testSrcDirs.add(entry.get("dirName"));
 					} else {
@@ -89,7 +90,6 @@ public class CombineMetricsTask {
 			}
 			srcDirs.forEach(x -> System.out.println("src: " + x));
 			testSrcDirs.forEach(x -> System.out.println("testSrc: " + x));
-			Logger LOG = LoggerFactory.getLogger(CombineMetricsTask.class);
 			String targetDir = basedir + File.separator + "target";
 			new File(targetDir).mkdirs();
 			MongoDBClient db = new MongoDBClient(CombineMetricsTask.class.getSimpleName());
@@ -131,13 +131,11 @@ public class CombineMetricsTask {
 		if (!new File(fname).exists()) {
 			return Collections.emptyList();
 		}
-		CSVParser parser;
 		try {
-			parser = Helper.getParser(fname, field);
-			List<Pair<String, String>> pairs = parser.getRecords().stream().filter(p -> p.isSet(field))
+			List<CSVRecord> records = extractCSVRecords(fname, field);
+			List<Pair<String, String>> pairs = records.stream().filter(p -> p.isSet(field))
 					.map(x -> new Pair<String, String>(x.get("testClassName"), x.get(field)))
 					.collect(Collectors.toList());
-			parser.close();
 			return pairs;
 		} catch (Exception e) {
 			getLog().error("Can't read " + fname + " due to  " + e.getMessage(), e);
@@ -151,8 +149,7 @@ public class CombineMetricsTask {
 		}
 		CSVParser parser;
 		try {
-			parser = Helper.getParser(fname, "class");
-			List<CSVRecord> records = parser.getRecords();
+			List<CSVRecord> records = extractCSVRecords(fname, "class");
 			getLog().info("found " + records.size() + " in file " + fname);
 			Map<String, Map<String, Long>> ret = records.stream()
 					.filter(p -> p.isConsistent() && "class".equals(p.get("type")))
@@ -165,11 +162,11 @@ public class CombineMetricsTask {
 	}
 
 	protected void printNonDataMethods(String dir) throws IOException {
-		CSVParser fieldsParser = Helper.getParser(dir + "field.csv", "class");
-		Map<String, List<CSVRecord>> fieldsByClass = fieldsParser.getRecords().stream()
+		List<CSVRecord> fieldRecords = extractCSVRecords(dir + "field.csv", "class");
+		Map<String, List<CSVRecord>> fieldsByClass = fieldRecords.stream()
 				.collect(Collectors.groupingBy(x -> x.get("class")));
-		CSVParser methodsParser = Helper.getParser(dir + "method.csv", "class");
-		Map<String, List<CSVRecord>> methodsByClass = methodsParser.getRecords().stream()
+		List<CSVRecord> methodRecords = extractCSVRecords(dir + "method.csv", "class");
+		Map<String, List<CSVRecord>> methodsByClass = methodRecords.stream()
 				.collect(Collectors.groupingBy(x -> x.get("class")));
 		// fields.forEach(f -> System.out.println(f));
 //		methodsByClass.keySet().forEach(k->System.out.println(k));
@@ -316,8 +313,8 @@ public class CombineMetricsTask {
 		List<String> files = Helper.findFiles(projectDirs.basedir.getAbsolutePath(), p -> p.getName().equals("testability.csv"));
 		files.forEach(fileName -> {
 			try {
-				CSVParser parser = Helper.getParser(fileName, "className");
-				parser.getRecords().forEach(record -> {
+				List<CSVRecord> records = extractCSVRecords(fileName, "className");
+				records.forEach(record -> {
 					String prodClassName = record.get("className");
 					Metrics metrics = metricsManager.provideMetrics(prodClassName);
 					Long cost = Long.valueOf(record.get("cost"));
@@ -359,20 +356,18 @@ public class CombineMetricsTask {
 		}
 
 		files.forEach(file -> {
-			Map<String, Map<String, Long>> prodCKMetrics = readCKMetricPairs(file, ".prod");
-			prodCKMetrics.entrySet().stream().filter(p -> !Helper.isTest(p.getKey()))
-					.forEach(p -> populateCK(metricsManager, p));
-
 			try {
+				Map<String, Map<String, Long>> prodCKMetrics = readCKMetricPairs(file, ".prod");
+				prodCKMetrics.entrySet().stream().filter(p -> !Helper.isTest(p.getKey()))
+						.forEach(p -> populateCK(metricsManager, p));
+
 				String fieldFname = file.replaceAll("class.csv", "field.csv");
-				CSVParser fieldsParser = Helper.getParser(fieldFname, "class");
-				List<CSVRecord> fieldRecors = fieldsParser.getRecords();
+				List<CSVRecord> fieldRecors = extractCSVRecords(fieldFname, "class");
 				getLog().info("Read " + fieldRecors.size() + " from  " + fieldFname);
 				Map<String, List<CSVRecord>> fieldsByClass = fieldRecors.stream()
 						.collect(Collectors.groupingBy(x -> x.get("class")));
 				String methodFname = file.replaceAll("class.csv", "method.csv");
-				CSVParser methodsParser = Helper.getParser(methodFname, "class");
-				List<CSVRecord> methodRecords = methodsParser.getRecords();
+				List<CSVRecord> methodRecords = extractCSVRecords(methodFname, "class");
 				getLog().info("Read " + methodRecords.size() + " from  " + methodFname);
 				Map<String, List<CSVRecord>> methodsByClass = methodRecords.stream()
 						.collect(Collectors.groupingBy(x -> x.get("class")));
@@ -570,8 +565,7 @@ public class CombineMetricsTask {
 					.map(f -> f.toFile().getAbsolutePath()).collect(Collectors.toList());
 			Map<ClassMethodKey, CSVRecord> methodMetrics = new HashMap<>();
 			for (String f : files) {
-				CSVParser parser = Helper.getParser(f, "class");
-				List<CSVRecord> records = parser.getRecords();
+				List<CSVRecord> records = extractCSVRecords(f, "class");
 				Map<ClassMethodKey, CSVRecord> map = records.stream()
 						.collect(Collectors.toMap(k -> ClassMethodKey.fromMethodMetric(k), v -> v));
 //				getLog().info("found "+ records.size() + " for file=" + f);
@@ -581,6 +575,30 @@ public class CombineMetricsTask {
 		} catch (Exception e) {
 			getLog().error(e.getMessage(), e);
 			return Collections.emptyMap();
+		}
+	}
+
+	protected List<CSVRecord> extractCSVRecords(String filename, String field)  {
+		return extractCSVRecords(getLog(), filename, field);
+	}
+	
+	protected static List<CSVRecord> extractCSVRecords(Logger log, String filename, String field) {
+		CSVParser parser = null;
+		try {
+			parser = Helper.getParser(filename, field);
+			List<CSVRecord> records = parser.getRecords();
+			return records;
+		} catch (Exception e) {
+			log.error("Failed to extract records using field " +  field + " from file " + filename + " due to " + e.getMessage(), e);
+			return Collections.emptyList();
+		} finally {
+			if (parser != null) {
+				try {
+					parser.close();
+				} catch (IOException e) {
+					log.error("Failed to close parser for " + filename + " due to " + e.getMessage(), e);
+				}
+			}
 		}
 	}
 
