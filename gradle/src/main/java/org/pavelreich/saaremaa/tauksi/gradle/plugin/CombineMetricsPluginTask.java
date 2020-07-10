@@ -2,6 +2,8 @@ package org.pavelreich.saaremaa.tauksi.gradle.plugin;
 
 import java.io.File;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.gradle.api.DefaultTask;
@@ -39,7 +41,9 @@ public class CombineMetricsPluginTask extends DefaultTask {
 			MongoDBClient db = new MongoDBClient(CombineMetricsPluginTask.class.getSimpleName());
 			String projectId = project.getGroup() + ":" + project.getName();
 			LOG.info("projectId: "+ projectId);
-			ProjectDirs projDirs = new ProjectDirs(projectDir, targetDir, srcDirs, testSrcDirs,project.getBuildDir().getAbsolutePath(), project.getBuildDir().getAbsolutePath());
+			ProjectDirs projDirs = new ProjectDirs(projectDir, targetDir, srcDirs, testSrcDirs,
+					getOutput("compileJava"), 
+					getOutput("compileTestJava"));
 			CombineMetricsTask task = new CombineMetricsTask(db, LOG, projDirs, projectId, "false");
 			task.execute();
 		} catch (Exception e) {
@@ -47,4 +51,11 @@ public class CombineMetricsPluginTask extends DefaultTask {
 			e.printStackTrace();
 		}
 	}
+	
+	protected Set<String> getOutput(String task) {
+		Set<String> outputs = getProject().getTasks().getByName(task).getOutputs().getFiles().getFiles()
+				.stream().filter(p->p.exists()).map(x->x.getAbsolutePath()).collect(Collectors.toSet());
+		return outputs;
+	}
+
 }

@@ -35,8 +35,8 @@ public class CKJMMetrics {
 		this.logger = logger;
 		this.projectDirs=projectDirs;
 		this.projectId = projectId;
-		this.srcDirs = Collections.singleton(projectDirs.mainOutputDir);
-		this.testSrcDirs = Collections.singleton(projectDirs.testOutputDir);
+		this.srcDirs = projectDirs.mainOutputDirs;
+		this.testSrcDirs = projectDirs.testOutputDirs;
 		this.usePomDirectories = usePomDirectories;
 	}
 

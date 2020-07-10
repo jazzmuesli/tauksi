@@ -35,7 +35,9 @@ public class CombineMetricsTaskTest {
 		String usePomDirectories = "true";
 		List<String> srcDirs= Collections.singletonList(basedir.toPath().resolve("src/main/java").toFile().getAbsolutePath());
 		String projectId = "metrics-project";
-		ProjectDirs projDirs = new ProjectDirs(basedir, targetDirectory, srcDirs, testSrcDirs, targetDirectory + "/classes", targetDirectory+"/test-classes");
+		ProjectDirs projDirs = new ProjectDirs(basedir, targetDirectory, srcDirs, testSrcDirs, 
+				Collections.singleton(targetDirectory + "/classes"), 
+				Collections.singleton(targetDirectory+"/test-classes"));
 		CombineMetricsTask task = new CombineMetricsTask(db, 
 				logger, projDirs, projectId, 
 				usePomDirectories);

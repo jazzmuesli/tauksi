@@ -1,6 +1,7 @@
 package org.pavelreich.saaremaa;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.maven.execution.MavenSession;
@@ -54,7 +55,12 @@ public class CombineMetricsMojo extends AbstractMojo {
 		String mainOutputDir = project.getBuild().getOutputDirectory();
 		String testOutputDir = project.getBuild().getTestOutputDirectory();
 
-		ProjectDirs projDirs = new ProjectDirs(basedir, targetDirectory, srcDirs, testSrcDirs, mainOutputDir, testOutputDir);
+		ProjectDirs projDirs = new ProjectDirs(basedir, 
+				targetDirectory, 
+				srcDirs, 
+				testSrcDirs, 
+				Collections.singleton(mainOutputDir), 
+				Collections.singleton(testOutputDir));
 		MavenLoggerAsSLF4jLoggerAdaptor logger = new MavenLoggerAsSLF4jLoggerAdaptor(getLog());
 		CombineMetricsTask task = new CombineMetricsTask(db, 
 				logger, 

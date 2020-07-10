@@ -93,7 +93,12 @@ public class CombineMetricsTask {
 			String targetDir = basedir + File.separator + "target";
 			new File(targetDir).mkdirs();
 			MongoDBClient db = new MongoDBClient(CombineMetricsTask.class.getSimpleName());
-			ProjectDirs projDirs = new ProjectDirs(basedir, targetDir, srcDirs, testSrcDirs, targetDir, targetDir);
+			ProjectDirs projDirs = new ProjectDirs(basedir, 
+					targetDir, 
+					srcDirs, 
+					testSrcDirs, 
+					Collections.singleton(targetDir), 
+					Collections.singleton(targetDir));
 			CombineMetricsTask task = new CombineMetricsTask(db, LOG, projDirs, "root: " + basedir.getName(),  "false");
 			task.execute();
 		} catch (Exception e) {
