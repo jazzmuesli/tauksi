@@ -78,5 +78,7 @@ COPY java.profile /root/
 RUN grep j11 /root/.profile || cat java.profile >> /root/.profile
 #RUN /usr/lib/jvm/java-11-openjdk-amd64/bin/java
 # Define default command.
+COPY j8 /usr/local/bin/
+COPY j11 /usr/local/bin/
 CMD ["bash"]
 
