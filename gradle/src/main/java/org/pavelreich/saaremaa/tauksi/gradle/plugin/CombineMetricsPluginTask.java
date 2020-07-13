@@ -28,13 +28,14 @@ public class CombineMetricsPluginTask extends DefaultTask {
 	@TaskAction
 	void processDirectories() {
 		try {
-
 			File projectDir = project.getProjectDir();
 			List<String> sourceDirFiles = Helper.findFiles(projectDir.toString(),
 					p -> p.getName().equals("sourceDirs.csv"));
+			getLogger().info("sourceDirFiles: " + sourceDirFiles);
 			Logger LOG = LoggerFactory.getLogger(CombineMetricsPluginTask.class);
 			Pair<List<String>, List<String>> tuple2 = SourceDirExtractor.extract(sourceDirFiles);
 			List<String> srcDirs = tuple2.getLeft();
+			getLogger().info("srcDirs: " + srcDirs);
 			List<String> testSrcDirs = tuple2.getRight();
 			String targetDir = projectDir + File.separator + "target";
 			new File(targetDir).mkdirs();
@@ -44,7 +45,8 @@ public class CombineMetricsPluginTask extends DefaultTask {
 			ProjectDirs projDirs = new ProjectDirs(projectDir, targetDir, srcDirs, testSrcDirs,
 					getOutput("compileJava"), 
 					getOutput("compileTestJava"));
-			CombineMetricsTask task = new CombineMetricsTask(db, LOG, projDirs, projectId, "false");
+			getLogger().info("projDirs: " + projDirs);
+			CombineMetricsTask task = new CombineMetricsTask(db, LOG, projDirs, projectId, "true");
 			task.execute();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
