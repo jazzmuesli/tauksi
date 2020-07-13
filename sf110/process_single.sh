@@ -52,9 +52,11 @@ i=$name
 	if [ -f target/ck.ok ];
 	then
 		echo "build already present $i"
-    else if [ "$build_system" == "mvn" ];
+    elif [ "$build_system" == "mvn" ];
+    then
 		mvn -DskipTests clean install  && touch target/build.ok
-    else if [ "$build_system" == "gradle" ];
+    elif [ "$build_system" == "gradle" ];
+    then
     	grep -i jdk11 build.gradle && /usr/local/bin/j11
 		./gradlew build -x test && touch target/build.ok
     fi
@@ -62,9 +64,11 @@ i=$name
 	if [ -f target/ck.ok ];
 	then
 		echo "ck already present $i"
-    else if [ "$build_system" == "mvn" ];
+    elif [ "$build_system" == "mvn" ];
+    then
 		mvn -o org.pavelreich.saaremaa:plugin:metrics && touch target/ck.ok
-    else if [ "$build_system" == "gradle" ];
+    elif [ "$build_system" == "gradle" ];
+    then
 		./gradlew ck && touch target/ck.ok
     fi
 	if [ -f target/testan.ok ];
@@ -82,27 +86,33 @@ i=$name
 	if [ -f target/testability.ok ];
 	then
 		echo "testability already present $i"
-    else if [ "$build_system" == "mvn" ];
+    elif [ "$build_system" == "mvn" ];
+    then
         mvn -o com.google.testability-explorer:testability-mvn-plugin:testability org.pavelreich.saaremaa:plugin:parse-testability && touch target/testability.ok
-    else if [ "$build_system" == "gradle" ];
+    elif [ "$build_system" == "gradle" ];
+    then
 		./gradlew --offline testability && touch target/ck.ok
     fi
 
     if [ -f target/ckjm.ok ];
     then
 	    echo "ckjm already present $i"
-    else if [ "$build_system" == "mvn" ];
+    elif [ "$build_system" == "mvn" ];
+    then
 		mvn test-compile com.github.jazzmuesli:ckjm-mvn-plugin:metrics && touch target/ckjm.ok
-    else if [ "$build_system" == "gradle" ];
+    elif [ "$build_system" == "gradle" ];
+    then
 		./gradlew --offline ckjm && ./gradlew --offline ckjmRebuild && touch target/ckjm.ok
     fi
     
 	if [ -f target/metrics.ok ];
 	then
 		echo "metrics already present $i"
-    else if [ "$build_system" == "mvn" ];
+    elif [ "$build_system" == "mvn" ];
+    then
 		mvn -DignoreChildProjects=$ignoreChildProjects -o org.pavelreich.saaremaa:plugin:combine-metrics && touch target/metrics.ok
-    else if [ "$build_system" == "gradle" ];
+    elif [ "$build_system" == "gradle" ];
+    then
     	./gradlew --offline combine-metrics && touch target/metrics.ok
 	fi
 echo "DONE $i"
