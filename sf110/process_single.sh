@@ -47,13 +47,25 @@ echo "build_system: $build_system; run_tests:$run_tests, evo: $evosuite, ignoreC
 
 i=$name
 
+	/usr/local/bin/j8
+	
+	if [ -f target/ck.ok ];
+	then
+		echo "build already present $i"
+    else if [ "$build_system" == "mvn" ];
+		mvn -DskipTests clean install  && touch target/build.ok
+    else if [ "$build_system" == "gradle" ];
+    	grep -i jdk11 build.gradle && /usr/local/bin/j11
+		./gradlew build -x test && touch target/build.ok
+    fi
+
 	if [ -f target/ck.ok ];
 	then
 		echo "ck already present $i"
     else if [ "$build_system" == "mvn" ];
 		mvn -o org.pavelreich.saaremaa:plugin:metrics && touch target/ck.ok
     else if [ "$build_system" == "gradle" ];
-		./gradlew --offline ck && touch target/ck.ok
+		./gradlew ck && touch target/ck.ok
     fi
 	if [ -f target/testan.ok ];
 	then
@@ -65,7 +77,7 @@ i=$name
 	then
 		echo "testcases already present $i"
     else
-                mvn -o org.pavelreich.saaremaa:plugin:analyse-testcases && touch target/testcases.ok
+		mvn -o org.pavelreich.saaremaa:plugin:analyse-testcases && touch target/testcases.ok
     fi
 	if [ -f target/testability.ok ];
 	then
@@ -82,7 +94,7 @@ i=$name
     else if [ "$build_system" == "mvn" ];
 		mvn test-compile com.github.jazzmuesli:ckjm-mvn-plugin:metrics && touch target/ckjm.ok
     else if [ "$build_system" == "gradle" ];
-		./gradlew --offline ckjm && touch target/ckjm.ok
+		./gradlew --offline ckjm && ./gradlew --offline ckjmRebuild && touch target/ckjm.ok
     fi
     
 	if [ -f target/metrics.ok ];
