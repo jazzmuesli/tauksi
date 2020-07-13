@@ -152,7 +152,6 @@ public class CombineMetricsTask {
 		if (!new File(fname).exists()) {
 			return Collections.emptyMap();
 		}
-		CSVParser parser;
 		try {
 			List<CSVRecord> records = extractCSVRecords(fname, "class");
 			getLog().info("found " + records.size() + " in file " + fname);
@@ -352,14 +351,13 @@ public class CombineMetricsTask {
 
 	protected void addProdCKmetrics(MetricsManager metricsManager) throws IOException {
 		List<String> files = new ArrayList<String>();
-		if (Boolean.valueOf(usePomDirectories)) {
-			for (String dir : projectDirs.srcDirs) {
-				files.addAll(Helper.findFiles(dir, p -> p.getName().equals("class.csv")));
-			}
-		} else {
-			files = Helper.findFiles(projectDirs.basedir.getAbsolutePath(), p -> p.getName().equals("class.csv"));
+		Collection<String> dirs = Boolean.valueOf(usePomDirectories) ? projectDirs.srcDirs
+				: Collections.singleton(projectDirs.basedir.getAbsolutePath());
+		for (String dir : dirs) {
+			files.addAll(Helper.findFiles(dir, p -> p.getName().equals("class.csv")));
 		}
 
+		getLog().info("addProdCKmetrics.files: " + files + " from dirs: " + dirs + " using usePomDirectories="+usePomDirectories);
 		files.forEach(file -> {
 			try {
 				Map<String, Map<String, Long>> prodCKMetrics = readCKMetricPairs(file, ".prod");

@@ -20,5 +20,13 @@ public class ProjectDirs {
 		this.mainOutputDirs = mainOutputDirs;
 		this.testOutputDirs = testOutputDirs;
 	}
+	@Override
+	public String toString() {
+		return "ProjectDirs [basedir=" + basedir + ", targetDirectory=" + targetDirectory + ", srcDirs=" + srcDirs
+				+ ", testSrcDirs=" + testSrcDirs + ", mainOutputDirs=" + mainOutputDirs + ", testOutputDirs="
+				+ testOutputDirs + "]";
+	}
+	
+	
 
 }
