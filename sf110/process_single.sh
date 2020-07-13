@@ -116,7 +116,9 @@ i=$name
 		mvn test-compile com.github.jazzmuesli:ckjm-mvn-plugin:metrics && touch target/ckjm.ok
     elif [ "$build_system" = "gradle" ];
     then
-		./gradlew --offline ckjm && ./gradlew --offline ckjmRebuild && touch target/ckjm.ok
+		./gradlew --offline ckjm 
+	       	./gradlew --offline ckjmRebuild
+		touch target/ckjm.ok
     fi
     
 	if [ -f target/metrics.ok ];
