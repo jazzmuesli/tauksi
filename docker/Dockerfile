@@ -74,6 +74,8 @@ RUN cd /root/evosuite && git pull && mvn -DskipTests clean install
 RUN mkdir -p /data/db
 RUN apt-get install -y openjdk-11-jdk-headless
 RUN update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
+COPY java.profile /root/
+RUN grep j11 /root/.profile || cat java.profile >> /root/.profile
 #RUN /usr/lib/jvm/java-11-openjdk-amd64/bin/java
 # Define default command.
 CMD ["bash"]
