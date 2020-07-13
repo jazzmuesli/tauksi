@@ -8,6 +8,7 @@ RUN \
   apt-get -y upgrade && \
   apt-get install -y build-essential && \
   apt-get install -y openjdk-8-jdk-headless && \
+  #apt-get install -y openjdk-11-jdk-headless && \
   apt-get install -y maven && \
 #  apt-get install default-jre default-jdk maven -y && \
   apt-get install -y software-properties-common && \
@@ -46,6 +47,8 @@ RUN git clone --single-branch --branch chain-class-visitors https://github.com/j
 RUN git clone https://github.com/jazzmuesli/javadepextractor.git
 RUN git clone git@github.com:jazzmuesli/gradle-maven-plugin.git
 RUN git clone --single-branch --branch master https://github.com/jazzmuesli/testability-explorer.git
+RUN git clone --single-branch --branch master git@github.com:jazzmuesli/ckjm-gradle-plugin.git
+RUN git clone --single-branch --branch master git@github.com:jazzmuesli/ck-gradle-plugin.git
 RUN cd /root/javadepextractor && mvn -DskipTests install
 RUN wget https://services.gradle.org/distributions/gradle-5.0-bin.zip -P /tmp
 RUN unzip -d /opt/gradle /tmp/gradle-*.zip
@@ -53,7 +56,9 @@ ENV export GRADLE_HOME=/opt/gradle/gradle-5.0
 ENV export PATH=/opt/gradle/gradle-5.0/bin:${PATH}
 
 RUN cd /root/RefactoringMiner && git checkout upgrade-jdt-318 && /opt/gradle/gradle-5.0/bin/gradle install
-RUN cd /root/gradle-maven-plugin && git pull && mvn -DskipTests clean install
+#ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
+RUN java -version
+RUN cd /root/gradle-maven-plugin && git pull && mvn clean install || mvn -X clean install || true
 RUN cd /root/testability-explorer && git pull && mvn -DskipTests clean install
 RUN cd /root/ck && git pull && mvn -DskipTests clean install
 RUN cd /root/ck-mvn-plugin && git pull && mvn -DskipTests clean install
@@ -61,11 +66,15 @@ RUN cd /root/ck-mvn-plugin && git pull && mvn -DskipTests clean install
 RUN cd /root/jacoco && git pull && mvn -DskipTests clean install
 RUN cd /root/CKJM-extended && git pull && mvn -DskipTests clean install
 RUN cd /root/ckjm-mvn-plugin && git pull && mvn -DskipTests clean install
+RUN cd /root/ckjm-gradle-plugin && git pull && ./gradlew install
+RUN cd /root/ck-gradle-plugin && git pull && ./gradlew install
 RUN cd /root && git clone --single-branch --branch master https://github.com/jazzmuesli/evosuite.git
 RUN cd /root/evosuite && git pull && mvn -DskipTests clean install
 #RUN cd /root/tauksi && git pull && mvn -DskipTests clean install
 RUN mkdir -p /data/db
-
+RUN apt-get install -y openjdk-11-jdk-headless
+RUN update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
+#RUN /usr/lib/jvm/java-11-openjdk-amd64/bin/java
 # Define default command.
 CMD ["bash"]
 
