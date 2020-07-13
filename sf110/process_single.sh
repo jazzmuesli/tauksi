@@ -32,12 +32,12 @@ done
 
 build_system=""
 
-if [ -f pom.xml ];
+if [ -f build.gradle ];
+then
+        build_system=gradle
+elif [ -f pom.xml ];
 then
 	build_system=mvn
-elif [ -f build.gradle ];
-then
-	build_system=gradle
 else
 	echo "There is no build.gradle nor pom.xml, can't build"
 	exit 1
