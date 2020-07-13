@@ -34,7 +34,7 @@ build_system=""
 
 if [ -f pom.xml ];
 then
-	build_system=maven
+	build_system=mvn
 elif [ -f build.gradle ];
 then
 	build_system=gradle
