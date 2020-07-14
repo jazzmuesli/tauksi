@@ -10,7 +10,8 @@ input<-file('stdin', 'r')
 files <- readLines(input)
 data=data.frame()
 for (f in files) {
-	x=data.table::fread(file=f, sep=";")
+	print(f)
+	x=data.table::fread(file=f, sep=";", fill=T)
 	x$filename=f
 	data=rbind.fill(data, x)
 }

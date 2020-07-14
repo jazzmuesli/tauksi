@@ -62,7 +62,8 @@ i=$name
     elif [ "$build_system" = "gradle" ];
     then
     	grep -i jdk11 build.gradle && /usr/local/bin/j11
-		./gradlew build -x test && touch target/build.ok
+		./gradlew clean 
+		./gradlew -x test build testClasses && touch target/build.ok
     fi
 
     	echo "** CK"
