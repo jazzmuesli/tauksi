@@ -44,7 +44,7 @@ else
 fi
 	
 echo "build_system: $build_system; run_tests:$run_tests, evo: $evosuite, ignoreChildProjects: $ignoreChildProjects, add_deps: $add_deps"
-
+(
 i=$name
 
 	/usr/local/bin/j8
@@ -58,7 +58,7 @@ i=$name
 		echo "build already present $i"
     elif [ "$build_system" = "mvn" ];
     then
-		mvn -DskipTests clean install  && touch target/build.ok
+		mvn -Drat.skip=true -DskipTests clean install  && touch target/build.ok
     elif [ "$build_system" = "gradle" ];
     then
     	grep -i jdk11 build.gradle && /usr/local/bin/j11
@@ -72,7 +72,7 @@ i=$name
 		echo "ck already present $i"
     elif [ "$build_system" = "mvn" ];
     then
-		mvn -o org.pavelreich.saaremaa:plugin:metrics && touch target/ck.ok
+		mvn -Drat.skip=true -o org.pavelreich.saaremaa:plugin:metrics && touch target/ck.ok
     elif [ "$build_system" = "gradle" ];
     then
 		./gradlew ck && touch target/ck.ok
@@ -84,7 +84,7 @@ i=$name
 		echo "testan already present $i"
 	elif [ "$build_system" = "mvn" ];
 	then
-	        mvn -o org.pavelreich.saaremaa:plugin:testan && touch target/testan.ok
+	        mvn -Drat.skip=true -o org.pavelreich.saaremaa:plugin:testan && touch target/testan.ok
     fi
 
     	echo "** testcases"
@@ -93,7 +93,7 @@ i=$name
 		echo "testcases already present $i"
 	elif [ "$build_system" = "mvn" ];
 	then
-		mvn -o org.pavelreich.saaremaa:plugin:analyse-testcases && touch target/testcases.ok
+		mvn -Drat.skip=true -o org.pavelreich.saaremaa:plugin:analyse-testcases && touch target/testcases.ok
     fi
 
     	echo "** testability"
@@ -102,7 +102,7 @@ i=$name
 		echo "testability already present $i"
     elif [ "$build_system" = "mvn" ];
     then
-        mvn -o com.google.testability-explorer:testability-mvn-plugin:testability org.pavelreich.saaremaa:plugin:parse-testability && touch target/testability.ok
+        mvn -Drat.skip=true -o com.google.testability-explorer:testability-mvn-plugin:testability org.pavelreich.saaremaa:plugin:parse-testability && touch target/testability.ok
     elif [ "$build_system" = "gradle" ];
     then
 		./gradlew --offline testability && touch target/ck.ok
@@ -114,7 +114,7 @@ i=$name
 	    echo "ckjm already present $i"
     elif [ "$build_system" = "mvn" ];
     then
-		mvn test-compile com.github.jazzmuesli:ckjm-mvn-plugin:metrics && touch target/ckjm.ok
+		mvn -Drat.skip=true test-compile com.github.jazzmuesli:ckjm-mvn-plugin:metrics && touch target/ckjm.ok
     elif [ "$build_system" = "gradle" ];
     then
 		./gradlew --offline ckjm 
@@ -127,9 +127,10 @@ i=$name
 		echo "metrics already present $i"
     elif [ "$build_system" = "mvn" ];
     then
-		mvn -DignoreChildProjects=$ignoreChildProjects -o org.pavelreich.saaremaa:plugin:combine-metrics && touch target/metrics.ok
+		mvn -Drat.skip=true -DignoreChildProjects=$ignoreChildProjects -o org.pavelreich.saaremaa:plugin:combine-metrics && touch target/metrics.ok
     elif [ "$build_system" = "gradle" ];
     then
     	./gradlew --offline combine-metrics && touch target/metrics.ok
 	fi
 echo "DONE $i"
+)  2>&1 | tee analyse.log
