@@ -180,19 +180,6 @@ public class CombineMetricsTask {
 				.forEach(e -> System.out.println(e));
 	}
 
-	protected void populateCKJM(MetricsManager metricsManager, Entry<String, Map<String, Long>> p) {
-		String testClassName = p.getKey();
-		String prodClassName = Helper.getProdClassName(testClassName);
-		Metrics m = metricsManager.provideMetrics(prodClassName);
-		Map<String, Long> value = p.getValue();
-		if (!testClassName.equals(prodClassName)) {
-			String suffix = getSuffix(testClassName);
-			value = value.entrySet().stream()
-					.collect(Collectors.toMap(e -> e.getKey().replaceAll(".test", "") + suffix, e -> e.getValue()));
-		}
-
-		m.merge(value);
-	}
 
 	
 	private static Pair<Integer, Integer> calculateNonDataMethodsCount(Map<String, List<CSVRecord>> fieldsByClass,

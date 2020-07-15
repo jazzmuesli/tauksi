@@ -64,7 +64,7 @@ public class CKJMMetrics {
 	}
 
 	
-	protected void populateCKJM(MetricsManager metricsManager, Entry<String, Map<String, Long>> p) {
+	private void populateCKJM(MetricsManager metricsManager, Entry<String, Map<String, Long>> p) {
 		String testClassName = p.getKey();
 		String prodClassName = Helper.getProdClassName(testClassName);
 		Metrics m = metricsManager.provideMetrics(prodClassName);
@@ -89,7 +89,7 @@ public class CKJMMetrics {
 		files.forEach(fileName -> {
 			Map<String, Map<String, Long>> allTestCKMetrics = readCKJMMetricPairs(fileName, "T.");
 			allTestCKMetrics.entrySet().stream()
-					.filter(f -> Helper.isTest(f.getKey()) && !f.getKey().contains("ESTest_scaffolding")).// ignore
+					.filter(f -> Helper.isTest(f.getKey()) && "test".equals(Helper.classifyTest(f.getKey())) && !f.getKey().contains("ESTest_scaffolding")).// ignore
 			// evosuite
 			forEach(p -> populateCKJM(metricsManager, p));
 		});
