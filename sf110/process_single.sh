@@ -48,7 +48,7 @@ echo "build_system: $build_system; run_tests:$run_tests, evo: $evosuite, ignoreC
 i=$name
 
 	/usr/local/bin/j8
-
+	grep -iE "java11Compatible|jdk11" build.gradle && /usr/local/bin/j11
 	mkdir -p target	
 
 	echo "** Build"
@@ -61,7 +61,6 @@ i=$name
 		mvn -Drat.skip=true -DskipTests clean install  && touch target/build.ok
     elif [ "$build_system" = "gradle" ];
     then
-    	grep -i jdk11 build.gradle && /usr/local/bin/j11
 		./gradlew clean 
 		./gradlew -x test build testClasses && touch target/build.ok
     fi
