@@ -463,18 +463,18 @@ public class CombineMetricsTask {
 		if (testClassNames.size() != 1) {
 			getLog().warn("Found " + testClassNames.keySet() + " testsLaunched for  " + sessionId);
 			Collection<Document> classCoverage = classCoverageManager.findDocumentsBySessionId(sessionId);
-			Collection<Document> methodCoverage = methodCoverageManager.findDocumentsBySessionId(sessionId);
 
 			getLog().info("Found " + classCoverage.size() + " classCoverage for " + sessionId);
 			try {
-				TestExecutionCommand testExecCmd = CoverageDataProcessor.extractTestExecutionCommand(f);
-				getLog().info("Extracted " + testExecCmd  + " testExecCmd  from " + f);
+				File execFile = new File(file.replaceAll("-tmetrics.csv", ".exec"));
+				TestExecutionCommand testExecCmd = CoverageDataProcessor.extractTestExecutionCommand(execFile);
+				getLog().info("Extracted " + testExecCmd  + " testExecCmd  from " + execFile);
 				testClassName = testExecCmd.getTestClassName();
 				if (projectDirs.mainOutputDirs.size() >= 1 && classCoverage.isEmpty()) {
 					String targetClassesDir = projectDirs.mainOutputDirs.iterator().next();
-					getLog().info("Recovering sessionId=" + sessionId + " from "+ targetClassesDir + " using " + file);
+					getLog().info("Recovering sessionId=" + sessionId + " from "+ targetClassesDir + " using " + execFile);
 					CoverageDataProcessor coverageDataProcessor = new CoverageDataProcessor("id", db, getLog(), new File(targetClassesDir));
-					coverageDataProcessor.processCoverageData(testExecCmd, file, sessionId, System.currentTimeMillis());
+					coverageDataProcessor.processCoverageData(testExecCmd, execFile.getAbsolutePath(), sessionId, System.currentTimeMillis());
 				}
 			} catch (IOException e1) {
 				getLog().error(e1.getMessage());
@@ -487,6 +487,10 @@ public class CombineMetricsTask {
 
 			Entry<String, Document> testLaunched = testClassNames.entrySet().iterator().next();
 			testClassName = testLaunched.getKey();
+		}
+		if (testClassName == null) {
+			getLog().warn("Can't find coverage for " + sessionId);
+			return;
 		}
 		String prodClassName = Helper.getProdClassName(testClassName);
 		String testCat = Helper.classifyTest(testClassName);
