@@ -16,6 +16,7 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -391,9 +392,9 @@ public class CombineMetricsTask {
 				.collect(Collectors.toSet());
 		Map<ClassMethodKey, CSVRecord> methodMetrics = new HashMap();
 		paths.forEach(path -> methodMetrics.putAll(loadMethodMetrics(path)));
-		for (String file : ProgressBar.wrap(files, "coverageMetrics")) {
+		ProgressBar.wrap(files.parallelStream(), "coverageMetrics").forEach(file -> {
 			addCoverageMetrics(methodMetrics, file, metricsManager);
-		}
+		});
 
 		getLog().info("Generated " + pairs.size() + " from " + files.size() + " files");
 		pairs.forEach(p -> populateTMetrics(p, metricsManager));
