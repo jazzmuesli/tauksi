@@ -401,11 +401,18 @@ public class CombineMetricsTask {
 	}
 
 	protected Map<String, Integer> sumLinesByClass(Collection<Document> ret, String linesName) {
-		Map<String, Integer> map = ret.stream().collect(Collectors.<Document, String, Integer>toMap(
+		Map<String, Integer> map = ret.stream().filter(p->p.containsKey("prodClassName") && p.containsKey(linesName)).collect(Collectors.<Document, String, Integer>toMap(
 				doc -> doc.getString("prodClassName"), val -> val.getInteger(linesName, 0), (a, b) -> a + b));
 		return map;
 	}
 
+	/**
+	 * cache collections by sessionId
+	 * and pre-fetch using ids
+	 * 
+	 * @author preich
+	 *
+	 */
 	class DocumentManager {
 		final String collectionName;
 
@@ -554,6 +561,9 @@ public class CombineMetricsTask {
 	 */
 	protected double calculateQualityIndex(Map<ClassMethodKey, CSVRecord> methodMetrics, String testCat,
 			Collection<Document> methodCoverage, Metrics metrics) throws IOException {
+		if (testCat != null) {
+			return 1.0;//TODO
+		}
 //		getLog().info("from absoluteFile=" + absoluteFile + " found " + files);
 		BinaryOperator<Document> mergeDocuments = (a, b) -> {
 			a.putAll(b);
