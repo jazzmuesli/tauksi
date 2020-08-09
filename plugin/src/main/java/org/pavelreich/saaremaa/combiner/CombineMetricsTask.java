@@ -431,7 +431,7 @@ public class CombineMetricsTask {
 			if (!ids.isEmpty()) {
 				Bson query = com.mongodb.client.model.Filters.in("id", ids);
 				List<Document> docs = db.find(collectionName, query);
-				getLog().info("Fetching " + collectionName + " using id=" + ids + ", found: " + docs.size());
+				getLog().info("Fetching " + collectionName + " using query=" + query + ", found: " + docs.size());
 				for (Document doc : docs) {
 					map.put(doc.getString("sessionId"), doc);
 				}
@@ -473,7 +473,7 @@ public class CombineMetricsTask {
 				if (projectDirs.mainOutputDirs.size() >= 1 && classCoverage.isEmpty()) {
 					String targetClassesDir = projectDirs.mainOutputDirs.iterator().next();
 					getLog().info("Recovering sessionId=" + sessionId + " from "+ targetClassesDir + " using " + execFile);
-					CoverageDataProcessor coverageDataProcessor = new CoverageDataProcessor("id", db, getLog(), new File(targetClassesDir));
+					CoverageDataProcessor coverageDataProcessor = new CoverageDataProcessor(projectId, db, getLog(), new File(targetClassesDir));
 					coverageDataProcessor.processCoverageData(testExecCmd, execFile.getAbsolutePath(), sessionId, System.currentTimeMillis());
 				}
 			} catch (IOException e1) {
