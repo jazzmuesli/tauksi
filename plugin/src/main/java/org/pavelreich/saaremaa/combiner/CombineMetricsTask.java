@@ -468,10 +468,11 @@ public class CombineMetricsTask {
 			getLog().info("Found " + classCoverage.size() + " classCoverage for " + sessionId);
 			try {
 				TestExecutionCommand testExecCmd = CoverageDataProcessor.extractTestExecutionCommand(f);
+				getLog().info("Extracted " + testExecCmd  + " testExecCmd  from " + f);
 				testClassName = testExecCmd.getTestClassName();
 				if (projectDirs.mainOutputDirs.size() >= 1 && classCoverage.isEmpty()) {
 					String targetClassesDir = projectDirs.mainOutputDirs.iterator().next();
-					getLog().info("Recovering sessionId=" + sessionId + " from "+ targetClassesDir);
+					getLog().info("Recovering sessionId=" + sessionId + " from "+ targetClassesDir + " using " + file);
 					CoverageDataProcessor coverageDataProcessor = new CoverageDataProcessor("id", db, getLog(), new File(targetClassesDir));
 					coverageDataProcessor.processCoverageData(testExecCmd, file, sessionId, System.currentTimeMillis());
 				}
