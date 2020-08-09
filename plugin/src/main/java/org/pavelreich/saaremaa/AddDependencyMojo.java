@@ -6,11 +6,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -47,8 +51,10 @@ import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
 
 /**
- * mvn -Ddependencies="org.evosuite:evosuite-standalone-runtime:LATEST:test;junit:junit:4.12:test" -Doverwrite=true org.pavelreich.saaremaa:plugin:add-dependency
-
+ * mvn
+ * -Ddependencies="org.evosuite:evosuite-standalone-runtime:LATEST:test;junit:junit:4.12:test"
+ * -Doverwrite=true org.pavelreich.saaremaa:plugin:add-dependency
+ * 
  * @author preich
  *
  */
@@ -67,32 +73,86 @@ public class AddDependencyMojo extends AbstractMojo {
 	@Parameter(property = "depDir", defaultValue = "")
 	private String depDir;
 
+	static class Dependency {
+		String groupId, artifactId, version;
+		String fileName;
+		String scope;
+
+		public Dependency(String groupId, String artifactId, String version, String fileName, String scope) {
+			if (groupId == null || artifactId == null || version == null) {
+				throw new IllegalArgumentException("Can't parse " + groupId + ":" + artifactId + ":" + version
+						+ ",  expected groupId:artifactId:version");
+			}
+
+			this.groupId = groupId;
+			this.artifactId = artifactId;
+			this.version = version;
+			this.fileName = fileName;
+		}
+
+		String asTriple() {
+			return groupId + ":" + artifactId + ":" + version;
+		}
+
+		static Dependency fromTriple(String s) {
+			String[] vals = s.split(":");
+			return new Dependency(vals[0], vals[1], vals[2], null, vals[3] != null ? vals[3] : null);
+		}
+
+		@Override
+		public String toString() {
+			return "Dependency [groupId=" + groupId + ", artifactId=" + artifactId + ", version=" + version
+					+ ", fileName=" + fileName + ", scope=" + scope + "]";
+		}
+
+		public String createInstallCommand() {
+			String cmd = "mvn install:install-file " + "-DgroupId=" + groupId + " " + "-DartifactId=" + artifactId + " "
+					+ "-Dversion=" + version + " " + "-Dpackaging=jar " + "-Dfile=" + fileName;
+			return cmd;
+		}
+
+	}
+
+	public static Collection<Dependency> findDependenciesInDir(Path path) throws Exception {
+		List<String> files = java.nio.file.Files.walk(path).filter(p -> p.toFile().getName().endsWith(".jar"))
+				.map(f -> f.toFile().getAbsolutePath()).collect(Collectors.toList());
+		Logger logger = LoggerFactory.getLogger(AddDependencyMojo.class);
+		logger.info("Found " + files + " dependencies");
+		Collection<Dependency> deps = new LinkedHashSet<Dependency>();
+		for (String f : files) {
+			deps.addAll(findDependency(f, logger));
+		}
+		return deps;
+
+	}
+
 	public void execute() throws MojoExecutionException {
 		File file = project.getFile();
 		getLog().info("Reading from pom.xml: " + file);
 		MavenLoggerAsSLF4jLoggerAdaptor logger = new MavenLoggerAsSLF4jLoggerAdaptor(getLog());
 		try {
+			Collection<Dependency> deps = null;
 			if (depDir != null && !depDir.trim().isEmpty()) {
 				Path path = new File(depDir).toPath();
-				List<String> files = java.nio.file.Files.walk(path).
-						filter(p -> p.toFile().getName().endsWith(".jar")).
-						map(f -> f.toFile().getAbsolutePath()).
-						collect(Collectors.toList());
-				logger.info("Found " + files + " dependencies");
-				Set<String> deps = new TreeSet<String>();
-				for (String f: files) {
-					deps.addAll(findDependency(f, logger));
-				}
-				dependencies = deps.stream().collect(Collectors.joining(";"));
+				deps = findDependenciesInDir(path);
+				//dependencies = deps.stream().map(Dependency::asTriple).collect(Collectors.joining(";"));
 				logger.info("Will add dependencies " + dependencies);
 			} else if (depFile != null && !depFile.trim().isEmpty()) {
-				List<String> deps = findDependency(depFile, logger);
-				dependencies = deps.stream().collect(Collectors.joining(";"));
+				deps = findDependency(depFile, logger);
+				//dependencies = deps.stream().map(Dependency::asTriple).collect(Collectors.joining(";"));
 			} else if (dependencies == null || dependencies.trim().isEmpty()) {
 				logger.info("No new dependencies provided. Run with -DdepDir=lib/ -Ddependencies=\"org.junit:junit:4.12;org.banana:core:3.14\"");
 				return;
+			} else if (dependencies != null && !dependencies.trim().isEmpty()){
+				deps = Arrays.stream(dependencies.split(";")).map(Dependency::fromTriple).collect(Collectors.toList());
 			}
-			addDependency(file, Boolean.valueOf(overwrite), dependencies, logger);
+			addDependency(file, Boolean.valueOf(overwrite), deps, logger);
+			String installCmds = deps.stream().filter(p->p.fileName!=null).map(Dependency::createInstallCommand).collect(Collectors.joining("\n"));
+			if (installCmds != null && !installCmds.trim().isEmpty()) {
+				File installFile = new File("install-deps.sh");
+				logger.info("Writing install commands to " + installFile.getAbsolutePath());
+				Files.write(installCmds, installFile, Charset.defaultCharset());
+			}
 		} catch (Exception e) {
 			getLog().error("Can't parse  " + file + " due to " + e.getMessage(), e);
 		}
@@ -101,19 +161,24 @@ public class AddDependencyMojo extends AbstractMojo {
 
 	/**
 	 * example
+	 * 
 	 * @param args
 	 * @throws Exception
 	 */
 	public static void main(String[] args) throws Exception {
 		Logger logger = LoggerFactory.getLogger(AddDependencyMojo.class);
-		findDependency("lib/ehcache-1.2.3.jar", logger);
-		addDependency(new File("pom.xml"), false, "apple:banana:1.0:test;apple:orange:1.3", logger);
+		Path path = new File("/Users/preich/projects/102_squirrel-sql").toPath();
+		Collection<Dependency> deps = findDependenciesInDir(path);
+		System.out.println(deps);
+//		findDependency("lib/ehcache-1.2.3.jar", logger);
+//		addDependency(new File("pom.xml"), false, "apple:banana:1.0:test;apple:orange:1.3", logger);
 	}
 
-	private static List<String> findDependency(String fname, Logger logger) throws IOException {
+	private static Collection<Dependency> findDependency(String fname, Logger logger) throws IOException {
 		byte[] bytes = java.nio.file.Files.readAllBytes(new File(fname).toPath());
 		String sha1code = Hashing.sha1().hashBytes(bytes).toString();
 		List<String> deps = new ArrayList<>();
+		Collection<Dependency> dependencies = new ArrayList();
 		String url = "http://search.maven.org/solrsearch/select?q=1:%22" + sha1code + "%22&rows=20&wt=json";
 		logger.info("For file " + fname + " got SHA1: " + sha1code + ", requesting " + url);
 		InputStream in = new URL(url).openStream();
@@ -129,7 +194,10 @@ public class AddDependencyMojo extends AbstractMojo {
 					for (org.bson.Document doc : docs) {
 						String dep = doc.getString("id");
 						if (deps.isEmpty()) {
-							deps.add(dep);							
+							deps.add(dep);
+							Dependency d = new Dependency(doc.getString("g"), doc.getString("a"), doc.getString("v"),
+									fname, null);
+							dependencies.add(d);
 						} else {
 							logger.info("Already have dependency " + deps + ", ignoring " + dep);
 						}
@@ -143,10 +211,11 @@ public class AddDependencyMojo extends AbstractMojo {
 		} finally {
 			IOUtils.closeQuietly(in);
 		}
-		return deps;
+		return dependencies;
 	}
 
-	private static void addDependency(File srcFile, boolean overwrite, String newDependencies, Logger logger) throws Exception {
+	private static void addDependency(File srcFile, boolean overwrite, Collection<Dependency> deps, Logger logger)
+			throws Exception {
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		DocumentBuilder db;
 		db = dbf.newDocumentBuilder();
@@ -168,23 +237,18 @@ public class AddDependencyMojo extends AbstractMojo {
 			depsEl = dependencies.item(0);
 		}
 
-		for (String s : newDependencies.split(";")) {
+		for (Dependency d : deps) {
+			if (d.fileName != null) {
+				String cmd = d.createInstallCommand();
+				depsEl.appendChild(document.createComment(cmd));
+			}
 			Element newDep = document.createElement("dependency");
-			String[] vals = s.split(":");
-			if (vals.length < 3) {
-				throw new IllegalArgumentException("Can't parse " + newDependencies + ", in particular " + s
-						+ " expected groupId:artifactId:version");
+			addElement(document, newDep, "groupId", d.groupId);
+			addElement(document, newDep, "artifactId", d.artifactId);
+			addElement(document, newDep, "version", d.version);
+			if (d.scope != null) {
+				addElement(document, newDep, "scope", d.scope);
 			}
-			String groupId = vals[0];
-			String artifactId = vals[1];
-			String version = vals[2];
-			addElement(document, newDep, "groupId", groupId);
-			addElement(document, newDep, "artifactId", artifactId);
-			addElement(document, newDep, "version", version);
-			if (vals.length >= 4) {
-				addElement(document, newDep, "scope", vals[3]);
-			}
-
 			depsEl.appendChild(newDep);
 		}
 		DOMSource source = new DOMSource(document);

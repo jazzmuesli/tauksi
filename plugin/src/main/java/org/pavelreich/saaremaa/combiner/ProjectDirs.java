@@ -11,6 +11,7 @@ public class ProjectDirs {
 	List<String> testSrcDirs;
 	Collection<String> mainOutputDirs;
 	Collection<String> testOutputDirs;
+
 	public ProjectDirs(File basedir, String targetDirectory, List<String> srcDirs, List<String> testSrcDirs,
 			Collection<String> mainOutputDirs, Collection<String> testOutputDirs) {
 		this.basedir = basedir;
@@ -20,13 +21,12 @@ public class ProjectDirs {
 		this.mainOutputDirs = mainOutputDirs;
 		this.testOutputDirs = testOutputDirs;
 	}
+
 	@Override
 	public String toString() {
 		return "ProjectDirs [basedir=" + basedir + ", targetDirectory=" + targetDirectory + ", srcDirs=" + srcDirs
 				+ ", testSrcDirs=" + testSrcDirs + ", mainOutputDirs=" + mainOutputDirs + ", testOutputDirs="
 				+ testOutputDirs + "]";
 	}
-	
-	
 
 }

@@ -26,9 +26,11 @@ import org.apache.commons.math3.util.Pair;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.pavelreich.saaremaa.CSVReporter;
+import org.pavelreich.saaremaa.CoverageDataProcessor;
 import org.pavelreich.saaremaa.ForkableTestExecutor;
 import org.pavelreich.saaremaa.ForkableTestLauncher;
 import org.pavelreich.saaremaa.Helper;
+import org.pavelreich.saaremaa.TestExecutionCommand;
 import org.pavelreich.saaremaa.ForkableTestExecutor.TestExecutedMetrics;
 import org.pavelreich.saaremaa.mongo.MongoDBClient;
 import org.slf4j.Logger;
@@ -450,28 +452,46 @@ public class CombineMetricsTask {
 			MetricsManager metricsManager) {
 		File f = new File(file);
 		String sessionId = f.getName().replaceAll("-tmetrics.csv", "");
-//		getLog().info("Processing sessionId=" + sessionId);
+		getLog().info("Processing sessionId=" + sessionId + "  from file=" + f);
+		
 		Collection<Document> testsLaunched = testsLaunchedManager.findDocumentsBySessionId(sessionId);
 
 		Map<String, Document> testClassNames = testsLaunched.stream()
 				.collect(Collectors.toMap(x -> x.getString("testClassName"), x -> x));
+		String testClassName = null;
+		Map<String, Document> testsExecutedDocs  = new HashMap<>();
 		if (testClassNames.size() != 1) {
 			getLog().warn("Found " + testClassNames.keySet() + " testsLaunched for  " + sessionId);
-			return;
+			Collection<Document> classCoverage = classCoverageManager.findDocumentsBySessionId(sessionId);
+			Collection<Document> methodCoverage = methodCoverageManager.findDocumentsBySessionId(sessionId);
+
+			getLog().info("Found " + classCoverage.size() + " classCoverage for " + sessionId);
+			try {
+				TestExecutionCommand testExecCmd = CoverageDataProcessor.extractTestExecutionCommand(f);
+				testClassName = testExecCmd.getTestClassName();
+				if (projectDirs.mainOutputDirs.size() >= 1 && classCoverage.isEmpty()) {
+					String targetClassesDir = projectDirs.mainOutputDirs.iterator().next();
+					getLog().info("Recovering sessionId=" + sessionId + " from "+ targetClassesDir);
+					CoverageDataProcessor coverageDataProcessor = new CoverageDataProcessor("id", db, getLog(), new File(targetClassesDir));
+					coverageDataProcessor.processCoverageData(testExecCmd, file, sessionId, System.currentTimeMillis());
+				}
+			} catch (IOException e1) {
+				getLog().error(e1.getMessage());
+			}
+		} else {
+			Collection<Document> testsExecuted = testsExecutedManager.findDocumentsBySessionId(sessionId);
+
+			testsExecutedDocs = testsExecuted.stream()
+					.collect(Collectors.toMap(x -> x.getString("testClassName"), x -> x));
+
+			Entry<String, Document> testLaunched = testClassNames.entrySet().iterator().next();
+			testClassName = testLaunched.getKey();
 		}
-		Collection<Document> testsExecuted = testsExecutedManager.findDocumentsBySessionId(sessionId);
-
-		Map<String, Document> testsExecutedDocs = testsExecuted.stream()
-				.collect(Collectors.toMap(x -> x.getString("testClassName"), x -> x));
-
-		Entry<String, Document> testLaunched = testClassNames.entrySet().iterator().next();
-		String testClassName = testLaunched.getKey();
 		String prodClassName = Helper.getProdClassName(testClassName);
+		String testCat = Helper.classifyTest(testClassName);
 		Collection<Document> classCoverage = classCoverageManager.findDocumentsBySessionId(sessionId);
 		Collection<Document> methodCoverage = methodCoverageManager.findDocumentsBySessionId(sessionId);
 		Metrics metrics = metricsManager.provideMetrics(prodClassName);
-
-		String testCat = Helper.classifyTest(testClassName);
 
 		Document doc = testsExecutedDocs.get(testClassName);
 		if (doc != null) {
@@ -483,7 +503,9 @@ public class CombineMetricsTask {
 			}
 		}
 
-//		getLog().info("Found " + classCoverage.size() + " classCoverage docs for " + sessionId);
+
+
+		getLog().info("Found " + classCoverage.size() + " classCoverage docs for " + sessionId);
 //		getLog().info("Found " + methodCoverage.size() + " methodCoverage docs for " + sessionId);
 		Map<String, Integer> coveredLines = sumLinesByClass(classCoverage, "coveredLines");
 		Map<String, Integer> missedLines = sumLinesByClass(classCoverage, "missedLines");

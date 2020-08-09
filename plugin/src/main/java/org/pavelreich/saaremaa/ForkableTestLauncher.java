@@ -40,8 +40,7 @@ public class ForkableTestLauncher {
 	private boolean jacocoEnabled;
 	private boolean interceptorEnabled;
 	private MavenProject project;
-	private boolean alwaysIncludeMethodCoverage = false;
-	private boolean alwaysIncludeClassCoverage = false;
+	private CoverageDataProcessor coverageDataProcessor;
 	
 	public ForkableTestLauncher(String id, MongoDBClient db, Logger log, File jagentPath, File jacocoPath, File targetClasses) {
 		this.id = id;
@@ -49,6 +48,7 @@ public class ForkableTestLauncher {
 		this.LOG = log;
 		this.jacocoPath = jacocoPath;
 		this.targetClasses = targetClasses;
+		this.coverageDataProcessor = new CoverageDataProcessor(id, db, log, targetClasses);
 	}
 	
 	public void setTimeout(long timeout) {
@@ -133,7 +133,7 @@ public class ForkableTestLauncher {
 		
 		if (jacocoEnabled) {
 			try {
-				processCoverageData(testExecutionCommand, fname, sessionId, stime);
+				coverageDataProcessor.processCoverageData(testExecutionCommand, fname, sessionId, stime);
 			} catch (Exception e) {
 				LOG.error("Failed to analsye result of " + fname + " from command " + testExecutionCommand + " due to "
 						+ e.getMessage(), e);
@@ -143,74 +143,10 @@ public class ForkableTestLauncher {
 	}
 
 
-	private void processCoverageData(TestExecutionCommand testExecCmd, String fname, String sessionId, long stime) throws IOException {
-		ExecFileLoader execFileLoader = new ExecFileLoader();
-		File file = new File(fname);
-		if (file.exists()) {
-			execFileLoader.load(file);
-			final CoverageBuilder coverageBuilder = new CoverageBuilder();
-			final Analyzer analyzer = new Analyzer(execFileLoader.getExecutionDataStore(), coverageBuilder);
-
-			if (targetClasses.exists()) {
-				analyzer.analyzeAll(targetClasses);
-			} else {
-				LOG.info("targetClasses=" + targetClasses + " doesn't exist");
-			}
-			if (project != null) {
-				List<String> classpathEntries = DependencyHelper.getCoverageClasspath(project);
-				for (String s : classpathEntries) {
-					LOG.info("Calculating coverage for " + s);
-					File f = new File(s);
-					if (f.exists()) {
-						analyzer.analyzeAll(f);
-					}
-				}
-			}
-			
-			
-
-			List<Document> clsCovDocs = new ArrayList<Document>();
-			List<Document> metCovDocs = new ArrayList<Document>();
-			for (final IClassCoverage cc : coverageBuilder.getClasses()) {
-				String prodClassName = cc.getName().replaceAll("/", ".");
-				if (alwaysIncludeClassCoverage || cc.getLineCounter().getCoveredCount() > 0) {
-					clsCovDocs.add(testExecCmd.asDocument().
-							append("prodClassName", prodClassName).
-							append("id", id).
-							append("sessionId", sessionId).
-							append("startTime", stime).
-							append("coveredLines", cc.getLineCounter().getCoveredCount()).
-							append("missedLines", cc.getLineCounter().getMissedCount())
-							);
-					
-				}
-				for (IMethodCoverage method : cc.getMethods()) {
-					if (alwaysIncludeMethodCoverage || method.getLineCounter().getCoveredCount() > 0) {
-						metCovDocs.add(testExecCmd.asDocument().
-								append("prodMethodName", method.getName()).
-								append("prodClassName", prodClassName).
-								append("startTime", stime).
-								append("prodMethodSignature", method.getSignature()).
-								append("prodMethodDescription", method.getDesc()).
-								append("firstLine", method.getFirstLine()).
-								append("lastLine", method.getLastLine()).
-								append("id", id).
-								append("sessionId", sessionId).
-								append("coveredLines", method.getLineCounter().getCoveredCount()).
-								append("missedLines", method.getLineCounter().getMissedCount())
-								);
-					}
-					
-				}
-			}
-			LOG.info("Found coverage for " + coverageBuilder.getClasses().size() + " classes, inserting " + clsCovDocs.size() + " class and " + metCovDocs.size() + " method documents");
-			db.insertCollection(CLASS_COVERAGE_COL_NAME, clsCovDocs);
-			db.insertCollection(METHOD_COVERAGE_COL_NAME, metCovDocs);
-		}
-	}
 
 	public void setProject(MavenProject project) {
 		this.project = project;
+		this.coverageDataProcessor.project = project;
 	}
 
 

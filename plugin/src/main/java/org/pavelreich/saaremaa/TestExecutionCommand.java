@@ -24,6 +24,12 @@ public class TestExecutionCommand {
 		return doc;
 	}
 	
+	public String getTestClassName() {
+		return testClassName;
+	}
+	
+	
+	
 	@Override
 	public String toString() {
 		return testClassName + ((testMethodName != null) ? (":" + testMethodName) : "");

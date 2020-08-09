@@ -86,6 +86,7 @@ public class CKJMMetrics {
 		} else {
 			files = Helper.findFiles(projectDirs.basedir.getAbsolutePath(), p -> p.getName().equals("ckjm.csv"));
 		}
+		getLog().info("Found ckjm test files: " + files);
 		files.forEach(fileName -> {
 			Map<String, Map<String, Long>> allTestCKMetrics = readCKJMMetricPairs(fileName, "T.");
 			allTestCKMetrics.entrySet().stream()
@@ -106,6 +107,7 @@ public class CKJMMetrics {
 			files = Helper.findFiles(projectDirs.basedir.getAbsolutePath(), p -> p.getName().equals("ckjm.csv"));
 		}
 
+		getLog().info("Found ckjm prod files: " + files);
 		files.forEach(file -> {
 			Map<String, Map<String, Long>> prodCKMetrics = readCKJMMetricPairs(file, "");
 			prodCKMetrics.entrySet().stream().filter(p -> !Helper.isTest(p.getKey()))
