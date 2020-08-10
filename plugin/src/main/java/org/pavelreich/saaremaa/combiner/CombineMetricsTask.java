@@ -392,10 +392,11 @@ public class CombineMetricsTask {
 				.collect(Collectors.toSet());
 		Map<ClassMethodKey, CSVRecord> methodMetrics = new HashMap();
 		paths.forEach(path -> methodMetrics.putAll(loadMethodMetrics(path)));
-		ProgressBar.wrap(files.parallelStream(), "coverageMetrics").forEach(file -> {
-			addCoverageMetrics(methodMetrics, file, metricsManager);
-		});
-
+		Stream<String> parallelStream = files.parallelStream();
+		int processed = ProgressBar.wrap(parallelStream, "coverageMetrics").mapToInt(file -> {
+			return addCoverageMetrics(methodMetrics, file, metricsManager);
+		}).sum();
+		getLog().info("Calculated coverage for " + processed + " out of " + files.size() + " files");
 		getLog().info("Generated " + pairs.size() + " from " + files.size() + " files");
 		pairs.forEach(p -> populateTMetrics(p, metricsManager));
 	}
@@ -456,7 +457,7 @@ public class CombineMetricsTask {
 	private final DocumentManager methodCoverageManager = new DocumentManager(
 			ForkableTestLauncher.METHOD_COVERAGE_COL_NAME);
 
-	private void addCoverageMetrics(Map<ClassMethodKey, CSVRecord> methodMetrics, String file,
+	private int addCoverageMetrics(Map<ClassMethodKey, CSVRecord> methodMetrics, String file,
 			MetricsManager metricsManager) {
 		File f = new File(file);
 		String sessionId = f.getName().replaceAll("-tmetrics.csv", "");
@@ -498,7 +499,7 @@ public class CombineMetricsTask {
 		}
 		if (testClassName == null) {
 			getLog().warn("Can't find coverage for " + sessionId);
-			return;
+			return 0;
 		}
 		String prodClassName = Helper.getProdClassName(testClassName);
 		String testCat = Helper.classifyTest(testClassName);
@@ -547,6 +548,7 @@ public class CombineMetricsTask {
 		} catch (Exception e) {
 			getLog().error(e.getMessage(), e);
 		}
+		return 1;
 
 	}
 
