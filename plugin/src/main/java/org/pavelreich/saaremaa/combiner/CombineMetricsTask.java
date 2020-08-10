@@ -394,7 +394,12 @@ public class CombineMetricsTask {
 		paths.forEach(path -> methodMetrics.putAll(loadMethodMetrics(path)));
 		Stream<String> parallelStream = files.parallelStream();
 		int processed = ProgressBar.wrap(parallelStream, "coverageMetrics").mapToInt(file -> {
-			return addCoverageMetrics(methodMetrics, file, metricsManager);
+			try {
+				return addCoverageMetrics(methodMetrics, file, metricsManager);
+			} catch (Exception e) {
+				getLog().error(e.getMessage() + " for " + file, e);
+				return 0;
+			}
 		}).sum();
 		getLog().info("Calculated coverage for " + processed + " out of " + files.size() + " files");
 		getLog().info("Generated " + pairs.size() + " from " + files.size() + " files");
